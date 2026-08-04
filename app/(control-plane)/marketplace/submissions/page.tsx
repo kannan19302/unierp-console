@@ -77,12 +77,12 @@ export default function SubmissionsPage() {
     {
       key: "category",
       header: "Category",
-      render: (r) => <span className="ui-badge">{r.category}</span>,
+      render: (r: Submission) => <span className="ui-badge">{r.category}</span>,
     },
     {
       key: "status",
       header: "Status",
-      render: (r) => {
+      render: (r: Submission) => {
         const cls =
           r.status === "APPROVED"
             ? "ui-badge-success"
@@ -95,24 +95,24 @@ export default function SubmissionsPage() {
     {
       key: "createdAt",
       header: "Submitted",
-      render: (r) => new Date(r.createdAt).toLocaleDateString(),
+      render: (r: Submission) => new Date(r.createdAt).toLocaleDateString(),
     },
     {
       key: "submissionNotes",
       header: "Notes",
-      render: (r) => r.submissionNotes ?? "-",
+      render: (r: Submission) => r.submissionNotes ?? "-",
     },
     {
       key: "actions",
       header: "Actions",
-      render: (r) =>
+      render: (r: Submission) =>
         r.status === "PENDING" ? (
           <div className="ui-flex-row ui-gap-2">
             <Button
               size="sm"
               variant="ghost"
               leftIcon={<CheckCircle size={14} />}
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 handleReview(r.id, "APPROVED");
               }}
@@ -123,7 +123,7 @@ export default function SubmissionsPage() {
               size="sm"
               variant="ghost"
               leftIcon={<XCircle size={14} />}
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 handleReview(r.id, "REJECTED");
               }}
