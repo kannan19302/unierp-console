@@ -1,5 +1,8 @@
 # unierp-console
 
+> Part of **[UniERP](https://github.com/kannan19302/UniERP)** — an open-source, self-hostable multi-tenant application platform.
+> [Repository map](https://github.com/kannan19302/UniERP#repository-map) · [Architecture](https://github.com/kannan19302/UniERP#how-the-pieces-fit-at-runtime) · [Contributing](https://github.com/kannan19302/UniERP/blob/main/CONTRIBUTING.md) · [Security](https://github.com/kannan19302/UniERP/blob/main/SECURITY.md)
+
 **Layer L4** of the UniERP layered repository architecture
 (`PLATFORM_ARCHITECTURE.md` § 4.2). Publishes container image.
 
