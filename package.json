@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@unerp/ui": "workspace:*",
-    "@unerp/framework": "workspace:*",
+    "@unerp/ui": "^1.0.15",
+    "@unerp/framework": "^0.1.4",
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
