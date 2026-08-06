@@ -26,3 +26,31 @@ via `git-filter-repo`.
 packages only once those packages are publishable; the monorepo stays buildable
 at each extraction tag until they do. Rollback is a one-line `pnpm` override
 pointing consumers back at the workspace path.
+
+## Building a container image
+
+This repository has never carried a `Dockerfile`, and that is currently correct
+rather than an oversight.
+
+**The image is built from `ERPSys`**, which remains the authoritative build
+until § 14 Phase 3 step 4 completes:
+
+```bash
+docker compose -f docker-compose.dev.yml --profile console up -d console
+```
+
+This repository cannot yet build its own image. Its `package.json` still
+resolves `@unerp/*` through `workspace:*` specifiers, which name nothing
+outside the monorepo, and its scripts reach for `../../scripts/*`. Extraction
+copied the tree faithfully; it did not make the tree standalone, and § 14 is
+explicit that the monorepo stays buildable until every consumer has switched.
+
+What unblocks a per-repo image is a package registry that CI can reach. The
+self-hosted Verdaccio in `unierp-infra/registry/` answers on localhost only,
+which is why the first cutover was reverted (`ERPSys` a96069e6): every
+`pnpm install --frozen-lockfile` on a runner resolved `@unerp` against the
+runner's own localhost and failed.
+
+Shared services — PostgreSQL, Redis, MinIO — come from
+[`unierp-infra`](https://github.com/kannan19302/unierp-infra):
+`docker compose -f docker-compose.dev.yml up -d`.
