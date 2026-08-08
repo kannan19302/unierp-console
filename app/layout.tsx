@@ -1,4 +1,15 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "@kannan19302/ui/styles";
+import "@kannan19302/ui/styles.css";
+import { ThemeProvider } from "@kannan19302/ui/theme";
+import { ToastProvider } from "@kannan19302/ui/notifications";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "UniERP Platform Admin Console",
@@ -12,8 +23,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={inter.variable} data-theme="dark" suppressHydrationWarning>
+      <body style={{ margin: 0, padding: 0, fontFamily: "var(--font-sans, system-ui, sans-serif)", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
+        <ThemeProvider defaultSetting="dark">
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

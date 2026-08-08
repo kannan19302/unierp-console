@@ -4,7 +4,14 @@
 // This is Layer 3 of the defence-in-depth model (§ 1.2):
 // Layer 1: reserved namespaces  |  Layer 2: ControlPlaneGuard  |  Layer 3: separate origin + realm
 
-import { SessionTokenPayload } from "@kannan19302/auth";
+export interface SessionTokenPayload {
+  sid: string;
+  userId: string;
+  tenantId: string | null;
+  realm?: "tenant" | "provider";
+  amr?: string[];
+  mfaVerified?: boolean;
+}
 
 export function isControlPlaneSession(token: unknown): boolean {
   if (!token || typeof token !== "object") return false;

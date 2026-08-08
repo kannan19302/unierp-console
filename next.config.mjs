@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const apiBaseUrl = process.env.API_URL || 'http://localhost:3001';
+const apiBaseUrl = process.env.API_URL || 'http://localhost:3003';
 
 const nextConfig = {
   // Platform Admin Console — internal tool, IP-allowlisted ingress.
@@ -18,14 +18,27 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
   },
 
-  // The console talks to the control-plane router, never to /api/v1. Keeping the
-  // proxy explicit means a console page cannot reach a tenant endpoint by
-  // accident — the boundary § 3.1 describes is only real if it is wired.
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: 800,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules', '**/.next'],
+      };
+    }
+    return config;
+  },
+
+  // The console talks to the control-plane router and backend API services
   async rewrites() {
     return [
       {
         source: '/api/platform/v1/:path*',
         destination: `${apiBaseUrl}/api/platform/v1/:path*`,
+      },
+      {
+        source: '/api/v1/:path*',
+        destination: `${apiBaseUrl}/api/v1/:path*`,
       },
     ];
   },

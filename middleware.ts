@@ -14,20 +14,21 @@ function decodeJwtPayload(token: string): any {
 
 export function middleware(req: NextRequest) {
   const url = req.nextUrl.clone();
-  
+  const sessionCookie = req.cookies.get("__session")?.value;
+  const payload = sessionCookie ? decodeJwtPayload(sessionCookie) : null;
+  const isValidSession = payload && isControlPlaneSession(payload);
+
   if (url.pathname === "/login") {
+    if (isValidSession) {
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
 
-  const sessionCookie = req.cookies.get("__session")?.value;
-  if (!sessionCookie) {
+  if (!isValidSession) {
     url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  const payload = decodeJwtPayload(sessionCookie);
-  if (!isControlPlaneSession(payload)) {
-    url.pathname = "/login";
+    url.searchParams.set("returnUrl", req.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 

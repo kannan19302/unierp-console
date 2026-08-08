@@ -5,7 +5,7 @@
 #   docker build -t unierp-console .
 
 # ── build ───────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -15,10 +15,8 @@ COPY package.json package-lock.json* ./
 # precedence puts the project file above the user config, and a lockfile written
 # against `localhost` only installs on the machine that wrote it.
 ARG UNIERP_REGISTRY=http://host.docker.internal:4873/
-RUN printf '@unerp:registry=%s\nregistry=https://registry.npmjs.org/\n' "$UNIERP_REGISTRY" > .npmrc \
- && if [ -f package-lock.json ]; then \
-      sed -i "s#http://localhost:4873/#${UNIERP_REGISTRY}#g" package-lock.json; \
-    fi \
+RUN printf '@kannan19302:registry=%s\nregistry=https://registry.npmjs.org/\n' "$UNIERP_REGISTRY" > .npmrc \
+ && rm -f package-lock.json \
  && npm install --no-audit --no-fund
 
 COPY tsconfig.json next.config.mjs next-env.d.ts ./
@@ -42,7 +40,7 @@ ENV NODE_OPTIONS=--max-old-space-size=8192
 RUN npm run build
 
 # ── runtime ─────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
