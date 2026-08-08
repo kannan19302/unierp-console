@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { PageHeader, DataTable, Pagination } from "@unerp/ui";
-import { RouteGuard } from "@unerp/framework";
+import { PageHeader, DataTable, Pagination } from "@kannan19302/ui";
+import { RouteGuard } from "@kannan19302/framework";
 import { Star } from "lucide-react";
-import type { Column } from "@unerp/ui";
+import type { Column } from "@kannan19302/ui";
 
 interface Review {
   id: string;

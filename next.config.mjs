@@ -12,7 +12,7 @@ const nextConfig = {
   // `TypeError: Cannot read properties of null (reading 'useContext')` — two
   // React instances, one of which has no current dispatcher. Letting webpack own
   // the design system keeps a single React and processes its CSS.
-  transpilePackages: ['@unerp/shared', '@unerp/ui', '@unerp/framework'],
+  transpilePackages: ['@kannan19302/shared', '@kannan19302/ui', '@kannan19302/framework'],
 
   experimental: {
     optimizePackageImports: ['lucide-react'],

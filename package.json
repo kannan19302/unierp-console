@@ -1,5 +1,5 @@
 {
-  "name": "@unerp/console",
+  "name": "@kannan19302/console",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@unerp/ui": "^1.0.15",
-    "@unerp/framework": "^0.1.4",
+    "@kannan19302/ui": "^1.0.15",
+    "@kannan19302/framework": "^0.1.4",
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

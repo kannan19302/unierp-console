@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { PageHeader, DataTable, Card } from "@unerp/ui";
-import { RouteGuard } from "@unerp/framework";
-import type { Column } from "@unerp/ui";
+import { PageHeader, DataTable, Card } from "@kannan19302/ui";
+import { RouteGuard } from "@kannan19302/framework";
+import type { Column } from "@kannan19302/ui";
 
 interface AnalyticsRecord {
   id: string;
