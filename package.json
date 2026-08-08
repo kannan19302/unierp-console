@@ -9,8 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@kannan19302/ui": "^1.0.15",
+    "@kannan19302/auth": "^1.0.4",
     "@kannan19302/framework": "^0.1.4",
+    "@kannan19302/ui": "^1.0.15",
+    "lucide-react": "^1.30.0",
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
