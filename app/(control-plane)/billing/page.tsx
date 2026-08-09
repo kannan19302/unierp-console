@@ -1,147 +1,152 @@
 "use client";
-
-import React, { useState } from "react";
+/**
+ * Billing → Overview.
+ * Billing KPI dashboard: MRR/ARR, outstanding invoices and active
+ * subscriptions, plus a recent-invoices list. Real control-plane data only.
+ */
+import { CreditCard, FileText, ReceiptText, TrendingUp, Users } from "lucide-react";
 import {
-  CreditCard,
-  DollarSign,
-  TrendingUp,
-  FileText,
-  Percent,
-  RefreshCw,
-  Plus,
-  CheckCircle2,
-  AlertCircle,
-  Download,
-} from "lucide-react";
-import { Button, Card, Badge, StatusBadge, useToast } from "@kannan19302/ui";
+  Card,
+  EmptyState,
+  Spinner,
+  StatCardRow,
+  Badge,
+  type StatCardItem,
+} from "@kannan19302/ui";
+import { useItem, useList } from "@/lib/data";
+import DomainShell from "@/components/domain-shell";
 
-export default function BillingPage() {
-  const { success, info } = useToast();
-  const [plans, setPlans] = useState([
-    { id: "p1", name: "STARTER TIER", price: "$99 / mo", tenants: 420, maxUsers: 10, maxStorage: "50 GB", apiLimit: "1,000 req/min" },
-    { id: "p2", name: "BUSINESS TIER", price: "$499 / mo", tenants: 680, maxUsers: 50, maxStorage: "200 GB", apiLimit: "2,500 req/min" },
-    { id: "p3", name: "ENTERPRISE TIER", price: "Custom ($2,500+ / mo)", tenants: 148, maxUsers: "Unlimited", maxStorage: "2,000 GB", apiLimit: "10,000 req/min" },
-  ]);
+const fmtMoney = (v: unknown): string =>
+  typeof v === "number"
+    ? `$${v.toLocaleString()}`
+    : typeof v === "string" && v.length > 0
+      ? v
+      : "—";
 
-  const handleRetryPayment = (invId: string) => {
-    success("Payment Charge Retried", `Dispatched Stripe charge retry for invoice ${invId}.`);
-  };
+const OUTSTANDING_STATUSES = ["OPEN", "SENT", "PENDING", "UNPAID", "PAST_DUE", "OVERDUE"];
 
-  const handleGenerateInvoice = () => {
-    info("Custom Enterprise Invoice Generated", "PDF invoice generated and emailed to billing contact.");
-  };
+interface InvoiceRow {
+  id?: string;
+  number?: string;
+  invoiceNumber?: string;
+  amount?: number;
+  amountTotal?: number;
+  currency?: string;
+  status?: string;
+  issuedAt?: string;
+  dueDate?: string;
+  tenantId?: string;
+  tenantName?: string;
+}
+
+export default function BillingOverview() {
+  const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
+  const invoices = useList<InvoiceRow>({ path: "/platform/v1/invoices" });
+
+  const s = summary.data ?? {};
+  const outstanding = invoices.data.filter((i) =>
+    OUTSTANDING_STATUSES.includes((i.status ?? "").toUpperCase()),
+  ).length;
+
+  const activeSubs =
+    s.activeSubscriptions ?? s.activeSubscriptionCount ?? s.subscriptionCount ?? s.totalSubscriptions ?? null;
+
+  const stats: StatCardItem[] = [
+    { label: "MRR", value: fmtMoney(s.mrr ?? s.monthlyRecurringRevenue), icon: <TrendingUp size={18} /> },
+    { label: "ARR", value: fmtMoney(s.arr ?? s.annualRecurringRevenue), icon: <ReceiptText size={18} /> },
+    { label: "Outstanding invoices", value: outstanding, icon: <FileText size={18} /> },
+    {
+      label: "Active subscriptions",
+      value: activeSubs != null ? String(activeSubs) : "—",
+      icon: <Users size={18} />,
+    },
+    { label: "Invoices issued", value: invoices.total ?? invoices.data.length, icon: <CreditCard size={18} /> },
+  ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text)" }}>
-            Revenue Operations & Subscription Billing
-          </h1>
-          <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: 14 }}>
-            MRR/ARR growth metrics, tiered plan builder, metered usage reconciliation & invoice processor.
-          </p>
-        </div>
+    <DomainShell
+      domainId="billing"
+      title="Billing"
+      description="Revenue, plans, subscriptions, invoices and metering across the platform."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+        <StatCardRow stats={stats} columns={5} />
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <Button variant="primary" onClick={handleGenerateInvoice} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)" }}>
-            <Plus size={16} /> Create Enterprise Quote / Invoice
-          </Button>
-        </div>
-      </div>
-
-      {/* Top Financial Stat Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Monthly Recurring Revenue</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>$420,500</div>
-          <span style={{ fontSize: 12, color: "#34d399" }}>+14.2% MoM Growth</span>
-        </div>
-
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Annual Run Rate (ARR)</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "var(--color-text)", marginTop: 4 }}>$5,046,000</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Projected FY2026</span>
-        </div>
-
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Net Revenue Retention (NRR)</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#34d399", marginTop: 4 }}>128.4%</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Expansion vs Churn</span>
-        </div>
-
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Pending Invoices</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#fbbf24", marginTop: 4 }}>$12,400 (4)</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Dunning Retry Queue</span>
-        </div>
-      </div>
-
-      {/* Tiered Subscription Plan Catalog Builder */}
-      <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px 0", color: "var(--color-text)" }}>Subscription Plan Catalog & Quotas</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-          {plans.map((p) => (
-            <div key={p.id} style={{ padding: 18, borderRadius: 10, backgroundColor: "rgba(15, 23, 42, 0.6)", border: "1px solid var(--color-border)" }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#60a5fa" }}>{p.name}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "var(--color-text)", margin: "8px 0" }}>{p.price}</div>
-              <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 12 }}>{p.tenants} Active Tenants Subscribed</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "var(--color-text-secondary)" }}>
-                <div>• Max Seats: {p.maxUsers}</div>
-                <div>• Storage Cap: {p.maxStorage}</div>
-                <div>• API Speed: {p.apiLimit}</div>
-              </div>
+        <Card padding="md">
+          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Recent invoices</h3>
+          {summary.loading || invoices.loading ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
+              <Spinner size="md" />
             </div>
-          ))}
-        </div>
+          ) : invoices.error ? (
+            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>
+              {invoices.error.message}
+            </p>
+          ) : invoices.data.length === 0 ? (
+            <EmptyState title="No invoices" description="The invoices endpoint returned no rows." />
+          ) : (
+            <ul
+              style={{
+                listStyle: "none",
+                margin: "var(--space-3) 0 0",
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {invoices.data.slice(0, 10).map((inv) => (
+                <li
+                  key={inv.id ?? inv.number ?? inv.invoiceNumber ?? "?"}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "var(--space-2) 0",
+                    borderBottom: "1px solid var(--color-border)",
+                    gap: "var(--space-3)",
+                  }}
+                >
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+<span style={{ fontWeight: 500 }}>
+                      {inv.number ?? inv.invoiceNumber ?? inv.id ?? "—"}
+                    </span>
+                    {inv.tenantName ? (
+                      <span style={{ color: "var(--color-text-muted)", marginLeft: "var(--space-2)", fontSize: "var(--text-sm)" }}>
+                        · {inv.tenantName}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+                      {fmtMoney(inv.amount ?? inv.amountTotal)}
+                    </span>
+                    <Badge variant={statusVariant(inv.status)}>{inv.status ?? "UNKNOWN"}</Badge>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
-
-      {/* Recent Invoices & Dunning Retry Center */}
-      <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-        <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 16px 0", color: "var(--color-text)" }}>Recent Tenant Invoices & Dunning Status</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "var(--color-bg)", borderBottom: "1px solid var(--color-border)" }}>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Invoice ID</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Tenant</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Amount</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Billing Period</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Status</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { id: "INV-2026-0801", tenant: "Acme Corporation", amount: "$2,500.00", period: "Aug 2026", status: "PAID" },
-              { id: "INV-2026-0802", tenant: "Stark Industries", amount: "$4,800.00", period: "Aug 2026", status: "PAID" },
-              { id: "INV-2026-0803", tenant: "Cyberdyne Systems", amount: "$99.00", period: "Aug 2026", status: "FAILED_RETRY_1" },
-              { id: "INV-2026-0804", tenant: "Wayne Enterprises", amount: "$5,000.00", period: "Aug 2026", status: "PAID" },
-            ].map((inv) => (
-              <tr key={inv.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <td style={{ padding: "10px 14px", color: "#60a5fa", fontWeight: 600 }}>{inv.id}</td>
-                <td style={{ padding: "10px 14px", color: "var(--color-text)" }}>{inv.tenant}</td>
-                <td style={{ padding: "10px 14px", color: "var(--color-text)", fontWeight: 600 }}>{inv.amount}</td>
-                <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>{inv.period}</td>
-                <td style={{ padding: "10px 14px" }}>
-                  <StatusBadge status={inv.status} />
-                </td>
-                <td style={{ padding: "10px 14px" }}>
-                  {inv.status !== "PAID" ? (
-                    <Button size="sm" variant="primary" onClick={() => handleRetryPayment(inv.id)}>
-                      Retry Payment
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="secondary" onClick={() => info("PDF Downloaded", `Downloaded ${inv.id}.pdf`)}>
-                      <Download size={14} /> PDF
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </DomainShell>
   );
+}
+
+function statusVariant(
+  status?: string,
+): "success" | "default" | "primary" | "warning" | "danger" | "info" {
+  switch ((status ?? "").toUpperCase()) {
+    case "PAID":
+      return "success";
+    case "OPEN":
+    case "SENT":
+    case "PENDING":
+      return "info";
+    case "PAST_DUE":
+    case "OVERDUE":
+    case "UNPAID":
+      return "danger";
+    default:
+      return "default";
+  }
 }

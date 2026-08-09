@@ -14,10 +14,10 @@ COPY package.json package-lock.json* ./
 # project-level .npmrc and why the lockfile's tarball host is rewritten: npm's
 # precedence puts the project file above the user config, and a lockfile written
 # against `localhost` only installs on the machine that wrote it.
-ARG UNIERP_REGISTRY=http://host.docker.internal:4873/
+ARG UNIERP_REGISTRY=https://registry.npmjs.org/
 RUN printf '@kannan19302:registry=%s\nregistry=https://registry.npmjs.org/\n' "$UNIERP_REGISTRY" > .npmrc \
  && rm -f package-lock.json \
- && npm install --no-audit --no-fund
+ && npm install --no-audit --no-fund --legacy-peer-deps
 
 COPY tsconfig.json next.config.mjs next-env.d.ts ./
 COPY src ./src
@@ -29,7 +29,9 @@ COPY app ./app
 # setting NEXT_PUBLIC_API_URL to a bare origin makes the browser bypass its own
 # proxy and aim auth at the service that does not own it.
 ARG API_URL=http://api:3001
+ARG IDP_URL=http://idp:3005
 ENV API_URL=$API_URL
+ENV IDP_URL=$IDP_URL
 ENV NEXT_PUBLIC_API_URL=""
 ENV NEXT_TELEMETRY_DISABLED=1
 # Next.js holds the whole route graph in memory and this app has ~470 routes.

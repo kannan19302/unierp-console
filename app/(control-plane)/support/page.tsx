@@ -1,157 +1,257 @@
 "use client";
-
-import React, { useState } from "react";
+/**
+ * Support → Dashboard.
+ * KPI cards (open tickets, SLA breaches, active incidents, customers) plus
+ * recent tickets and the support-admin summary — all real control-plane reads.
+ */
 import {
-  Headphones,
+  Ticket,
+  ShieldCheck,
+  Users,
+  AlertTriangle,
+  Activity,
   Clock,
-  AlertCircle,
-  CheckCircle2,
-  UserCheck,
-  Search,
-  MessageSquare,
-  Zap,
 } from "lucide-react";
-import { Button, Card, Badge, StatusBadge, useToast } from "@kannan19302/ui";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  Spinner,
+  StatCardRow,
+  type StatCardItem,
+} from "@kannan19302/ui";
+import { useItem, useList } from "@/lib/data";
+import DomainShell from "@/components/domain-shell";
 
-interface Ticket {
+interface ServiceTicket {
   id: string;
-  tenant: string;
-  subject: string;
-  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
-  slaTimeLeft: string;
-  assignee: string;
+  subject?: string;
+  title?: string;
+  ticketNumber?: string;
+  status?: string;
+  priority?: string;
+  category?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  tenantId?: string;
+  customerId?: string;
 }
 
-export default function SupportPage() {
-  const { success, warning, info } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [tickets, setTickets] = useState<Ticket[]>([
-    { id: "TICK-402", tenant: "Cyberdyne Systems", subject: "SAML OIDC SSO Assertion signature mismatch on login", priority: "HIGH", status: "OPEN", slaTimeLeft: "1h 42m", assignee: "Support Specialist (Alex)" },
-    { id: "TICK-401", tenant: "Umbrella Corp", subject: "Database query timeout on heavy CSV batch export", priority: "MEDIUM", status: "IN_PROGRESS", slaTimeLeft: "4h 10m", assignee: "DB Engineer (Maria)" },
-    { id: "TICK-400", tenant: "Stark Industries", subject: "Custom domain CNAME SSL auto-renewal verification", priority: "LOW", status: "OPEN", slaTimeLeft: "18h 00m", assignee: "Unassigned" },
-    { id: "TICK-399", tenant: "Acme Corporation", subject: "API Rate limit increase request for Black Friday promo", priority: "HIGH", status: "RESOLVED", slaTimeLeft: "Resolved", assignee: "Platform Admin" },
-  ]);
+interface CustomerRow {
+  id: string;
+  name: string;
+  status?: string;
+  plan?: string;
+  region?: string;
+}
 
-  const handleResolve = (id: string) => {
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status: "RESOLVED", slaTimeLeft: "Resolved" } : t)));
-    success("Support Ticket Resolved", `Ticket ${id} marked as resolved. Customer notified.`);
-  };
+interface SlaUptimeRow {
+  id?: string;
+  service?: string;
+  name?: string;
+  uptime?: number;
+  target?: number;
+  breaches?: number;
+}
 
-  const handleEscalate = (id: string) => {
-    warning("Ticket Escalated to PagerDuty", `Dispatched urgent alert for ticket ${id} to L3 On-Call Engineer.`);
-  };
+interface IncidentRow {
+  id: string;
+  title?: string;
+  summary?: string;
+  status?: string;
+  severity?: string;
+}
 
-  const filteredTickets = tickets.filter(
-    (t) => t.tenant.toLowerCase().includes(searchQuery.toLowerCase()) || t.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+interface SupportAdmin {
+  agentsOnline?: number;
+  openTickets?: number;
+  unassigned?: number;
+  avgFirstResponse?: string | number;
+  slaCoverage?: string | number;
+}
+
+function fmtDate(v?: string): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? v : d.toLocaleString();
+}
+
+function num(v: unknown): number | undefined {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+export default function SupportDashboard() {
+  const tickets = useList<ServiceTicket>({ path: "/saas/support" });
+  const tenants = useList<CustomerRow>({ path: "/platform/v1/super-admin/tenants" });
+  const sla = useList<SlaUptimeRow>({ path: "/platform/v1/enterprise-scale/sla-uptimes" });
+  const incidents = useList<IncidentRow>({ path: "/platform/v1/operations/incidents" });
+  const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
+  const admin = useItem<SupportAdmin>("/saas/support-admin");
+
+  const openStatuses = new Set(["OPEN", "NEW", "IN_PROGRESS", "PENDING", "ASSIGNED", "REOPENED"]);
+  const openTickets = tickets.data.filter((t) => openStatuses.has((t.status ?? "").toUpperCase())).length;
+  const activeIncidents = incidents.data.filter((i) =>
+    !["RESOLVED", "CLOSED", "MITIGATED"].includes((i.status ?? "").toUpperCase()),
+  ).length;
+  const slaBreaches = sla.data.reduce((n, r) => n + (num(r.breaches) ?? 0), 0);
+
+  const s = summary.data ?? {};
+  const stats: StatCardItem[] = [
+    {
+      label: "Open tickets",
+      value: num(s.openTickets) ?? openTickets,
+      icon: <Ticket size={18} />,
+      color: "var(--color-primary)",
+    },
+    {
+      label: "SLA breaches",
+      value: num(s.slaBreaches) ?? slaBreaches,
+      icon: <AlertTriangle size={18} />,
+      color: "var(--color-danger)",
+    },
+    {
+      label: "Active incidents",
+      value: num(s.openIncidents) ?? activeIncidents,
+      icon: <Activity size={18} />,
+      color: "var(--color-warning)",
+    },
+    {
+      label: "Customers",
+      value: num(s.totalTenants) ?? tenants.total ?? tenants.data.length,
+      icon: <Users size={18} />,
+      color: "var(--color-success)",
+    },
+  ];
+
+  if (tickets.loading || tenants.loading || sla.loading || incidents.loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text)" }}>
-            Provider Support Desk & SLA Command
-          </h1>
-          <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: 14 }}>
-            Cross-tenant support ticket queue, live SLA countdown timers, canned playbooks & PagerDuty escalation.
-          </p>
-        </div>
+    <DomainShell
+      domainId="support"
+      title="Support"
+      description="Ticket queue, SLA compliance, customers and incident posture."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+        <StatCardRow stats={stats} columns={4} />
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <Button variant="secondary" onClick={() => info("Canned Playbook Injected", "Copied SSO troubleshooting response.")}>
-            <MessageSquare size={15} style={{ marginRight: 6 }} /> Canned Playbooks
-          </Button>
-        </div>
-      </div>
-
-      {/* SLA Metric Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Open Support Tickets</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#fbbf24", marginTop: 4 }}>3 Tickets</div>
-        </div>
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Average First Response SLA</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#34d399", marginTop: 4 }}>14 Minutes</div>
-        </div>
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>Customer CSAT Rating</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#60a5fa", marginTop: 4 }}>4.92 / 5.0</div>
-        </div>
-        <div style={{ padding: 18, borderRadius: 10, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: 13 }}>SLA Breach Risk</span>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#34d399", marginTop: 4 }}>0 Breaches</div>
-        </div>
-      </div>
-
-      {/* Search Toolbar */}
-      <div style={{ position: "relative" }}>
-        <Search size={16} style={{ position: "absolute", left: 12, top: 12, color: "#64748b" }} />
-        <input
-          type="text"
-          placeholder="Search support tickets by tenant or subject line..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+        <div
           style={{
-            width: "100%",
-            padding: "10px 12px 10px 38px",
-            background: "var(--color-bg-elevated)",
-            border: "1px solid var(--color-border)",
-            borderRadius: 8,
-            color: "var(--color-text)",
-            fontSize: 13,
-            outline: "none",
-            boxSizing: "border-box",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "var(--space-4)",
           }}
-        />
-      </div>
+        >
+          <Card padding="md">
+            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Recent tickets</h3>
+            {tickets.error ? (
+              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>{tickets.error.message}</p>
+            ) : tickets.data.length === 0 ? (
+              <EmptyState title="No support tickets" description="The support endpoint returned no tickets." />
+            ) : (
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: "var(--space-3) 0 0",
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {tickets.data.slice(0, 8).map((t) => (
+                  <li
+                    key={t.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-3)",
+                      padding: "var(--space-2) 0",
+                      borderBottom: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: "block",
+                          fontWeight: 500,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {t.subject ?? t.title ?? (t.ticketNumber ? `Ticket ${t.ticketNumber}` : t.id)}
+                      </span>
+                      <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                        {fmtDate(t.createdAt)} {t.priority ? `· ${t.priority}` : ""}
+                      </span>
+                    </span>
+                    <Badge
+                      variant={
+                        ["RESOLVED", "CLOSED", "COMPLETED"].includes((t.status ?? "").toUpperCase())
+                          ? "success"
+                          : ["IN_PROGRESS", "ASSIGNED"].includes((t.status ?? "").toUpperCase())
+                            ? "primary"
+                            : ["PENDING", "WAITING"].includes((t.status ?? "").toUpperCase())
+                              ? "warning"
+                              : "default"
+                      }
+                    >
+                      {t.status ?? "UNKNOWN"}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
-      {/* Support Ticket Matrix Table */}
-      <div style={{ background: "var(--color-bg-elevated)", borderRadius: 10, border: "1px solid var(--color-border)", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "var(--color-bg)", borderBottom: "1px solid var(--color-border)" }}>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>Ticket ID</th>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>Tenant</th>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>Subject Line</th>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>Priority</th>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>SLA Timer</th>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>Assignee</th>
-              <th style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTickets.map((t) => (
-              <tr key={t.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <td style={{ padding: "12px 16px", color: "#60a5fa", fontWeight: 600 }}>{t.id}</td>
-                <td style={{ padding: "12px 16px", color: "var(--color-text)", fontWeight: 600 }}>{t.tenant}</td>
-                <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>{t.subject}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <Badge variant={t.priority === "HIGH" ? "warning" : t.priority === "MEDIUM" ? "info" : "default"}>
-                    {t.priority}
-                  </Badge>
-                </td>
-                <td style={{ padding: "12px 16px", color: t.slaTimeLeft === "Resolved" ? "#34d399" : "#fbbf24", fontWeight: 600 }}>
-                  <Clock size={13} style={{ verticalAlign: "middle", marginRight: 4 }} /> {t.slaTimeLeft}
-                </td>
-                <td style={{ padding: "12px 16px", color: "var(--color-text-secondary)" }}>{t.assignee}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {t.status !== "RESOLVED" && (
-                      <>
-                        <Button size="sm" variant="primary" onClick={() => handleResolve(t.id)}>Resolve</Button>
-                        <Button size="sm" variant="secondary" onClick={() => handleEscalate(t.id)} style={{ color: "#fca5a5", borderColor: "rgba(239,68,68,0.3)" }}>Escalate</Button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <Card padding="md">
+            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Support admin</h3>
+            {admin.error ? (
+              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>{admin.error.message}</p>
+            ) : !admin.data ? (
+              <EmptyState title="No admin summary" description="The support-admin endpoint returned no data." />
+            ) : (
+              <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
+                {[
+                  { label: "Agents online", value: admin.data.agentsOnline, icon: <Users size={16} /> },
+                  { label: "Open (admin)", value: admin.data.openTickets, icon: <Ticket size={16} /> },
+                  { label: "Unassigned", value: admin.data.unassigned, icon: <Clock size={16} /> },
+                  { label: "Avg first response", value: admin.data.avgFirstResponse, icon: <ShieldCheck size={16} /> },
+                  {
+                    label: "SLA coverage",
+                    value: admin.data.slaCoverage != null ? `${admin.data.slaCoverage}%` : undefined,
+                    icon: <AlertTriangle size={16} />,
+                  },
+                ].map((row) => (
+                  <li
+                    key={row.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "var(--space-2) 0",
+                      borderBottom: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+                      {row.icon} <span>{row.label}</span>
+                    </span>
+                    <span style={{ fontWeight: 600 }}>{row.value != null ? String(row.value) : "—"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
       </div>
-    </div>
+    </DomainShell>
   );
 }

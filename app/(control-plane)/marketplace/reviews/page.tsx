@@ -1,111 +1,218 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import { PageHeader, DataTable, Pagination } from "@kannan19302/ui";
-import { RouteGuard } from "@kannan19302/framework";
-import { Star } from "lucide-react";
-import type { Column } from "@kannan19302/ui";
+/**
+ * Marketplace → Reviews.
+ *
+ * App reviews read from the verified admin marketplace reviews endpoint
+ * (`/admin/marketplace/apps/:slug/reviews`), with an app selector driven by
+ * the storefront listing.
+ */
+import { useEffect, useState } from "react";
+import { Star, User } from "lucide-react";
+import { Card, EmptyState, Spinner, Badge, usePermission } from "@kannan19302/ui";
+import { useItem } from "@/lib/data";
+import DomainShell from "@/components/domain-shell";
 
-interface Review {
-  id: string;
-  userId: string;
-  userName: string;
-  rating: number;
-  title: string | null;
-  body: string | null;
-  createdAt: string;
-  appId: string;
+interface StorefrontApp {
+  id?: string;
+  slug?: string;
+  name?: string;
 }
 
+interface StorefrontResponse {
+  apps?: StorefrontApp[];
+}
+
+interface AppReview {
+  id?: string;
+  rating?: number;
+  title?: string;
+  body?: string;
+  userName?: string;
+  userId?: string;
+  tenant?: { name?: string } | null;
+  verifiedPurchase?: boolean;
+  createdAt?: string;
+}
+
+interface ReviewsResponse {
+  reviews?: AppReview[];
+  total?: number;
+}
+
+const ratingColor = (r?: number) =>
+  r == null
+    ? "var(--color-text-muted)"
+    : r >= 4
+      ? "var(--color-success)"
+      : r >= 3
+        ? "var(--color-warning)"
+        : "var(--color-danger)";
+
 export default function MarketplaceReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [appId, setAppId] = useState("");
+  const canRead = usePermission("admin.platform.read");
+  const store = useItem<StorefrontResponse>(canRead ? "/storefront/apps" : null);
 
-  const fetchReviews = useCallback(async () => {
-    if (!appId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const res = await fetch(
-      `/api/v1/marketplace/apps/${appId}/reviews?page=${page}&limit=20`,
-    );
-    if (res.ok) {
-      const data = await res.json();
-      setReviews(data.items);
-      setTotalPages(data.totalPages);
-    }
-    setLoading(false);
-  }, [appId, page]);
-
+  const [selected, setSelected] = useState<string>("");
   useEffect(() => {
-    fetchReviews();
-  }, [fetchReviews]);
+    if (!selected && store.data?.apps?.length) {
+      setSelected(store.data.apps[0].slug ?? "");
+    }
+  }, [selected, store.data]);
 
-  const columns: Column<Review>[] = [
-    { key: "userName", header: "User", render: (r) => r.userName },
-    {
-      key: "rating",
-      header: "Rating",
-      render: (r) => (
-        <span className="ui-flex-row ui-gap-1">
-          {Array.from({ length: r.rating }, (_, i) => (
-            <Star
-              key={i}
-              size={14}
-              className="u-text-warning"
-              fill="currentColor"
-            />
-          ))}
-        </span>
-      ),
-    },
-    { key: "title", header: "Title", render: (r) => r.title ?? "-" },
-    {
-      key: "body",
-      header: "Review",
-      render: (r) => (
-        <span className="u-text-muted u-line-clamp-2">{r.body ?? "-"}</span>
-      ),
-    },
-    {
-      key: "createdAt",
-      header: "Date",
-      render: (r) => new Date(r.createdAt).toLocaleDateString(),
-    },
-  ];
+  const reviews = useItem<ReviewsResponse>(
+    canRead && selected ? `/admin/marketplace/apps/${selected}/reviews` : null,
+  );
+
+  const apps = store.data?.apps ?? [];
+  const list = reviews.data?.reviews ?? [];
+
+  if (store.loading || (selected && reviews.loading)) {
+    return (
+      <DomainShell
+        domainId="marketplace"
+        title="Reviews"
+        description="Tenant reviews and ratings for marketplace apps."
+      >
+        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
+          <Spinner size="md" />
+        </div>
+      </DomainShell>
+    );
+  }
 
   return (
-    <RouteGuard permission="marketplace.review.read">
-      <div className="ui-stack-6">
-        <PageHeader
-          title="App Reviews"
-          description="Browse and moderate marketplace app reviews."
-          breadcrumbs={[
-            { label: "Apps", href: "/apps" },
-            { label: "Marketplace", href: "/marketplace" },
-            { label: "Reviews" },
-          ]}
-        />
-        <div className="ui-form-group">
-          <label className="ui-label">App ID</label>
-          <input
-            className="ui-input u-w-96"
-            placeholder="Enter app ID to view reviews"
-            value={appId}
-            onChange={(e) => {
-              setAppId(e.target.value);
-              setPage(1);
+    <DomainShell
+      domainId="marketplace"
+      title="Reviews"
+      description="Tenant reviews and ratings for marketplace apps."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+        <Card padding="md">
+          <label
+            htmlFor="review-app-select"
+            style={{ fontSize: "var(--text-sm)", fontWeight: 600, display: "block" }}
+          >
+            Application
+          </label>
+          <select
+            id="review-app-select"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            style={{
+              marginTop: "var(--space-2)",
+              width: "100%",
+              padding: "var(--space-2)",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-bg)",
+              color: "var(--color-text)",
+              fontSize: "var(--text-sm)",
             }}
-          />
-        </div>
-        <DataTable columns={columns} data={reviews} loading={loading} />
-        {totalPages > 1 && (
-          <Pagination page={page} pageCount={totalPages} onChange={setPage} />
+          >
+            {apps.map((app) => (
+              <option key={app.id ?? app.slug} value={app.slug ?? ""}>
+                {app.name ?? app.slug ?? "—"}
+              </option>
+            ))}
+          </select>
+        </Card>
+
+        {store.error ? (
+          <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
+            {store.error.message}
+          </p>
+        ) : reviews.error ? (
+          <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
+            {reviews.error.message}
+          </p>
+        ) : list.length === 0 ? (
+          <Card padding="md">
+            <EmptyState
+              title="No reviews"
+              description="This app has no reviews yet."
+            />
+          </Card>
+        ) : (
+          <Card padding="md">
+            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
+              Reviews — {selected} ({reviews.data?.total ?? list.length})
+            </h3>
+            <ul
+              style={{
+                listStyle: "none",
+                margin: "var(--space-3) 0 0",
+                padding: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {list.map((review) => (
+                <li
+                  key={review.id ?? review.userId ?? "?"}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-1)",
+                    padding: "var(--space-3) 0",
+                    borderBottom: "1px solid var(--color-border)",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-3)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--space-2)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Star size={14} style={{ color: ratingColor(review.rating) }} fill="currentColor" />
+                      <span style={{ color: ratingColor(review.rating) }}>
+                        {review.rating ?? "—"}/5
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "var(--text-sm)",
+                          fontWeight: 500,
+                          color: "var(--color-text)",
+                        }}
+                      >
+                        {review.title ?? "—"}
+                      </span>
+                      {review.verifiedPurchase && <Badge variant="success">Verified</Badge>}
+                    </span>
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--space-1)",
+                        fontSize: "var(--text-xs)",
+                        color: "var(--color-text-muted)",
+                      }}
+                    >
+                      <User size={12} />
+                      {review.userName ?? review.tenant?.name ?? review.userId ?? "—"} ·{" "}
+                      {review.createdAt ?? ""}
+                    </span>
+                  </span>
+                  {review.body && (
+                    <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", margin: 0 }}>
+                      {review.body}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
       </div>
-    </RouteGuard>
+    </DomainShell>
   );
 }

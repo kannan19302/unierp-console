@@ -1,227 +1,234 @@
 "use client";
-
-import React, { useState } from "react";
+/**
+ * Security & Compliance → Overview.
+ * KPI dashboard + recent alerts. Real reads from the control-plane security,
+ * enterprise-scale and audit endpoints. No mocked rows.
+ */
 import {
-  ShieldCheck,
-  ShieldAlert,
-  Key,
-  Lock,
-  FileText,
-  Search,
-  Download,
-  AlertOctagon,
-  CheckCircle2,
-  RefreshCw,
-  Sliders,
-  UserCheck,
-  Eye,
-  Trash2,
-} from "lucide-react";
-import { Button, Card, Badge, StatusBadge, useToast } from "@kannan19302/ui";
+  Card,
+  EmptyState,
+  Spinner,
+  StatCardRow,
+  Badge,
+  type StatCardItem,
+} from "@kannan19302/ui";
+import { useList, useItem } from "@/lib/data";
+import DomainShell from "@/components/domain-shell";
 
-export default function SecurityPage() {
-  const { success, warning, info } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [severityFilter, setSeverityFilter] = useState("ALL");
-  const [mfaMandatory, setMfaMandatory] = useState(true);
+interface AdminAlert {
+  id?: string;
+  type?: string;
+  severity?: string;
+  title?: string;
+  message?: string;
+  isRead?: boolean;
+  isDismissed?: boolean;
+  createdAt?: string;
+}
 
-  const handleRotateKey = (keyName: string) => {
-    success("Master KMS Key Rotated", `Rotated key "${keyName}". New version active across all clusters.`);
+interface AuditEvent {
+  id?: string;
+  userId?: string;
+  action?: string;
+  createdAt?: string;
+  ipAddress?: string;
+}
+
+interface EnterpriseRow {
+  id?: string;
+  name?: string;
+  key?: string;
+}
+
+interface OperationsSummary {
+  status?: string;
+  metrics?: {
+    queueDepth?: number;
+    deadLetters?: number;
+    outboxLagSeconds?: number;
+    degradedTenants?: number;
+    migrationState?: string;
   };
+}
 
-  const handleRevokeSessions = () => {
-    warning("Global Session Revocation Executed", "Terminated all non-whitelisted admin & tenant sessions.");
-  };
+export default function SecurityOverview() {
+  const alerts = useList<AdminAlert>({ path: "/admin/alerts" });
+  const keyRotations = useList<EnterpriseRow>({
+    path: "/platform/v1/enterprise-scale/key-rotations",
+  });
+  const isolationPolicies = useList<EnterpriseRow>({
+    path: "/platform/v1/enterprise-scale/isolation-policies",
+  });
+  const auditEvents = useList<AuditEvent>({ path: "/audit/security" });
+  const ops = useItem<OperationsSummary>("/platform/v1/operations/dashboard");
 
-  const handleExportSoc2Report = () => {
-    info("SOC2 Compliance Package Exported", "Generated cryptographically signed PDF audit report.");
-  };
+  const openAlerts = alerts.data.filter((a) => !a.isDismissed).length;
+  const unreadAlerts = alerts.data.filter((a) => !a.isRead).length;
+  const rotationsTotal =
+    Number(keyRotations.total) || keyRotations.data.length;
+  const isolationTotal =
+    Number(isolationPolicies.total) || isolationPolicies.data.length;
+  const auditTotal = Number(auditEvents.total) || auditEvents.data.length;
 
-  const auditLogs = [
-    { id: "log-101", time: "10:48:02 AM", actor: "admin@kannan19302.dev", event: "PROVIDER_MFA_ENFORCE", severity: "HIGH", ip: "192.168.1.45", target: "Platform Staff" },
-    { id: "log-102", time: "10:30:14 AM", actor: "support@kannan19302.dev", event: "TENANT_IMPERSONATE", severity: "MEDIUM", ip: "192.168.1.88", target: "acme-corp" },
-    { id: "log-103", time: "09:55:40 AM", actor: "system-kms", event: "KMS_MASTER_KEY_ROTATE", severity: "LOW", ip: "10.0.0.1", target: "Vault Engine" },
-    { id: "log-104", time: "08:12:19 AM", actor: "unknown-ip-203.0.113.5", event: "BRUTE_FORCE_FLAG", severity: "CRITICAL", ip: "203.0.113.5", target: "Login Gateway" },
+  const stats: StatCardItem[] = [
+    { label: "Open alerts", value: openAlerts },
+    { label: "Key rotations", value: rotationsTotal },
+    { label: "Isolation policies", value: isolationTotal },
+    { label: "Audit events", value: auditTotal },
   ];
 
-  const filteredLogs = auditLogs.filter((log) => {
-    const matchesSearch = log.actor.toLowerCase().includes(searchQuery.toLowerCase()) || log.event.toLowerCase().includes(searchQuery.toLowerCase()) || log.ip.includes(searchQuery);
-    const matchesSeverity = severityFilter === "ALL" || log.severity === severityFilter;
-    return matchesSearch && matchesSeverity;
-  });
+  const loading =
+    alerts.loading ||
+    keyRotations.loading ||
+    isolationPolicies.loading ||
+    auditEvents.loading ||
+    ops.loading;
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  const m = ops.data?.metrics;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0", color: "var(--color-text)" }}>
-            Security, Audit & Compliance Control Center
-          </h1>
-          <p style={{ margin: 0, color: "var(--color-text-secondary)", fontSize: 14 }}>
-            Immutable provider audit logs, threat monitoring, KMS key rotation, SOC2 evidence & session revocation.
-          </p>
-        </div>
+    <DomainShell
+      domainId="security"
+      title="Security & Compliance"
+      description="Alerts, key rotations, isolation policies and audit events across the platform."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+        <StatCardRow stats={stats} columns={4} />
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <Button variant="secondary" onClick={handleExportSoc2Report} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-            <FileText size={15} /> Export SOC2 / GDPR Audit Report
-          </Button>
-          <Button variant="primary" onClick={handleRevokeSessions} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, background: "#ef4444" }}>
-            <Lock size={15} /> Emergency Global Session Revoke
-          </Button>
-        </div>
-      </div>
-
-      {/* Security Posture Overview (3 Cards) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-        <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)", fontSize: 13 }}>
-            <span>Security Posture Rating</span>
-            <ShieldCheck size={20} color="#10b981" />
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 8, color: "#34d399" }}>A+ Grade</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>0 Critical Threat Vulnerabilities</span>
-        </div>
-
-        <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)", fontSize: 13 }}>
-            <span>Hardware MFA Enforcement</span>
-            <Key size={20} color="#60a5fa" />
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 8, color: "var(--color-text)" }}>100% Mandatory</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>TOTP / Passkey Required</span>
-        </div>
-
-        <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", color: "var(--color-text-secondary)", fontSize: 13 }}>
-            <span>IP Access Control Whitelist</span>
-            <Lock size={20} color="#c084fc" />
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 700, marginTop: 8, color: "var(--color-text)" }}>4 CIDR Ranges</div>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Restricted Provider Console CIDRs</span>
-        </div>
-      </div>
-
-      {/* KMS Keys & MFA Policy Section */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        {/* KMS Key Rotation Center */}
-        <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 14px 0", color: "var(--color-text)" }}>Master KMS Key Rotation Center</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              { name: "kms-master-tenant-db-key", version: "v4", status: "ACTIVE" },
-              { name: "kms-jwt-session-signing-key", version: "v2", status: "ACTIVE" },
-              { name: "kms-s3-storage-envelope-key", version: "v5", status: "ACTIVE" },
-            ].map((k) => (
-              <div key={k.name} style={{ padding: 12, borderRadius: 8, backgroundColor: "rgba(15, 23, 42, 0.6)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>{k.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Version: {k.version}</div>
-                </div>
-                <Button size="sm" variant="secondary" onClick={() => handleRotateKey(k.name)}>
-                  Rotate Master Key
-                </Button>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-4)" }}>
+          <Card padding="md">
+            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Recent alerts</h3>
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", margin: "var(--space-1) 0 0" }}>
+              {unreadAlerts > 0 ? `${unreadAlerts} unread` : "All alerts read"}
+            </p>
+            {alerts.error ? (
+              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
+                {alerts.error.message}
+              </p>
+            ) : alerts.data.length === 0 ? (
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <EmptyState title="No security alerts" description="The alerts endpoint returned no rows." />
               </div>
-            ))}
-          </div>
-        </div>
+            ) : (
+              <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
+                {alerts.data.slice(0, 12).map((a) => (
+                  <li key={a.id ?? a.title} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {a.title ?? a.id}
+                      </div>
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+                        {a.type ?? "ALERT"}
+                      </div>
+                    </div>
+                    <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                      <Badge variant={severityVariant(a.severity)}>{a.severity ?? "WARNING"}</Badge>
+                      <Badge variant={a.isRead ? "default" : "info"}>{a.isRead ? "Read" : "New"}</Badge>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
 
-        {/* Security Policy Controls */}
-        <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, margin: "0 0 14px 0", color: "var(--color-text)" }}>Control Plane Policy Enforcers</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 12, backgroundColor: "rgba(15, 23, 42, 0.6)", borderRadius: 8, color: "var(--color-text)", fontSize: 13 }}>
+          <Card padding="md">
+            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Enterprise-scale resources</h3>
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", margin: "var(--space-1) 0 0" }}>
+              Key rotation schedules and tenant isolation policies.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", marginTop: "var(--space-3)" }}>
               <div>
-                <strong style={{ display: "block" }}>Mandatory TOTP / Hardware MFA</strong>
-                <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Require 2FA for all provider staff accounts</span>
+                <div style={{ fontWeight: 600, fontSize: "var(--text-sm)" }}>Key rotations</div>
+                {keyRotations.error ? (
+                  <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>{keyRotations.error.message}</p>
+                ) : keyRotations.data.length === 0 ? (
+                  <EmptyState title="No key rotations" description="The key-rotations endpoint returned no rows." />
+                ) : (
+                  <ul style={{ listStyle: "none", margin: "var(--space-2) 0 0", padding: 0 }}>
+{keyRotations.data.slice(0, 6).map((r) => (
+                  <li key={r.id ?? r.key ?? r.name ?? "?"} style={{ padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between" }}>
+                    <span>{r.name ?? r.key ?? r.id}</span>
+                  </li>
+                ))}
+                  </ul>
+                )}
               </div>
-              <input type="checkbox" checked={mfaMandatory} onChange={(e) => setMfaMandatory(e.target.checked)} style={{ accentColor: "#3b82f6" }} />
-            </label>
-
-            <div style={{ padding: 12, backgroundColor: "rgba(15, 23, 42, 0.6)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
               <div>
-                <strong style={{ display: "block", color: "var(--color-text)" }}>Session Expiration Policy</strong>
-                <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Force re-authentication after 8 hours of inactivity</span>
+                <div style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>Isolation policies</div>
+                {isolationPolicies.error ? (
+                  <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>{isolationPolicies.error.message}</p>
+                ) : isolationPolicies.data.length === 0 ? (
+                  <EmptyState title="No isolation policies" description="The isolation-policies endpoint returned no rows." />
+                ) : (
+                  <ul style={{ listStyle: "none", margin: "var(--space-2) 0 0", padding: 0 }}>
+                    {isolationPolicies.data.slice(0, 6).map((p) => (
+                      <li key={p.key ?? p.name ?? "?"} style={{ padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between" }}>
+                        <span>{p.name ?? p.key}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
-              <Badge variant="info">8 Hours</Badge>
             </div>
-          </div>
+          </Card>
+
+          <Card padding="md">
+            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Operations dashboard</h3>
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", margin: "var(--space-1) 0 0" }}>
+              Control-plane health summary for context around security posture.
+            </p>
+            {ops.error ? (
+              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
+                {ops.error.message}
+              </p>
+            ) : (
+              <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Platform status</span>
+                  <Badge variant={ops.data?.status === "HEALTHY" ? "success" : "warning"}>{ops.data?.status ?? "—"}</Badge>
+                </li>
+                <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Queue depth</span>
+                  <span>{m?.queueDepth ?? "—"}</span>
+                </li>
+                <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Dead letters</span>
+                  <span>{m?.deadLetters ?? "—"}</span>
+                </li>
+                <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                  <span style={{ color: "var(--color-text-secondary)" }}>Degraded tenants</span>
+                  <span>{m?.degradedTenants ?? "—"}</span>
+                </li>
+              </ul>
+            )}
+          </Card>
         </div>
       </div>
-
-      {/* Centralized Immutable Audit Log Query Engine */}
-      <div style={{ padding: 20, borderRadius: 12, background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "var(--color-text)" }}>Centralized Immutable Provider Audit Log</h3>
-          <Badge variant="success">Audit Trail Cryptographically Signed</Badge>
-        </div>
-
-        {/* Audit Search Toolbar */}
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-          <div style={{ position: "relative", flex: 1 }}>
-            <Search size={16} style={{ position: "absolute", left: 10, top: 10, color: "#64748b" }} />
-            <input
-              type="text"
-              placeholder="Filter by actor email, event name, or IP address..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px 8px 34px",
-                background: "var(--color-bg)",
-                border: "1px solid var(--color-border)",
-                borderRadius: 6,
-                color: "var(--color-text)",
-                fontSize: 13,
-                outline: "none",
-              }}
-            />
-          </div>
-
-          <select
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value)}
-            style={{ padding: "8px 12px", background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRadius: 6, color: "var(--color-text)", fontSize: 13 }}
-          >
-            <option value="ALL">All Severities</option>
-            <option value="LOW">LOW</option>
-            <option value="MEDIUM">MEDIUM</option>
-            <option value="HIGH">HIGH</option>
-            <option value="CRITICAL">CRITICAL</option>
-          </select>
-        </div>
-
-        {/* Audit Table */}
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: "var(--color-bg)", borderBottom: "1px solid var(--color-border)" }}>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Time</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Actor</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Event Action</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Target</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>Severity</th>
-              <th style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>IP Address</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLogs.map((log) => (
-              <tr key={log.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                <td style={{ padding: "10px 14px", color: "#64748b" }}>{log.time}</td>
-                <td style={{ padding: "10px 14px", color: "#60a5fa", fontWeight: 600 }}>{log.actor}</td>
-                <td style={{ padding: "10px 14px", color: "var(--color-text)", fontWeight: 600 }}>{log.event}</td>
-                <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>{log.target}</td>
-                <td style={{ padding: "10px 14px" }}>
-                  <Badge variant={log.severity === "CRITICAL" ? "danger" : log.severity === "HIGH" ? "warning" : "info"}>
-                    {log.severity}
-                  </Badge>
-                </td>
-                <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)", fontFamily: "monospace" }}>{log.ip}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </DomainShell>
   );
+}
+
+function severityVariant(severity?: string): "success" | "warning" | "danger" | "info" | "default" {
+  switch (severity?.toUpperCase()) {
+    case "CRITICAL":
+    case "ERROR":
+      return "danger";
+    case "HIGH":
+    case "WARNING":
+      return "warning";
+    case "LOW":
+      return "info";
+    case "INFO":
+      return "success";
+    default:
+      return "default";
+  }
 }
