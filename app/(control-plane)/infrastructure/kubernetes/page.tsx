@@ -1,49 +1,48 @@
 "use client";
 /**
  * Infrastructure → Kubernetes.
- * Cluster routing rules across the Kubernetes fleet — where traffic is
- * steered, at what weight and from which tenant. Real data from the
- * cluster-routing-deep routing endpoint.
+ * M19 — replaces the D044 read-only page: server-side filtering by
+ * cluster, a detail route per routing row, and routing-weight changes as
+ * a planned/approved/reconciled operation instead of a direct write.
  */
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Container, Waypoints, Server, MapPin } from "lucide-react";
-import { Card, EmptyState, Spinner, StatCardRow, Badge, type StatCardItem } from "@kannan19302/ui";
+import { Card, EmptyState, ErrorState, DataTable, FilterBar, Select, Badge, StatCardRow, type StatCardItem } from "@kannan19302/ui";
 import { useList } from "@/lib/data";
 import DomainShell from "@/components/domain-shell";
 
-interface RoutingRule {
-  id?: string;
-  name?: string;
-  rule?: string;
-  sourceCluster?: string;
-  destinationCluster?: string;
-  fromCluster?: string;
-  toCluster?: string;
-  source?: string;
-  destination?: string;
-  path?: string;
-  route?: string;
-  weight?: number;
-  tenant?: string;
-  status?: string;
+interface RoutingRow {
+  id: string;
+  tenantId: string;
+  clusterId: string;
+  nodeGroup: string;
+  weight: number;
+  isDedicated: boolean;
 }
 
 interface ClusterRow {
   id?: string;
-  name?: string;
-  cluster?: string;
+  clusterName?: string;
   region?: string;
   status?: string;
 }
 
 export default function InfrastructureKubernetes() {
-  const routing = useList<RoutingRule>({ path: "/platform/v1/cluster-routing-deep/routing" });
+  const router = useRouter();
+  const [clusterFilter, setClusterFilter] = useState<string>("all");
+
   const clusters = useList<ClusterRow>({ path: "/platform/v1/cluster-routing-deep/clusters" });
+  const routing = useList<RoutingRow>({
+    path: "/platform/v1/kubernetes/routing",
+    params: { clusterId: clusterFilter === "all" ? undefined : clusterFilter },
+  });
 
   const regionCount = new Set(clusters.data.map((c) => c.region).filter(Boolean)).size;
   const healthyCount = clusters.data.filter((c) => c.status === "HEALTHY").length;
 
   const stats: StatCardItem[] = [
-    { label: "Routing rules", value: routing.data.length, icon: <Waypoints size={18} /> },
+    { label: "Routing rows", value: routing.data.length, icon: <Waypoints size={18} /> },
     { label: "Clusters", value: clusters.data.length, icon: <Container size={18} /> },
     {
       label: "Healthy clusters",
@@ -53,86 +52,42 @@ export default function InfrastructureKubernetes() {
     { label: "Regions", value: regionCount || "—", icon: <MapPin size={18} /> },
   ];
 
-  if (routing.loading || clusters.loading) {
-    return (
-      <DomainShell domainId="infrastructure" title="Kubernetes" description="Cluster routing rules and traffic steering across the Kubernetes fleet.">
-        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-          <Spinner size="md" />
-        </div>
-      </DomainShell>
-    );
-  }
-
   return (
-    <DomainShell domainId="infrastructure" title="Kubernetes" description="Cluster routing rules and traffic steering across the Kubernetes fleet.">
+    <DomainShell domainId="infrastructure" title="Infrastructure · Kubernetes" description="Cluster routing rules and traffic steering across the Kubernetes fleet.">
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={4} />
 
+        <FilterBar onClearAll={() => setClusterFilter("all")}>
+          <Select value={clusterFilter} onChange={(e: any) => setClusterFilter(e.target.value)}>
+            <option value="all">All clusters</option>
+            {clusters.data.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.clusterName ?? c.id}
+              </option>
+            ))}
+          </Select>
+        </FilterBar>
+
         <Card padding="md">
-          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Cluster routing</h3>
+          <h3 style={{ margin: "0 0 var(--space-3)", fontSize: "var(--text-base)", fontWeight: 600 }}>Cluster routing</h3>
           {routing.error ? (
-            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
-              {routing.error.message}
-            </p>
-          ) : routing.data.length === 0 ? (
-            <div style={{ margin: "var(--space-3) 0 0" }}>
-              <EmptyState title="No routing rules" description="The cluster routing endpoint returned no rules." />
-            </div>
+            <ErrorState description={routing.error.message} onRetry={routing.reload} />
           ) : (
-            <ul
-              style={{
-                listStyle: "none",
-                margin: "var(--space-3) 0 0",
-                padding: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {routing.data.slice(0, 30).map((r) => {
-                const from = r.sourceCluster ?? r.fromCluster ?? r.source;
-                const to = r.destinationCluster ?? r.toCluster ?? r.destination;
-                return (
-                  <li
-                    key={r.id ?? r.name ?? r.rule ?? `${from}-${to}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "var(--space-2) 0",
-                      borderBottom: "1px solid var(--color-border)",
-                    }}
-                  >
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ fontWeight: 500 }}>{r.name ?? r.rule ?? r.route ?? "route"}</span>
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)" }}>
-                        {" "}
-                        {from ? `${from} →` : ""} {to ?? "…"}
-                        {r.tenant ? ` · tenant ${r.tenant}` : ""}
-                      </span>
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                        {r.weight != null ? `weight ${r.weight}` : ""}
-                        {r.path ? ` · ${r.path}` : ""}
-                      </span>
-                      <Badge
-                        variant={
-                          r.status === "ACTIVE" || r.status === "ENABLED"
-                            ? "success"
-                            : r.status === "DEGRADED"
-                              ? "warning"
-                              : r.status === "DISABLED"
-                                ? "default"
-                                : "info"
-                        }
-                      >
-                        {r.status ?? "UNKNOWN"}
-                      </Badge>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            <DataTable<RoutingRow>
+              columns={[
+                { key: "tenantId", header: "Tenant", render: (row) => row.tenantId },
+                { key: "clusterId", header: "Cluster", render: (row) => row.clusterId },
+                { key: "nodeGroup", header: "Node group", render: (row) => row.nodeGroup },
+                { key: "weight", header: "Weight", render: (row) => <Badge variant={row.weight === 0 ? "danger" : "default"}>{row.weight}</Badge> },
+                { key: "isDedicated", header: "Dedicated", render: (row) => (row.isDedicated ? <Badge variant="info">dedicated</Badge> : "—") },
+              ]}
+              data={routing.data}
+              loading={routing.loading}
+              rowKey={(row) => row.id}
+              onRowClick={(row) => router.push(`/infrastructure/kubernetes/${row.id}`)}
+              emptyTitle={clusterFilter === "all" ? "No routing rows" : "No routing rows for this cluster"}
+              emptyMessage="Establish tenant routing via cluster registration first."
+            />
           )}
         </Card>
       </div>
