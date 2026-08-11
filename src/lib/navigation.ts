@@ -300,6 +300,7 @@ registerApp({
     { key: "storage", label: "Storage", path: "/infrastructure/storage" },
     { key: "network", label: "Network", path: "/infrastructure/network" },
     { key: "resources", label: "Resources", path: "/infrastructure/resources" },
+    { key: "estate", label: "Estate", path: "/infrastructure/estate" },
     { key: "capacity", label: "Capacity", path: "/infrastructure/capacity" },
     { key: "backup", label: "Backup", path: "/infrastructure/backup" },
     { key: "dr", label: "Disaster Recovery", path: "/infrastructure/dr" },
