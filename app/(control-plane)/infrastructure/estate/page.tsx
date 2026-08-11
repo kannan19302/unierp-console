@@ -36,6 +36,22 @@ interface EstateResource {
   createdAt: string;
 }
 
+interface UnattributedEntry {
+  resourceId: string;
+  name: string;
+  kindName: string;
+  ageMs: number;
+  missingFields: string[];
+}
+
+function formatAge(ageMs: number): string {
+  const days = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+  if (days >= 1) return `${days}d`;
+  const hours = Math.floor(ageMs / (60 * 60 * 1000));
+  if (hours >= 1) return `${hours}h`;
+  return `${Math.max(0, Math.floor(ageMs / 60000))}m`;
+}
+
 const PAGE_SIZE = 25;
 
 const SAVED_VIEWS: SavedView[] = [
@@ -69,6 +85,13 @@ export default function InfrastructureEstate() {
       cursor,
       limit: PAGE_SIZE,
     },
+    disabled: !canRead,
+  });
+
+  // M18 — never hidden: rendered unconditionally whenever there's anything
+  // in it, not tucked behind a filter toggle someone has to know to flip.
+  const unattributed = useList<UnattributedEntry>({
+    path: "/platform/v1/estate/unattributed",
     disabled: !canRead,
   });
 
@@ -152,6 +175,42 @@ export default function InfrastructureEstate() {
             }}
           />
         </FilterBar>
+
+        {unattributed.data.length > 0 && (
+          <Card padding="md" style={{ borderColor: "var(--color-warning)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-3)" }}>
+              <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
+                Unattributed <Badge variant="warning">{unattributed.data.length}</Badge>
+              </h3>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                Missing tenant, service, environment or owner — M27 cost allocation cannot attribute these
+              </span>
+            </div>
+            <DataTable<UnattributedEntry>
+              columns={[
+                { key: "name", header: "Resource", render: (row) => row.name },
+                { key: "kindName", header: "Kind", render: (row) => <Badge variant="default">{row.kindName}</Badge> },
+                { key: "age", header: "Age", render: (row) => formatAge(row.ageMs) },
+                {
+                  key: "missingFields",
+                  header: "Missing",
+                  render: (row) => (
+                    <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
+                      {row.missingFields.map((f) => (
+                        <Badge key={f} variant="warning">
+                          {f}
+                        </Badge>
+                      ))}
+                    </div>
+                  ),
+                },
+              ]}
+              data={unattributed.data}
+              loading={unattributed.loading}
+              rowKey={(row) => row.resourceId}
+            />
+          </Card>
+        )}
 
         <Card padding="md">
           {estate.error ? (
