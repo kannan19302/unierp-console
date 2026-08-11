@@ -302,6 +302,7 @@ registerApp({
     { key: "resources", label: "Resources", path: "/infrastructure/resources" },
     { key: "estate", label: "Estate", path: "/infrastructure/estate" },
     { key: "cloud-accounts", label: "Cloud Accounts", path: "/infrastructure/cloud-accounts" },
+    { key: "provision", label: "Provision", path: "/infrastructure/resources/provision" },
     { key: "capacity", label: "Capacity", path: "/infrastructure/capacity" },
     { key: "backup", label: "Backup", path: "/infrastructure/backup" },
     { key: "dr", label: "Disaster Recovery", path: "/infrastructure/dr" },
