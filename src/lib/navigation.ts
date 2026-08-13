@@ -323,6 +323,7 @@ registerApp({
     { key: "secrets", label: "Secrets", path: "/security/secrets" },
     { key: "privacy", label: "Privacy", path: "/security/privacy" },
     { key: "compliance", label: "Compliance", path: "/security/compliance" },
+    { key: "controls", label: "Controls", path: "/security/compliance/controls" },
     { key: "audit", label: "Audit", path: "/security/audit" },
   ],
 });
