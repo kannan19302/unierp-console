@@ -376,6 +376,8 @@ registerApp({
     { key: "knowledge", label: "Knowledge", path: "/ai/knowledge" },
     { key: "usage", label: "Usage", path: "/ai/usage" },
     { key: "costs", label: "Costs", path: "/ai/costs" },
+    { key: "guardrails", label: "Guardrails", path: "/ai/guardrails" },
+    { key: "evaluation", label: "Evaluation", path: "/ai/evaluation" },
     { key: "governance", label: "Governance", path: "/ai/governance" },
   ],
 });
