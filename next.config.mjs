@@ -16,13 +16,12 @@ const nextConfig = {
   },
 
   webpack: (config, { dev }) => {
-    if (dev && process.env.WATCHPACK_POLLING) {
+    if (dev) {
       config.watchOptions = {
         ...(config.watchOptions || {}),
-        poll: typeof process.env.WATCHPACK_POLLING === 'string'
-          ? parseInt(process.env.WATCHPACK_POLLING, 10) || 1000
-          : 1000,
+        poll: 1000,
         aggregateTimeout: 300,
+        ignored: /node_modules/,
       };
     }
     return config;

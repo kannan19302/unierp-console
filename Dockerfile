@@ -23,21 +23,22 @@ COPY tsconfig.json next.config.mjs next-env.d.ts ./
 COPY src ./src
 COPY app ./app
 
+# ── dev ─────────────────────────────────────────────────────────────────────
+FROM builder AS dev
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS=--max-old-space-size=8192
+EXPOSE 3002
+CMD ["npx", "next", "dev", "-p", "3002", "-H", "0.0.0.0"]
 
-# Server-side only. The browser must call the web origin so next.config's
-# rewrite can send /api/v1/auth/* to the IdP and everything else to the API —
-# setting NEXT_PUBLIC_API_URL to a bare origin makes the browser bypass its own
-# proxy and aim auth at the service that does not own it.
+# ── build ───────────────────────────────────────────────────────────────────
+FROM dev AS prod-builder
 ARG API_URL=http://api:3001
 ARG IDP_URL=http://idp:3005
 ENV API_URL=$API_URL
 ENV IDP_URL=$IDP_URL
 ENV NEXT_PUBLIC_API_URL=""
 ENV NEXT_TELEMETRY_DISABLED=1
-# Next.js holds the whole route graph in memory and this app has ~470 routes.
-# The container default heap is well under what that needs, and V8 aborts with
-# SIGABRT rather than anything Next reports, so it reads as a mystery crash.
-# The monorepo raised this globally in NODE_OPTIONS for the same reason.
 ENV NODE_OPTIONS=--max-old-space-size=8192
 RUN npm run build
 
@@ -47,11 +48,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+COPY --from=prod-builder /app/node_modules ./node_modules
+COPY --from=prod-builder /app/.next ./.next
 
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
+COPY --from=prod-builder /app/package.json ./package.json
+COPY --from=prod-builder /app/next.config.mjs ./next.config.mjs
 
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
