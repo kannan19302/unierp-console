@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3002",
+    "dev": "next dev --port 4002",
     "build": "next build",
-    "start": "next start --port 3002",
+    "start": "next start --port 4002",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "tsx scripts/test-e2e.ts",
+    "test:playwright": "playwright test"
   },
   "dependencies": {
     "@kannan19302/auth": "^1.0.4",
@@ -36,6 +37,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^16.3.0",
     "jsdom": "^30.0.1",
+    "tsx": "^4.23.12",
     "typescript": "^5.0.0",
     "vitest": "^4.1.10"
   }

@@ -1,0 +1,28 @@
+FROM node:22-slim
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@9.15.4
+
+# Configure registry
+ARG UNIERP_REGISTRY=https://registry.npmjs.org/
+RUN printf '@kannan19302:registry=%s\nregistry=https://registry.npmjs.org/\n' "$UNIERP_REGISTRY" > .npmrc
+
+COPY package.json pnpm-lock.yaml* ./
+
+RUN pnpm install --no-frozen-lockfile
+
+COPY tsconfig.json next.config.mjs next-env.d.ts middleware.ts* ./
+COPY src ./src
+COPY app ./app
+COPY public ./public
+
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=4002
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+EXPOSE 4002
+
+CMD ["pnpm", "dev"]

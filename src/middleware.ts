@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isControlPlaneSession } from "./src/lib/middleware";
+import { isControlPlaneSession } from "./lib/middleware";
 
 function decodeJwtPayload(token: string): any {
   try {
@@ -15,7 +15,6 @@ function decodeJwtPayload(token: string): any {
 }
 
 export function middleware(req: NextRequest) {
-  console.log("--> MIDDLEWARE HIT:", req.nextUrl.pathname);
   const url = req.nextUrl.clone();
   const sessionPayload = decodeJwtPayload(
     req.cookies.get("__session")?.value ??
