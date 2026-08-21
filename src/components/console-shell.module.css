@@ -51,14 +51,16 @@
 }
 
 .profileAvatar {
-  width: 32px;
-  height: 32px;
+  width: var(--space-8);
+  height: var(--space-8);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-primary);
-  color: #fff;
+  /* --on-primary, not #fff. meridian-dark lifts the accent to #48c5ce, where
+     white is 2:1 and the initials vanish. */
+  color: var(--on-primary);
   font-weight: 700;
   font-size: var(--text-xs);
 }
@@ -110,7 +112,7 @@
 .sidebar {
   background: var(--color-bg-elevated);
   border-right: 1px solid var(--color-border);
-  transition: width 0.2s ease;
+  transition: width var(--duration-normal) var(--ease-default);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -125,13 +127,16 @@
 }
 
 .sidebarLogo {
-  width: 34px;
-  height: 34px;
+  width: var(--space-8);
+  height: var(--space-8);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong, #1d4ed8));
+  /* Flat, not a gradient. `--color-primary-strong` is defined in NO token
+     file, so this resolved to the #1d4ed8 fallback and rendered teal→stale
+     blue — the old palette showing through. §13.1 allows one accent anyway. */
+  background: var(--color-primary);
 }
 
 .sidebarTitleContainer {
@@ -159,7 +164,9 @@
 }
 
 .topbar {
-  height: 58px;
+  /* --header-height. It was 58px: two pixels off the token every other
+     surface reads, which is exactly how chrome stops lining up between apps. */
+  height: var(--header-height);
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -236,7 +243,10 @@
 .outageTicker {
   padding: var(--space-2) var(--space-4);
   background: var(--color-danger);
-  color: #fff;
+  /* --on-danger, added to both themes for this. A banner announcing an outage
+     is the last thing that should be unreadable, and #fff here is 3.16:1 in
+     meridian-dark — the contrast gate now fails on it. */
+  color: var(--on-danger);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -252,7 +262,7 @@
 .outageTickerDismiss {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--on-danger);
   cursor: pointer;
 }
 

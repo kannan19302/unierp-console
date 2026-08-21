@@ -189,11 +189,14 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
       <div className={styles.layout}>
         <aside
           className={styles.sidebar}
-          style={{ width: sidebarOpen ? 264 : 0 }}
+          // --sidebar-width, not a literal 264. This app was the only one of
+          // four using a hardcoded rail width, so compact density (which moves
+          // the token to 220) moved every other surface and left this one.
+          style={{ width: sidebarOpen ? "var(--sidebar-width)" : 0 }}
         >
           <div className={styles.sidebarHeader}>
             <div className={styles.sidebarLogo}>
-              <Command size={18} color="#fff" />
+              <Command size={18} color="var(--color-text-inverse)" />
             </div>
             <div className={styles.sidebarTitleContainer}>
               <div className={styles.sidebarTitle}>
