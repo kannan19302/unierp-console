@@ -20,7 +20,8 @@ import {
   Breadcrumb,
 } from "@kannan19302/ui";
 import { NAV_ITEMS, getBreadcrumbs, type NavItem } from "@/lib/navigation";
-import { SessionProvider, useSession } from "@/lib/session";
+import { useSession } from "@kannan19302/shared/auth-client/react";
+import { ControlPlaneGate } from "@/components/AuthShell";
 import { useConsoleSocket } from "@/lib/use-console-socket";
 import styles from "./console-shell.module.css";
 
@@ -96,8 +97,8 @@ const nameFromEmail = (email: string): string => {
 };
 
 function ProfileFooter() {
-  const { session, signOut } = useSession();
-  const email = session?.email ?? "admin@kannan19302.dev";
+  const { claims, signOut } = useSession();
+  const email = (claims as unknown as { email?: string })?.email ?? "";
   return (
     <div className={styles.profileFooter}>
       <Link href="/profile" className={styles.profileInfo}>
@@ -114,7 +115,10 @@ function ProfileFooter() {
         </div>
       </Link>
       <button
-        onClick={signOut}
+        onClick={() => {
+          void fetch("/api/session", { method: "DELETE", credentials: "include" });
+          signOut();
+        }}
         className={styles.signOutButton}
       >
         <LogOut size={15} /> Sign out session
@@ -181,7 +185,7 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
   const crumbs = getBreadcrumbs(pathname);
 
   return (
-    <SessionProvider>
+    <ControlPlaneGate>
       <div className={styles.layout}>
         <aside
           className={styles.sidebar}
@@ -254,6 +258,6 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
 
         <CommandPalette open={open} onClose={() => setOpen(false)} items={commandItems} />
       </div>
-    </SessionProvider>
+    </ControlPlaneGate>
   );
 }

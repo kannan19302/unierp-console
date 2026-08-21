@@ -11,7 +11,7 @@ import { RotateCw, Building2 } from "lucide-react";
 import { Card, EmptyState, Spinner, Badge, usePermission } from "@kannan19302/ui";
 import { api } from "@/lib/api";
 import { useList, useMutation } from "@/lib/data";
-import { useSession } from "@/lib/session";
+import { useSession } from "@kannan19302/shared/auth-client/react";
 import DomainShell from "@/components/domain-shell";
 
 interface ExtensionRow {
@@ -44,7 +44,7 @@ const STATUS_VARIANT = (s?: string) =>
 
 export default function MarketplaceInstallationsPage() {
   const canRevoke = usePermission("admin.platform.update");
-  const { session } = useSession();
+  const { claims } = useSession();
   const extensions = useList<ExtensionRow>({ path: "/platform/v1/marketplace/extensions" });
 
   const [selected, setSelected] = useState<string>("");
@@ -65,10 +65,10 @@ export default function MarketplaceInstallationsPage() {
       async (args: { appSlug: string; reason: string }) => {
         await api.post(
           `/platform/v1/marketplace/extensions/${args.appSlug}/emergency-revoke`,
-          { reason: args.reason, actorId: session?.userId || "SYSTEM" },
+          { reason: args.reason, actorId: claims?.sub || "SYSTEM" },
         );
       },
-      [session],
+      [claims],
     ),
   );
 

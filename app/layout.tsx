@@ -4,6 +4,7 @@ import "@kannan19302/ui/styles";
 import "@kannan19302/ui/styles.css";
 import { ThemeProvider } from "@kannan19302/ui/theme";
 import { ToastProvider } from "@kannan19302/ui/notifications";
+import { RootAuthProvider } from "@/components/AuthShell";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,9 +27,11 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} data-theme="dark" suppressHydrationWarning>
       <body style={{ margin: 0, padding: 0, fontFamily: "var(--font-sans, system-ui, sans-serif)", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
         <ThemeProvider defaultSetting="dark">
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <RootAuthProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </RootAuthProvider>
         </ThemeProvider>
       </body>
     </html>

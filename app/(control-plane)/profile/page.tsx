@@ -1,18 +1,18 @@
 "use client";
 
-import { useSession } from "@/lib/session";
+import { useSession } from "@kannan19302/shared/auth-client/react";
 import { useState } from "react";
 import styles from "./page.module.css";
 import { ShieldCheck, User } from "lucide-react";
 
 export default function ProfilePage() {
-  const { session } = useSession();
+  const { claims } = useSession();
   const [setupMode, setSetupMode] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [secret, setSecret] = useState("");
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
-  const [mfaEnabled, setMfaEnabled] = useState(session?.mfaVerified || false);
+  const [mfaEnabled, setMfaEnabled] = useState(claims?.mfaVerified || false);
 
   const handleSetupMfa = async () => {
     try {
@@ -64,7 +64,7 @@ export default function ProfilePage() {
         <div className={styles.card}>
           <div className={styles.field}>
             <label className={styles.label}>Email Address</label>
-            <div className={styles.value}>{session?.email || "admin@kannan19302.dev"}</div>
+            <div className={styles.value}>{(claims as unknown as { email?: string })?.email || ""}</div>
           </div>
           <div className={styles.field}>
             <label className={styles.label}>Role</label>

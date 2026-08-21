@@ -42,6 +42,16 @@ const nextConfig = {
       },
     ];
   },
+  env: {
+    // Browser-facing issuer URL. Must be reachable from the user's
+    // browser (host port mapping in Docker), never the container-internal
+    // service name idp:3005 that IDP_URL/OIDC_ISSUER resolve to for
+    // server-to-server calls — see infra/platform-wizard/next.config.js
+    // for the same distinction made there first (W4).
+    NEXT_PUBLIC_OIDC_ISSUER:
+      process.env.NEXT_PUBLIC_OIDC_ISSUER || 'http://localhost:3005',
+  },
+
 };
 
 export default nextConfig;

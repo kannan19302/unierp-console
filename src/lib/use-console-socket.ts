@@ -1,20 +1,20 @@
 import { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { useSession } from "./session";
+import { useSession } from "@kannan19302/shared/auth-client/react";
 
 interface ConsoleSocketOptions {
   namespace?: string;
 }
 
 export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
-  const { session } = useSession();
+  const { claims } = useSession();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     // Only connect if the user is authenticated in the provider console
-    if (!session) {
+    if (!claims) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -30,7 +30,7 @@ export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
 
     const newSocket = io(namespaceUrl, {
       auth: {
-        token: session.sid,
+        token: claims.sid,
       },
       transports: ["websocket"],
       reconnectionAttempts: 5,
@@ -53,7 +53,7 @@ export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
       newSocket.disconnect();
       socketRef.current = null;
     };
-  }, [session?.sid, options.namespace]);
+  }, [claims?.sid, options.namespace]);
 
   return { socket, isConnected };
 }

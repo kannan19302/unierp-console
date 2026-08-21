@@ -11,7 +11,7 @@ import { Check, X } from "lucide-react";
 import { Card, EmptyState, Spinner, Badge, usePermission } from "@kannan19302/ui";
 import { api } from "@/lib/api";
 import { useList, useMutation } from "@/lib/data";
-import { useSession } from "@/lib/session";
+import { useSession } from "@kannan19302/shared/auth-client/react";
 import DomainShell from "@/components/domain-shell";
 
 interface SubmissionRow {
@@ -35,7 +35,7 @@ const STATUS_VARIANT = (s?: string) =>
 
 export default function MarketplaceApprovalsPage() {
   const canApprove = usePermission("admin.platform.update");
-  const { session } = useSession();
+  const { claims } = useSession();
   const submissions = useList<SubmissionRow>({
     path: "/platform/v1/marketplace/submissions",
     disabled: !canApprove,
@@ -46,10 +46,10 @@ export default function MarketplaceApprovalsPage() {
     useCallback(
       async (id: string) => {
         await api.post(`/platform/v1/marketplace/${id}/approve`, {
-          actorId: session?.userId || "SYSTEM",
+          actorId: claims?.sub || "SYSTEM",
         });
       },
-      [session],
+      [claims],
     ),
   );
 
@@ -58,10 +58,10 @@ export default function MarketplaceApprovalsPage() {
       async (args: { id: string; reason: string }) => {
         await api.post(`/platform/v1/marketplace/${args.id}/reject`, {
           reason: args.reason,
-          actorId: session?.userId || "SYSTEM",
+          actorId: claims?.sub || "SYSTEM",
         });
       },
-      [session],
+      [claims],
     ),
   );
 
