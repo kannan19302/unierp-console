@@ -196,6 +196,7 @@ export default function TenantsOverview() {
 
 const links = [
   { label: "Browse tenant directory", path: "/tenants/directory" },
+  { label: "Onboarding funnel & health", path: "/tenants/directory" },
   { label: "Manage users", path: "/tenants/users" },
   { label: "Review subscriptions", path: "/tenants/subscription" },
   { label: "Check quotas", path: "/tenants/quotas" },

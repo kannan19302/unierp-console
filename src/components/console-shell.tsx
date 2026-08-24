@@ -11,13 +11,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, Search, Bell, Sun, Moon, LogOut, Command } from "lucide-react";
+import { Menu, Search, Bell, LogOut } from "lucide-react";
 import {
   CommandPalette,
   useCommandPalette,
   usePermission,
-  useTheme,
   Breadcrumb,
+  BrandMark,
+  ThemeQuickToggle,
 } from "@kannan19302/ui";
 import { NAV_ITEMS, getBreadcrumbs, type NavItem } from "@/lib/navigation";
 import { useSession } from "@kannan19302/shared/auth-client/react";
@@ -101,7 +102,7 @@ function ProfileFooter() {
   const email = (claims as unknown as { email?: string })?.email ?? "";
   return (
     <div className={styles.profileFooter}>
-      <Link href="/profile" className={styles.profileInfo}>
+      <a href="http://localhost:3005/oidc/account" className={styles.profileInfo}>
         <div className={styles.profileAvatar}>
           {nameFromEmail(email).charAt(0)}
         </div>
@@ -113,7 +114,7 @@ function ProfileFooter() {
             {email}
           </div>
         </div>
-      </Link>
+      </a>
       <button
         onClick={() => {
           void fetch("/api/session", { method: "DELETE", credentials: "include" });
@@ -130,7 +131,8 @@ function ProfileFooter() {
 export default function ControlPlaneShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
+  const { claims } = useSession();
+  const accountEmail = (claims as unknown as { email?: string } | null)?.email ?? "";
   const { open, setOpen } = useCommandPalette();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [ticker, setTicker] = useState<string | null>(null);
@@ -196,7 +198,7 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
         >
           <div className={styles.sidebarHeader}>
             <div className={styles.sidebarLogo}>
-              <Command size={18} color="var(--color-text-inverse)" />
+              <BrandMark compact size="sm" />
             </div>
             <div className={styles.sidebarTitleContainer}>
               <div className={styles.sidebarTitle}>
@@ -230,13 +232,7 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
               <span className={styles.searchLabel}>Search…</span>
               <span className={styles.searchShortcut}>⌘K</span>
             </button>
-            <button
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              title="Toggle theme"
-              className={styles.iconButton}
-            >
-              {resolvedTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+            <ThemeQuickToggle className={styles.iconButton} />
             <button
               title="Notifications"
               className={styles.notificationButton}
@@ -244,6 +240,14 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
               <Bell size={16} />
               <span className={styles.notificationBadge} />
             </button>
+            <a
+              href="http://localhost:3005/oidc/account"
+              className={styles.iconButton}
+              aria-label="Open Account Center"
+              title="Account Center"
+            >
+              {nameFromEmail(accountEmail).charAt(0)}
+            </a>
           </header>
 
           {ticker && (
