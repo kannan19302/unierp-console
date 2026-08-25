@@ -12,6 +12,7 @@
 import type {
   ApiClient,
   ApiError,
+  ApiRequestOptions,
   ApiResponse,
 } from "./types";
 
@@ -76,7 +77,7 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  options?: { params?: Record<string, string | number | boolean | undefined> },
+  options?: ApiRequestOptions,
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE}${path}${paramString(options?.params)}`;
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -86,6 +87,9 @@ async function request<T>(
     headers["Content-Type"] = "application/json";
     const csrf = getCsrfToken();
     if (csrf) headers["x-csrf-token"] = csrf;
+  }
+  for (const [name, value] of Object.entries(options?.headers ?? {})) {
+    if (value) headers[name] = value;
   }
   const res = await fetch(url, {
     method,
@@ -120,9 +124,9 @@ async function request<T>(
 export const api: ApiClient = {
   get: async <T>(path: string, params?: Record<string, string | number | boolean | undefined>) =>
     request<T>("GET", path, undefined, { params }),
-  post: async <T>(path: string, body?: unknown) => request<T>("POST", path, body),
-  put: async <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
-  patch: async <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
+  post: async <T>(path: string, body?: unknown, options?: ApiRequestOptions) => request<T>("POST", path, body, options),
+  put: async <T>(path: string, body?: unknown, options?: ApiRequestOptions) => request<T>("PUT", path, body, options),
+  patch: async <T>(path: string, body?: unknown, options?: ApiRequestOptions) => request<T>("PATCH", path, body, options),
   del: async <T>(path: string, params?: Record<string, string | number | boolean | undefined>) =>
     request<T>("DELETE", path, undefined, { params }),
 };

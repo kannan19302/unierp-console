@@ -1,0 +1,134 @@
+[
+  {
+    "appId": "PCC-01", "center": "PCC", "iconKey": "activity", "entryPath": "/ops", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.operations.access", "legacyPermissionMigration": "Replace system.health/platform.overview permissions during PCC-01-P1.",
+    "navigation": [{ "key": "operations", "label": "Platform Operations", "path": "/ops", "permission": "system.health.read" }],
+    "searchKeywords": ["operations", "incidents", "releases", "jobs", "queues"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-01", "telemetryNamespace": "unierp.pcc.operations", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-02", "center": "PCC", "iconKey": "shield", "entryPath": "/security", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.security.access", "legacyPermissionMigration": "Replace platform security permissions during PCC-02-P1.",
+    "navigation": [{ "key": "security", "label": "Platform Security", "path": "/security" }],
+    "searchKeywords": ["security", "posture", "vulnerabilities", "break glass"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-02", "telemetryNamespace": "unierp.pcc.security", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-03", "center": "PCC", "iconKey": "users", "entryPath": "/access", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.identity-governance.access", "legacyPermissionMigration": "Replace admin/system identity permissions during PCC-03-P1.",
+    "navigation": [{ "key": "identity-governance", "label": "Identity Governance", "path": "/access" }],
+    "searchKeywords": ["operators", "roles", "permissions", "access reviews"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-03", "telemetryNamespace": "unierp.pcc.identity", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-04", "center": "PCC", "iconKey": "subscription", "entryPath": "/billing/subscriptions", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.subscriptions.access", "legacyPermissionMigration": "Replace legacy billing permissions during PCC-04-P1.",
+    "navigation": [{ "key": "subscriptions", "label": "Subscription Operations", "path": "/billing/subscriptions" }, { "key": "plans", "label": "Plans", "path": "/billing/plans" }],
+    "searchKeywords": ["plans", "subscriptions", "renewals", "trials"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-04", "telemetryNamespace": "unierp.pcc.subscriptions", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-05", "center": "PCC", "iconKey": "key-square", "entryPath": "/tenants/modules", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.entitlements.access", "legacyPermissionMigration": "Replace tenant module flags with entitlement permissions during PCC-05-P1.",
+    "navigation": [{ "key": "entitlements", "label": "Entitlements & Licenses", "path": "/tenants/modules" }],
+    "searchKeywords": ["entitlements", "licenses", "grants", "features"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-05", "telemetryNamespace": "unierp.pcc.entitlements", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-06", "center": "PCC", "iconKey": "credit-card", "entryPath": "/billing", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.billing.access", "legacyPermissionMigration": "Replace legacy billing permissions during PCC-06-P1.",
+    "navigation": [{ "key": "billing", "label": "Revenue & Billing", "path": "/billing" }],
+    "searchKeywords": ["invoices", "payments", "revenue", "refunds"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-06", "telemetryNamespace": "unierp.pcc.billing", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-07", "center": "PCC", "iconKey": "key-round", "entryPath": "/security/secrets", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.secrets.access", "legacyPermissionMigration": "Replace security secret permissions during PCC-07-P1.",
+    "navigation": [{ "key": "secrets", "label": "Keys & Secrets", "path": "/security/secrets" }],
+    "searchKeywords": ["secrets", "keys", "certificates", "rotation"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-07", "telemetryNamespace": "unierp.pcc.secrets", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-08", "center": "PCC", "iconKey": "network", "entryPath": "/developers/apis", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.api-traffic.access", "legacyPermissionMigration": "Replace developer API permissions during PCC-08-P1.",
+    "navigation": [{ "key": "api-traffic", "label": "API Traffic Control", "path": "/developers/apis" }, { "key": "usage", "label": "API Usage", "path": "/billing/usage" }],
+    "searchKeywords": ["api", "gateway", "traffic", "rate limits", "waf"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-08", "telemetryNamespace": "unierp.pcc.api-traffic", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-09", "center": "PCC", "iconKey": "scale", "entryPath": "/security/compliance", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.compliance.access", "legacyPermissionMigration": "Replace security compliance permissions during PCC-09-P1.",
+    "navigation": [{ "key": "compliance", "label": "Governance & Compliance", "path": "/security/compliance" }],
+    "searchKeywords": ["compliance", "governance", "controls", "evidence", "audits"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-09", "telemetryNamespace": "unierp.pcc.compliance", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-10", "center": "PCC", "iconKey": "radar", "entryPath": "/security/threats", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.security-intelligence.access", "legacyPermissionMigration": "Replace security threat permissions during PCC-10-P1.",
+    "navigation": [{ "key": "threats", "label": "Security Intelligence", "path": "/security/threats" }],
+    "searchKeywords": ["threats", "soc", "detections", "investigations"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-10", "telemetryNamespace": "unierp.pcc.security-intelligence", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-11", "center": "PCC", "iconKey": "smartphone", "entryPath": "/mobile-operations", "availability": "ACTIVE",
+    "permissionMode": "CANONICAL", "requiredPermission": "pcc.mobile.access",
+    "navigation": [{ "key": "mobile-operations", "label": "Mobile Platform Operations", "path": "/mobile-operations" }],
+    "searchKeywords": ["mobile", "releases", "stores", "push", "apns", "fcm", "ios", "android"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-11", "telemetryNamespace": "unierp.pcc.mobile", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-12", "center": "PCC", "iconKey": "monitor", "entryPath": "/desktop-operations", "availability": "ACTIVE",
+    "permissionMode": "CANONICAL", "requiredPermission": "pcc.desktop.access",
+    "navigation": [{ "key": "desktop-operations", "label": "Desktop Platform Operations", "path": "/desktop-operations" }],
+    "searchKeywords": ["desktop", "installers", "updates", "signing", "windows", "macos", "linux"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-12", "telemetryNamespace": "unierp.pcc.desktop", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-13", "center": "PCC", "iconKey": "settings", "entryPath": "/settings", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.configuration.access", "legacyPermissionMigration": "Replace settings permissions during PCC-13-P1.",
+    "navigation": [{ "key": "configuration", "label": "Global Configuration", "path": "/settings" }],
+    "searchKeywords": ["configuration", "settings", "features", "defaults"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-13", "telemetryNamespace": "unierp.pcc.configuration", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-14", "center": "PCC", "iconKey": "code", "entryPath": "/developers", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.developer-ecosystem.access", "legacyPermissionMigration": "Replace developers permissions during PCC-14-P1.",
+    "navigation": [{ "key": "developers", "label": "Developer Ecosystem", "path": "/developers" }],
+    "searchKeywords": ["developers", "sdk", "sandbox", "publishers"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-14", "telemetryNamespace": "unierp.pcc.developer-ecosystem", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-15", "center": "PCC", "iconKey": "book-open", "entryPath": "/support/knowledge", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.knowledge-adoption.access", "legacyPermissionMigration": "Replace support knowledge permissions during PCC-15-P1.",
+    "navigation": [{ "key": "knowledge", "label": "Knowledge & Adoption", "path": "/support/knowledge" }],
+    "searchKeywords": ["knowledge", "learning", "adoption", "onboarding"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-15", "telemetryNamespace": "unierp.pcc.knowledge-adoption", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-16", "center": "PCC", "iconKey": "chart", "entryPath": "/analytics", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.intelligence.access", "legacyPermissionMigration": "Replace system analytics permissions during PCC-16-P1.",
+    "navigation": [{ "key": "intelligence", "label": "Platform Intelligence", "path": "/analytics", "permission": "system.analytics.read" }],
+    "searchKeywords": ["analytics", "intelligence", "reports", "forecasts"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-16", "telemetryNamespace": "unierp.pcc.intelligence", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-17", "center": "PCC", "iconKey": "store", "entryPath": "/marketplace", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.marketplace.access", "legacyPermissionMigration": "Replace marketplace permissions during PCC-17-P1.",
+    "navigation": [{ "key": "marketplace", "label": "Marketplace Operations", "path": "/marketplace" }],
+    "searchKeywords": ["marketplace", "catalog", "reviews", "publishing"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-17", "telemetryNamespace": "unierp.pcc.marketplace", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-18", "center": "PCC", "iconKey": "building", "entryPath": "/tenants", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.organizations.access", "legacyPermissionMigration": "Replace system tenant permissions and tenant naming during PCC-18-P1.",
+    "navigation": [{ "key": "organizations", "label": "Tenant & Customer Lifecycle", "path": "/tenants", "permission": "system.tenant.view" }],
+    "searchKeywords": ["organizations", "tenants", "customers", "provisioning"], "declaredResourceKinds": ["organization-account"], "helpTopic": "control-centers/pcc-18", "telemetryNamespace": "unierp.pcc.organizations", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-19", "center": "PCC", "iconKey": "cloud", "entryPath": "/infrastructure", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.infrastructure.access", "legacyPermissionMigration": "Replace infrastructure permissions during PCC-19-P1.",
+    "navigation": [{ "key": "infrastructure", "label": "Cloud Infrastructure", "path": "/infrastructure" }],
+    "searchKeywords": ["cloud", "infrastructure", "regions", "capacity", "backup"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-19", "telemetryNamespace": "unierp.pcc.infrastructure", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-20", "center": "PCC", "iconKey": "blocks", "entryPath": "/integrations", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.connectors.access", "legacyPermissionMigration": "Replace integration permissions during PCC-20-P1.",
+    "navigation": [{ "key": "connectors", "label": "Connector Operations", "path": "/integrations" }],
+    "searchKeywords": ["connectors", "integrations", "adapters", "certification"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-20", "telemetryNamespace": "unierp.pcc.connectors", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-21", "center": "PCC", "iconKey": "brain", "entryPath": "/ai", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.ai-platform.access", "legacyPermissionMigration": "Replace AI platform permissions during PCC-21-P1.",
+    "navigation": [{ "key": "ai-platform", "label": "AI Platform Governance", "path": "/ai" }],
+    "searchKeywords": ["ai", "models", "providers", "guardrails", "evaluations"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-21", "telemetryNamespace": "unierp.pcc.ai-platform", "channels": ["WEB"]
+  },
+  {
+    "appId": "PCC-22", "center": "PCC", "iconKey": "life-buoy", "entryPath": "/support", "availability": "ACTIVE",
+    "permissionMode": "LEGACY_MIGRATION", "requiredPermission": "pcc.support.access", "legacyPermissionMigration": "Replace support permissions during PCC-22-P1.",
+    "navigation": [{ "key": "support", "label": "Support Operations", "path": "/support" }],
+    "searchKeywords": ["support", "cases", "sla", "customers"], "declaredResourceKinds": [], "helpTopic": "control-centers/pcc-22", "telemetryNamespace": "unierp.pcc.support", "channels": ["WEB"]
+  }
+]

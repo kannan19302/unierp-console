@@ -21,6 +21,7 @@ import {
   ThemeQuickToggle,
 } from "@kannan19302/ui";
 import { NAV_ITEMS, getBreadcrumbs, type NavItem } from "@/lib/navigation";
+import { ACTIVE_PCC_APP_MANIFESTS } from "@/lib/control-center-manifests";
 import { useSession } from "@kannan19302/shared/auth-client/react";
 import { ControlPlaneGate } from "@/components/AuthShell";
 import { useConsoleSocket } from "@/lib/use-console-socket";
@@ -52,37 +53,49 @@ function ConsoleSocketListener() {
   ) : null;
 }
 
+function SidebarItem({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: NavItem;
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  const router = useRouter();
+  const hasDeclaredPermission = usePermission(item.permission ?? "");
+  const allow = item.permission ? hasDeclaredPermission : true;
+  if (!allow) return null;
+
+  const active = pathname === item.base || pathname.startsWith(`${item.base}/`);
+  const Icon = item.icon;
+  return (
+    <button
+      onClick={() => {
+        router.push(item.base);
+        onNavigate?.();
+      }}
+      aria-current={active ? "page" : undefined}
+      className={`${styles.sidebarButton} ${
+        active ? styles.sidebarButtonActive : styles.sidebarButtonInactive
+      }`}
+    >
+      <Icon size={17} />
+      <span className={styles.buttonText}>{item.label}</span>
+    </button>
+  );
+}
+
 function SidebarItems({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
   return (
     <nav
       aria-label="Control-plane navigation"
       className={styles.sidebarNav}
     >
-      {NAV_ITEMS.map((item) => {
-        const allow = item.permission ? usePermission(item.permission) : true;
-        if (!allow) return null;
-        const active =
-          pathname === item.base || pathname.startsWith(`${item.base}/`);
-        const Icon = item.icon;
-        return (
-          <button
-            key={item.id}
-            onClick={() => {
-              router.push(item.base);
-              onNavigate?.();
-            }}
-            aria-current={active ? "page" : undefined}
-            className={`${styles.sidebarButton} ${
-              active ? styles.sidebarButtonActive : styles.sidebarButtonInactive
-            }`}
-          >
-            <Icon size={17} />
-            <span className={styles.buttonText}>{item.label}</span>
-          </button>
-        );
-      })}
+      {NAV_ITEMS.map((item) => (
+        <SidebarItem key={item.id} item={item} pathname={pathname} onNavigate={onNavigate} />
+      ))}
     </nav>
   );
 }
@@ -138,10 +151,18 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
   const [ticker, setTicker] = useState<string | null>(null);
 
 
-  const commandItems = NAV_ITEMS.flatMap((item) => [
+  const commandItems = [
+    ...ACTIVE_PCC_APP_MANIFESTS.map((manifest) => ({
+      id: `app-${manifest.appId}`,
+      category: "PCC Applications",
+      title: manifest.navigation[0]?.label ?? manifest.appId,
+      subtitle: `${manifest.appId} · ${manifest.entryPath}`,
+      onSelect: () => router.push(manifest.entryPath),
+    })),
+    ...NAV_ITEMS.flatMap((item) => [
     {
       id: `nav-${item.id}`,
-      category: "Domains",
+      category: "Legacy route groups",
       title: item.label,
       subtitle: item.base,
       onSelect: () => router.push(item.base),
@@ -153,7 +174,8 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
       subtitle: tab.path,
       onSelect: () => router.push(tab.path),
     })),
-  ]);
+    ]),
+  ];
 
   // Outage ticker fetched from the real operations API.
   useEffect(() => {

@@ -9,6 +9,7 @@ export interface BreakGlassActionProps {
   actionLabel?: string;
   variant?: ButtonProps["variant"];
   disabled?: boolean;
+  minimumJustificationLength?: number;
   onConfirm: (justification: string) => Promise<void> | void;
 }
 
@@ -24,6 +25,7 @@ export function BreakGlassAction({
   actionLabel = "Confirm Action",
   variant = "danger",
   disabled,
+  minimumJustificationLength = 10,
   onConfirm
 }: BreakGlassActionProps) {
   const [open, setOpen] = useState(false);
@@ -32,8 +34,8 @@ export function BreakGlassAction({
   const [error, setError] = useState<string | null>(null);
 
   const handleConfirm = async () => {
-    if (!justification.trim()) {
-      setError("Justification is required.");
+    if (justification.trim().length < minimumJustificationLength) {
+      setError(`Justification must be at least ${minimumJustificationLength} characters.`);
       return;
     }
     
@@ -73,7 +75,7 @@ export function BreakGlassAction({
             <Button variant="secondary" onClick={handleClose} disabled={loading}>
               Cancel
             </Button>
-            <Button variant={variant} onClick={handleConfirm} disabled={loading || !justification.trim()}>
+            <Button variant={variant} onClick={handleConfirm} disabled={loading || justification.trim().length < minimumJustificationLength}>
               {loading ? "Processing..." : actionLabel}
             </Button>
           </div>
@@ -88,6 +90,7 @@ export function BreakGlassAction({
                 if (error) setError(null);
               }}
               placeholder="e.g. TICK-1234, Requested by user"
+              minLength={minimumJustificationLength}
               autoFocus
               disabled={loading}
             />

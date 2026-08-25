@@ -17,7 +17,36 @@ import {
   usePermission,
 } from "@kannan19302/ui";
 import { NAV_ITEMS } from "@/lib/navigation";
+import type { NavItem } from "@/lib/navigation";
 import styles from "./domain-shell.module.css";
+
+function DomainTab({
+  tab,
+  item,
+  pathname,
+}: {
+  tab: NavItem["tabs"][number];
+  item: NavItem;
+  pathname: string;
+}) {
+  const hasDeclaredPermission = usePermission(tab.permission ?? "");
+  if (tab.permission && !hasDeclaredPermission) return null;
+
+  const active = pathname === tab.path || pathname.startsWith(`${tab.path}/`);
+  const Icon = tab.permission ? undefined : item.icon;
+  return (
+    <Link
+      href={tab.path}
+      role="tab"
+      aria-selected={active}
+      aria-current={active ? "page" : undefined}
+      className={`${styles.tab} ${active ? styles.tabActive : styles.tabInactive}`}
+    >
+      {Icon && <Icon size={16} />}
+      <span>{tab.label}</span>
+    </Link>
+  );
+}
 
 export interface DomainShellProps {
   domainId: string;
@@ -41,8 +70,6 @@ export default function DomainShell({
   if (!item) {
     return <div>Unknown domain {domainId}</div>;
   }
-
-  const tabs = item.tabs.filter((t) => !t.permission || usePermission(t.permission));
 
   let displayTitle = title ?? item.label;
   let resolvedBreadcrumbs = breadcrumb;
@@ -81,24 +108,9 @@ export default function DomainShell({
         aria-label={`${item.label} sections`}
         className={styles.tabList}
       >
-        {tabs.map((tab) => {
-          const active =
-            pathname === tab.path || pathname.startsWith(`${tab.path}/`);
-          const Icon = tab.permission ? undefined : item.icon;
-          return (
-            <Link
-              key={tab.key}
-              href={tab.path}
-              role="tab"
-              aria-selected={active}
-              aria-current={active ? "page" : undefined}
-              className={`${styles.tab} ${active ? styles.tabActive : styles.tabInactive}`}
-            >
-              {Icon && <Icon size={16} />}
-              <span>{tab.label}</span>
-            </Link>
-          );
-        })}
+        {item.tabs.map((tab) => (
+          <DomainTab key={tab.key} tab={tab} item={item} pathname={pathname} />
+        ))}
       </div>
 
       <div>{children}</div>

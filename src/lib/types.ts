@@ -24,9 +24,9 @@ export interface ApiClient {
     path: string,
     params?: Record<string, string | number | boolean | undefined>,
   ): Promise<ApiResponse<T>>;
-  post<T>(path: string, body?: unknown): Promise<ApiResponse<T>>;
-  put<T>(path: string, body?: unknown): Promise<ApiResponse<T>>;
-  patch<T>(path: string, body?: unknown): Promise<ApiResponse<T>>;
+  post<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<ApiResponse<T>>;
+  put<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<ApiResponse<T>>;
+  patch<T>(path: string, body?: unknown, options?: ApiRequestOptions): Promise<ApiResponse<T>>;
   del<T>(
     path: string,
     params?: Record<string, string | number | boolean | undefined>,
@@ -35,4 +35,12 @@ export interface ApiClient {
 
 export interface ApiRequestOptions {
   params?: Record<string, string | number | boolean | undefined>;
+  /** Deliberately allowlisted privileged control-plane headers. */
+  headers?: Partial<Record<PrivilegedRequestHeader, string>>;
 }
+
+export type PrivilegedRequestHeader =
+  | "x-approval-token"
+  | "x-break-glass-reason"
+  | "x-confirm-purge"
+  | "x-correlation-id";
