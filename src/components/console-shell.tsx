@@ -18,8 +18,8 @@ import {
   usePermission,
   Breadcrumb,
   BrandMark,
-  ThemeQuickToggle,
-} from "@kannan19302/ui";
+} from "@kannan19302/ui/components";
+import { ThemeQuickToggle } from "@kannan19302/ui/theme";
 import { NAV_ITEMS, getBreadcrumbs, type NavItem } from "@/lib/navigation";
 import { ACTIVE_PCC_APP_MANIFESTS } from "@/lib/control-center-manifests";
 import { useSession } from "@kannan19302/shared/auth-client/react";

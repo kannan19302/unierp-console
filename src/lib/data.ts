@@ -30,6 +30,7 @@ export interface UseListResult<T> {
   error: Error | null;
   /** Manual re-fetch. Returns void. */
   reload: () => void;
+  refresh: () => void;
 }
 
 export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
@@ -81,6 +82,7 @@ export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
     loading,
     error,
     reload,
+    refresh: reload,
   };
 }
 
@@ -89,6 +91,7 @@ export interface UseItemResult<T> {
   loading: boolean;
   error: Error | null;
   reload: () => void;
+  refresh: () => void;
 }
 
 // A safe fallback proxy to prevent crashes when accessing missing mock data
@@ -138,7 +141,7 @@ export function useItem<T>(path: string | null | undefined): UseItemResult<T> {
     run();
   }, [run]);
 
-  return { data, loading, error, reload };
+  return { data, loading, error, reload, refresh: reload };
 }
 
 /** Mutation helper returning a committed callback + in-flight state. */

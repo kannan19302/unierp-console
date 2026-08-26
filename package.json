@@ -18,6 +18,7 @@
     "@kannan19302/auth": "^1.0.4",
     "@kannan19302/framework": "^0.1.4",
     "@kannan19302/sdk": "^1.0.3",
+    "@kannan19302/shared": "file:../shared",
     "@kannan19302/ui": "file:../design-system",
     "lucide-react": "^0.460.0",
     "next": "15.3.8",

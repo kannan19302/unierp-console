@@ -1,19 +1,28 @@
 "use client";
 /**
- * Billing → Plans.
+ * Billing → Plans (PCC-04 Subscription & Plan Engineering).
  * Published billing plans, their pricing, billing cycle and how many
  * tenants are subscribed to each — read from the plans control-plane API.
  */
-import { Layers, Package, Users } from "lucide-react";
+import { useState } from "react";
+import { Layers, Package, Plus, RefreshCw, Users } from "lucide-react";
 import {
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
   Badge,
+  Button,
+  FormField,
+  Input,
+  Modal,
+  Select,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useList } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 
 const fmtMoney = (v?: number | string | null): string =>
@@ -25,6 +34,7 @@ const fmtMoney = (v?: number | string | null): string =>
 
 interface PlanRow {
   id?: string;
+  code?: string;
   name?: string;
   description?: string;
   status?: string;
@@ -39,7 +49,47 @@ interface PlanRow {
 }
 
 export default function BillingPlans() {
+  const toast = useToast();
+  const canWritePlan = usePermission("system.plan.write");
+
   const plans = useList<PlanRow>({ path: "/platform/v1/plans" });
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [planCode, setPlanCode] = useState("");
+  const [planName, setPlanName] = useState("");
+  const [planDesc, setPlanDesc] = useState("");
+  const [planTier, setPlanTier] = useState("GROWTH");
+  const [monthlyPrice, setMonthlyPrice] = useState("299");
+  const [creating, setCreating] = useState(false);
+
+  const handleCreatePlan = async () => {
+    setCreating(true);
+    try {
+      await api.post("/platform/v1/plans", {
+        code: planCode.toUpperCase().trim(),
+        name: planName.trim(),
+        description: planDesc.trim(),
+        tier: planTier,
+        prices: [
+          {
+            currency: "USD",
+            amount: parseFloat(monthlyPrice) || 0,
+            interval: "MONTHLY",
+          },
+        ],
+      });
+      await plans.reload();
+      toast.success("Plan Created", `Commercial plan "${planName}" published.`);
+      setCreateOpen(false);
+      setPlanCode("");
+      setPlanName("");
+      setPlanDesc("");
+    } catch {
+      toast.error("Creation Failed", "Could not create commercial plan.");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const activeCount = plans.data.filter(
     (p) => (p.status ?? "").toUpperCase() === "ACTIVE",
@@ -58,9 +108,30 @@ export default function BillingPlans() {
   return (
     <DomainShell
       domainId="billing"
-      title="Billing"
-      description="Revenue, plans, subscriptions, invoices and metering across the platform."
+      title="Commercial Plans & Price Books"
+      description="Define subscription plans, tier entitlements, multi-currency price points, and quota allocations."
       breadcrumb={[{ label: "Billing", href: "/billing" }, { label: "Plans" }]}
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => plans.reload()}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            disabled={!canWritePlan}
+          >
+            <Plus size={14} />
+            Create Plan
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={3} />
@@ -78,11 +149,11 @@ export default function BillingPlans() {
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-4)" }}>
             {plans.data.map((p) => (
-              <Card key={p.id ?? p.name ?? "?"} padding="md">
+              <Card key={p.id ?? p.code ?? p.name ?? "?"} padding="md">
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
                   <div>
                     <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-                      {p.name ?? "—"}
+                      {p.name ?? p.code ?? "—"}
                     </h3>
                     {p.description ? (
                       <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
@@ -90,7 +161,7 @@ export default function BillingPlans() {
                       </p>
                     ) : null}
                   </div>
-                  <Badge variant={planVariant(p.status)}>{p.status ?? "UNKNOWN"}</Badge>
+                  <Badge variant={planVariant(p.status)}>{p.status ?? "ACTIVE"}</Badge>
                 </div>
                 <div style={{ marginTop: "var(--space-4)", fontSize: "var(--text-xl)", fontWeight: 700 }}>
                   {fmtMoney(p.price)}
@@ -106,10 +177,10 @@ export default function BillingPlans() {
                     <dt style={{ color: "var(--color-text-secondary)", margin: 0 }}>Subscribed tenants</dt>
                     <dd style={{ margin: 0, fontWeight: 500 }}>{p.tenantCount ?? p.subscribers ?? "—"}</dd>
                   </div>
-                  {p.currency ? (
+                  {p.code ? (
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <dt style={{ color: "var(--color-text-secondary)", margin: 0 }}>Currency</dt>
-                      <dd style={{ margin: 0, fontWeight: 500 }}>{p.currency}</dd>
+                      <dt style={{ color: "var(--color-text-secondary)", margin: 0 }}>Plan Code</dt>
+                      <dd style={{ margin: 0, fontWeight: 500 }}>{p.code}</dd>
                     </div>
                   ) : null}
                   {p.createdAt ? (
@@ -124,6 +195,70 @@ export default function BillingPlans() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Author Commercial Plan"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Publish a new plan tier to the platform price book and enable tenant provisioning.
+          </p>
+          <FormField label="Plan Code" required>
+            <Input
+              value={planCode}
+              onChange={(e) => setPlanCode(e.target.value)}
+              placeholder="e.g. ENTERPRISE_PLUS"
+            />
+          </FormField>
+          <FormField label="Plan Name" required>
+            <Input
+              value={planName}
+              onChange={(e) => setPlanName(e.target.value)}
+              placeholder="e.g. Enterprise Plus (Dedicated SLA)"
+            />
+          </FormField>
+          <FormField label="Description">
+            <Input
+              value={planDesc}
+              onChange={(e) => setPlanDesc(e.target.value)}
+              placeholder="e.g. Dedicated infrastructure, custom SSO, 99.99% uptime SLA"
+            />
+          </FormField>
+          <FormField label="Plan Tier" required>
+            <Select
+              value={planTier}
+              onChange={(e) => setPlanTier(e.target.value)}
+            >
+              <option value="STARTER">Starter</option>
+              <option value="GROWTH">Growth</option>
+              <option value="ENTERPRISE">Enterprise</option>
+              <option value="SCALE">Scale</option>
+            </Select>
+          </FormField>
+          <FormField label="Monthly Price (USD)" required>
+            <Input
+              value={monthlyPrice}
+              onChange={(e) => setMonthlyPrice(e.target.value)}
+              type="number"
+              placeholder="299"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreatePlan}
+              disabled={creating || !planCode.trim() || !planName.trim()}
+            >
+              {creating ? "Publishing..." : "Publish Plan"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DomainShell>
   );
 }

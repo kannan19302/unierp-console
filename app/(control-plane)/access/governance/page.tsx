@@ -5,17 +5,26 @@
  * policy knobs and platform settings, all read from the verified admin
  * endpoints. Real data only.
  */
-import { BadgeCheck, Package, Settings } from "lucide-react";
+import { useState } from "react";
+import { BadgeCheck, KeyRound, Package, Plus, RefreshCw, Settings, ShieldCheck } from "lucide-react";
 import {
   Badge,
+  Button,
   Card,
   EmptyState,
+  FormField,
+  Input,
+  Modal,
+  Select,
   Spinner,
   StatCardRow,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import DomainShell from "@/components/domain-shell";
 import { useItem, useList } from "@/lib/data";
+import { api } from "@/lib/api";
 
 interface AccessPackageRow {
   id?: string;
@@ -61,9 +70,62 @@ function flag(value: unknown): "success" | "danger" | "warning" {
 }
 
 export default function AccessGovernance() {
-  const packages = useList<AccessPackageRow>({ path: "/admin/access-packages" });
+  const toast = useToast();
+  const canGovern = usePermission("pcc.identity-governance.access");
+  const canElevate = usePermission("system.privilegeelevation.grant");
+
+  const packages = useList<AccessPackageRow>({ path: "/platform/v1/staff-idp/access-packages" });
   const settings = useList<SettingsRow>({ path: "/admin/settings" });
   const security = useItem<SecurityConfig>("/saas/security");
+
+  const [campaignOpen, setCampaignOpen] = useState(false);
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignDesc, setCampaignDesc] = useState("");
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
+
+  const [elevateOpen, setElevateOpen] = useState(false);
+  const [targetUserId, setTargetUserId] = useState("");
+  const [privilegeName, setPrivilegeName] = useState("system.superadmin.access");
+  const [ttlMinutes, setTtlMinutes] = useState("60");
+  const [grantingElevate, setGrantingElevate] = useState(false);
+
+  const handleCreateCampaign = async () => {
+    setCreatingCampaign(true);
+    try {
+      await api.post("/platform/v1/staff-idp/access-reviews", {
+        name: campaignName,
+        description: campaignDesc,
+      });
+      await packages.reload();
+      toast.success("Campaign Created", `Access review campaign "${campaignName}" initiated.`);
+      setCampaignOpen(false);
+      setCampaignName("");
+      setCampaignDesc("");
+    } catch (err: any) {
+      toast.error("Campaign Failed", err.message || "Failed to create campaign.");
+    } finally {
+      setCreatingCampaign(false);
+    }
+  };
+
+  const handleGrantElevation = async () => {
+    setGrantingElevate(true);
+    try {
+      await api.post("/platform/v1/privilege-elevation", {
+        userId: targetUserId,
+        privilege: privilegeName,
+        grantedBy: "platform-operator",
+        ttlMs: (parseInt(ttlMinutes, 10) || 60) * 60 * 1000,
+      });
+      toast.success("Privilege Elevated", `JIT privilege "${privilegeName}" granted for ${ttlMinutes}m.`);
+      setElevateOpen(false);
+      setTargetUserId("");
+    } catch (err: any) {
+      toast.error("Elevation Denied", err.message || "Could not grant JIT privilege elevation.");
+    } finally {
+      setGrantingElevate(false);
+    }
+  };
 
   const published = packages.data.filter((p) => statusVariant(p.status) === "success").length;
   const review = packages.data.filter((p) => statusVariant(p.status) === "warning").length;
@@ -86,7 +148,44 @@ export default function AccessGovernance() {
   }
 
   return (
-    <DomainShell domainId="access" title="Governance" description="Access packages, policy controls and platform governance settings.">
+    <DomainShell
+      domainId="access"
+      title="Governance"
+      description="Access packages, policy controls and platform governance settings."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              packages.reload();
+              settings.reload();
+            }}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setElevateOpen(true)}
+            disabled={!canElevate}
+          >
+            <KeyRound size={14} />
+            JIT Elevation
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCampaignOpen(true)}
+            disabled={!canGovern}
+          >
+            <Plus size={14} />
+            New Review Campaign
+          </Button>
+        </div>
+      }
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={4} />
 
@@ -194,6 +293,90 @@ export default function AccessGovernance() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={campaignOpen}
+        onClose={() => setCampaignOpen(false)}
+        title="Create Access Review Campaign"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Initiate a quarterly or ad-hoc access certification campaign for provider workforce principals.
+          </p>
+          <FormField label="Campaign Name" required>
+            <Input
+              value={campaignName}
+              onChange={(e) => setCampaignName(e.target.value)}
+              placeholder="e.g. Q3 Provider Admin Privileged Access Review"
+            />
+          </FormField>
+          <FormField label="Description">
+            <Input
+              value={campaignDesc}
+              onChange={(e) => setCampaignDesc(e.target.value)}
+              placeholder="e.g. Recertification of SRE and Platform Operator role bindings"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setCampaignOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreateCampaign}
+              disabled={creatingCampaign || !campaignName.trim()}
+            >
+              {creatingCampaign ? "Creating..." : "Create Campaign"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={elevateOpen}
+        onClose={() => setElevateOpen(false)}
+        title="Grant Just-In-Time Privilege Elevation"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Temporary privilege elevation with automatic time-to-live expiration and audit recording.
+          </p>
+          <FormField label="Target Principal / User ID" required>
+            <Input
+              value={targetUserId}
+              onChange={(e) => setTargetUserId(e.target.value)}
+              placeholder="e.g. usr_ops_lead_01"
+            />
+          </FormField>
+          <FormField label="Elevated Privilege Grant" required>
+            <Input
+              value={privilegeName}
+              onChange={(e) => setPrivilegeName(e.target.value)}
+              placeholder="e.g. system.superadmin.access"
+            />
+          </FormField>
+          <FormField label="TTL Duration (Minutes)" required>
+            <Input
+              value={ttlMinutes}
+              onChange={(e) => setTtlMinutes(e.target.value)}
+              type="number"
+              placeholder="60"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setElevateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleGrantElevation}
+              disabled={grantingElevate || !targetUserId.trim() || !privilegeName.trim()}
+            >
+              {grantingElevate ? "Granting..." : "Grant Elevation"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DomainShell>
   );
 }

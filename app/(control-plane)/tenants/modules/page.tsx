@@ -1,20 +1,24 @@
 "use client";
 /**
- * Tenants → Modules.
+ * Tenants → Modules (PCC-05 Entitlement & Feature Licensing).
  * Module enablement per tenant, read from the tenant detail endpoint. Pick a
  * tenant to inspect which ERP modules are switched on.
  */
 import { useState } from "react";
-import { Boxes } from "lucide-react";
+import { Boxes, RefreshCw, Zap } from "lucide-react";
 import {
   Badge,
+  Button,
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useItem } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 import TenantSelector from "../_tenant-select";
 import { statusVariant } from "../_badge";
@@ -38,10 +42,29 @@ interface TenantDetail {
 }
 
 export default function TenantsModules() {
+  const toast = useToast();
+  const canSyncQuota = usePermission("system.entitlementquota.sync");
+
   const [tenantId, setTenantId] = useState("");
-  const { data: detail, loading, error } = useItem<TenantDetail>(
+  const [syncing, setSyncing] = useState(false);
+
+  const { data: detail, loading, error, reload } = useItem<TenantDetail>(
     tenantId ? `/platform/v1/super-admin/tenants/${tenantId}` : null,
   );
+
+  const handleSyncQuota = async () => {
+    if (!tenantId) return;
+    setSyncing(true);
+    try {
+      await api.post(`/platform/v1/entitlement-quota/${tenantId}/sync`);
+      await reload();
+      toast.success("Quota Synced", `Synchronized resource quotas from plan entitlements for tenant ${tenantId}.`);
+    } catch {
+      toast.error("Sync Failed", "Could not sync resource quotas from plan entitlements.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const moduleList: ModuleRow[] = Array.isArray(detail?.modules)
     ? (detail?.modules as ModuleRow[])
@@ -60,8 +83,31 @@ export default function TenantsModules() {
   return (
     <DomainShell
       domainId="tenants"
-      title="Tenants · Modules"
-      description="Profit-licensed modules and their enablement per tenant."
+      title="Tenants · Entitlements & Modules"
+      description="Profit-licensed ERP modules, feature grants, and plan-bound resource quota syncing."
+      actions={
+        tenantId ? (
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => reload()}
+            >
+              <RefreshCw size={14} />
+              Refresh
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSyncQuota}
+              disabled={syncing || !canSyncQuota}
+            >
+              <Zap size={14} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "Syncing..." : "Sync Plan Quotas"}
+            </Button>
+          </div>
+        ) : undefined
+      }
     >
       <div className={styles.container}>
         <TenantSelector value={tenantId} onChange={setTenantId} />

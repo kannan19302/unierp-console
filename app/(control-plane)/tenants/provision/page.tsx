@@ -11,15 +11,18 @@ import {
   FormSection,
   Stepper,
   usePermission,
+  useToast,
   ForbiddenState
 } from "@kannan19302/ui";
 import { useMutation } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 import styles from "../tenants.module.css";
 
 export default function ProvisionTenantPage() {
   const router = useRouter();
-  const canProvision = usePermission("system.tenant.provision");
+  const toast = useToast();
+  const canProvision = usePermission("system.tenant.create");
   
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -31,10 +34,14 @@ export default function ProvisionTenantPage() {
   });
 
   const provision = useMutation(async (data: typeof formData) => {
-    // In a real implementation this POSTs to the control plane API.
-    // For now we simulate the delay.
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { id: "tnt_" + Math.random().toString(36).slice(2, 9) };
+    const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+    const resp = await api.post<{ id?: string; name?: string }>("/platform/v1/super-admin/tenants", {
+      name: data.name,
+      slug: slug || "tenant-" + Date.now(),
+      plan: data.plan,
+      adminEmail: data.ownerEmail,
+    });
+    return resp.data;
   });
 
   if (!canProvision) {
@@ -59,10 +66,11 @@ export default function ProvisionTenantPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await provision.run(formData);
+      const res = await provision.run(formData);
+      toast.success("Tenant Provisioned", `Tenant "${formData.name}" successfully created.`);
       router.push("/tenants/directory");
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.error("Provisioning Failed", err.message || "Failed to provision tenant.");
     }
   };
 

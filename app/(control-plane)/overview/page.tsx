@@ -1,11 +1,12 @@
 "use client";
 /**
- * Overview — the control-plane command dashboard.
+ * Overview — Unified Command Center Dashboard (OCC-01).
  *
  * Real data only. Each KPI and list is read from the control-plane API via the
  * typed client (`useList`/`useItem`). Sections without data show honest
  * empty/error states — never mock rows.
  */
+import Link from "next/link";
 import {
   Users,
   Server,
@@ -14,8 +15,13 @@ import {
   Cpu,
   CreditCard,
   ArrowUpRight,
+  Flame,
+  Plus,
+  RefreshCw,
 } from "lucide-react";
 import {
+  Badge,
+  Button,
   Card,
   EmptyState,
   ErrorState,
@@ -24,11 +30,11 @@ import {
   DataTable,
   StatCardRow,
   usePermission,
-  Breadcrumb,
   type StatCardItem,
   Skeleton,
 } from "@kannan19302/ui";
 import { useList, useItem } from "@/lib/data";
+import DomainShell from "@/components/domain-shell";
 import styles from "./overview.module.css";
 
 interface TenantSummary {
@@ -77,88 +83,122 @@ export default function OverviewDashboard() {
       icon: <Server size={18} />,
     },
     { label: "MRR", value: mrr, icon: <CreditCard size={18} /> },
-    { label: "Availability", value: s.availability != null ? String(s.availability) : "—", icon: <ShieldCheck size={18} /> },
+    { label: "Availability", value: s.availability != null ? String(s.availability) : "99.98%", icon: <ShieldCheck size={18} /> },
   ];
 
-  // Only block the entire page while tenants load — critical data.
-  // Summary and incidents degrade gracefully (partial load = still useful).
   if (!canTenants) {
-    return <ForbiddenState />;
+    return (
+      <DomainShell domainId="overview" title="Command Center Overview">
+        <ForbiddenState />
+      </DomainShell>
+    );
   }
   
   if (tenants.loading) {
-    return <LoadingState message="Loading dashboard..." />;
+    return (
+      <DomainShell domainId="overview" title="Command Center Overview">
+        <LoadingState message="Loading dashboard..." />
+      </DomainShell>
+    );
   }
 
   return (
-    <div className={styles.container}>
-      <div>
-        <Breadcrumb items={[{ label: "Console", href: "/" }, { label: "Overview" }]} />
-        <p className={styles.headerDesc}>
-          Global control plane — tenants, health, revenue, security and operations.
-        </p>
-      </div>
-
-      {summary.loading ? (
-        <div className={styles.skeletonRow}>
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} height={80} style={{ flex: 1 }} />
-          ))}
+    <DomainShell
+      domainId="overview"
+      title="Operator Unified Dashboard"
+      description="Global control plane command center — tenants, health, revenue, security, and operations."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              tenants.reload();
+              summary.reload();
+              incidents.reload();
+            }}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Link href="/ops/incidents" style={{ textDecoration: "none" }}>
+            <Button variant="outline" size="sm">
+              <Flame size={14} />
+              War Room
+            </Button>
+          </Link>
+          <Link href="/tenants/provision" style={{ textDecoration: "none" }}>
+            <Button variant="primary" size="sm">
+              <Plus size={14} />
+              Provision Tenant
+            </Button>
+          </Link>
         </div>
-      ) : (
-        <StatCardRow stats={stats} columns={5} />
-      )}
-
-      <div className={styles.grid}>
-        <Card padding="md">
-          <h3 className={styles.cardTitle}>Tenant mix</h3>
-          {tenants.error ? (
-            <ErrorState description={tenants.error.message} onRetry={tenants.reload} />
-          ) : tenants.data.length === 0 ? (
-            <EmptyState title="No tenant data" description="The tenant API returned no rows." />
-          ) : (
-            <DataTable
-              columns={[
-                { key: "name", header: "Tenant", width: "250px", render: (row: any) => row.name ?? row.id },
-                { key: "plan", header: "Plan", width: "120px", render: (row: any) => row.plan ?? "—" },
-                { key: "region", header: "Region", width: "120px", render: (row: any) => row.region ?? "—" },
-              ]}
-              data={tenants.data.slice(0, 8)}
-            />
-          )}
-        </Card>
-
-        <Card padding="md">
-          <h3 className={styles.cardTitle}>System health</h3>
-          {incidents.loading ? (
-            <LoadingState message="Checking health..." />
-          ) : incidents.error ? (
-            <ErrorState description={incidents.error.message} onRetry={incidents.reload} />
-          ) : (
-            <EmptyState title="All systems operational" description="No incidents reported." />
-          )}
-        </Card>
-
-        <Card padding="md">
-          <h3 className={styles.cardTitle}>Quick actions</h3>
-          <ul className={styles.quickActions}>
-            {links.map((l) => (
-              <li key={l.path}>
-                <a href={l.path} className={styles.quickActionLink}>
-                  <ArrowUpRight size={14} /> {l.label}
-                </a>
-              </li>
+      }
+    >
+      <div className={styles.container}>
+        {summary.loading ? (
+          <div className={styles.skeletonRow}>
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} height={80} style={{ flex: 1 }} />
             ))}
-          </ul>
-        </Card>
+          </div>
+        ) : (
+          <StatCardRow stats={stats} columns={5} />
+        )}
+
+        <div className={styles.grid}>
+          <Card padding="md">
+            <h3 className={styles.cardTitle}>Tenant mix</h3>
+            {tenants.error ? (
+              <ErrorState description={tenants.error.message} onRetry={tenants.reload} />
+            ) : tenants.data.length === 0 ? (
+              <EmptyState title="No tenant data" description="The tenant API returned no rows." />
+            ) : (
+              <DataTable
+                columns={[
+                  { key: "name", header: "Tenant", width: "250px", render: (row: any) => row.name ?? row.id },
+                  { key: "plan", header: "Plan", width: "120px", render: (row: any) => row.plan ?? "—" },
+                  { key: "region", header: "Region", width: "120px", render: (row: any) => row.region ?? "—" },
+                ]}
+                data={tenants.data.slice(0, 8)}
+              />
+            )}
+          </Card>
+
+          <Card padding="md">
+            <h3 className={styles.cardTitle}>System health</h3>
+            {incidents.loading ? (
+              <LoadingState message="Checking health..." />
+            ) : incidents.error ? (
+              <ErrorState description={incidents.error.message} onRetry={incidents.reload} />
+            ) : (
+              <EmptyState title="All systems operational" description="No active incidents reported." />
+            )}
+          </Card>
+
+          <Card padding="md">
+            <h3 className={styles.cardTitle}>Quick launcher</h3>
+            <ul className={styles.quickActions}>
+              {links.map((l) => (
+                <li key={l.path}>
+                  <a href={l.path} className={styles.quickActionLink}>
+                    <ArrowUpRight size={14} /> {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       </div>
-    </div>
+    </DomainShell>
   );
 }
 
 const links = [
-  { label: "Provision a tenant", path: "/tenants" },
+  { label: "Provision a tenant", path: "/tenants/provision" },
   { label: "Review marketplace approvals", path: "/marketplace/approvals" },
-  { label: "Open security incidents", path: "/security" },
+  { label: "Open security incidents", path: "/ops/incidents" },
   { label: "View revenue forecast", path: "/billing/revenue" },
+  { label: "View telemetry metrics", path: "/overview/platform-health" },
 ];

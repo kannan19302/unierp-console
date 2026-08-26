@@ -4,16 +4,25 @@
  * The current release manifest: release train, component pins, deployment
  * gates and rollback strategy from the real /platform/v1/releases/manifest.
  */
-import { PackageOpen, Rocket, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeftRight, PackageOpen, RefreshCw, Rocket, RotateCcw, ShieldCheck } from "lucide-react";
 import {
   Badge,
+  Button,
   Card,
+  ConfirmDialog,
   EmptyState,
+  FormField,
+  Input,
+  Modal,
   Spinner,
   StatCardRow,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useItem } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 
 interface ManifestComponent {
@@ -38,8 +47,22 @@ interface ReleaseManifest {
 }
 
 export default function OpsReleases() {
+  const toast = useToast();
+  const canRollback = usePermission("system.release.rollback");
+  const canPromote = usePermission("system.release.promote");
+
   const manifest = useItem<ReleaseManifest>("/platform/v1/releases/manifest");
   const m = manifest.data ?? {};
+
+  const [rollbackOpen, setRollbackOpen] = useState(false);
+  const [targetVersion, setTargetVersion] = useState(m.previousManifestVersion ?? "v1.0.0");
+  const [rollbackReason, setRollbackReason] = useState("");
+  const [rollingBack, setRollingBack] = useState(false);
+
+  const [promoteOpen, setPromoteOpen] = useState(false);
+  const [promoteEnv, setPromoteEnv] = useState("staging");
+  const [promoteVersion, setPromoteVersion] = useState(m.version ?? "v1.1.0");
+  const [promoting, setPromoting] = useState(false);
 
   const version = String(m.version ?? m.train ?? m.releaseTrain ?? "—");
   const deployedAt = m.deployedAt ?? m.pinnedAt ?? "—";
@@ -47,6 +70,41 @@ export default function OpsReleases() {
   const componentEntry = Object.entries(m.components ?? m.services ?? {});
   const migrations = Array.isArray(m.migrations) ? m.migrations : [];
   const previousVersion = String(m.previousManifestVersion ?? "—");
+
+  const handleRollback = async () => {
+    setRollingBack(true);
+    try {
+      await api.post("/platform/v1/releases/rollback", {
+        targetManifestVersion: targetVersion,
+        reason: rollbackReason || "Manual rollback initiated via Operator Console",
+      });
+      await manifest.reload();
+      toast.success("Rollback Dispatched", `Platform reverting to manifest ${targetVersion}.`);
+      setRollbackOpen(false);
+    } catch {
+      toast.error("Rollback Failed", "Failed to trigger release rollback.");
+    } finally {
+      setRollingBack(false);
+    }
+  };
+
+  const handlePromote = async () => {
+    setPromoting(true);
+    try {
+      await api.post("/platform/v1/releases/promote", {
+        environmentName: promoteEnv,
+        targetManifestVersion: promoteVersion,
+        healthy: true,
+      });
+      await manifest.reload();
+      toast.success("Release Promoted", `Version ${promoteVersion} promoted to ${promoteEnv}.`);
+      setPromoteOpen(false);
+    } catch {
+      toast.error("Promotion Failed", "Failed to promote release version.");
+    } finally {
+      setPromoting(false);
+    }
+  };
 
   const stats: StatCardItem[] = [
     { label: "Release version", value: version, icon: <Rocket size={18} /> },
@@ -67,6 +125,39 @@ export default function OpsReleases() {
       domainId="ops"
       title="Releases"
       description="The pinned release train — every component version in the current manifest."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => manifest.reload()}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPromoteOpen(true)}
+            disabled={!canPromote}
+          >
+            <ArrowLeftRight size={14} />
+            Promote
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => {
+              setTargetVersion(m.previousManifestVersion ?? "v1.0.0");
+              setRollbackOpen(true);
+            }}
+            disabled={!canRollback}
+          >
+            <RotateCcw size={14} />
+            Rollback
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={3} />
@@ -140,6 +231,82 @@ export default function OpsReleases() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        open={rollbackOpen}
+        onClose={() => setRollbackOpen(false)}
+        title="Platform Release Rollback"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-danger)" }}>
+            Warning: This triggers a platform-wide release rollback across all active tenants and nodes.
+          </p>
+          <FormField label="Target Manifest Version">
+            <Input
+              value={targetVersion}
+              onChange={(e) => setTargetVersion(e.target.value)}
+              placeholder="e.g. v1.0.0"
+            />
+          </FormField>
+          <FormField label="Reason for Rollback">
+            <Input
+              value={rollbackReason}
+              onChange={(e) => setRollbackReason(e.target.value)}
+              placeholder="e.g. Critical regression observed in billing outbox"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setRollbackOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleRollback}
+              disabled={rollingBack || !targetVersion.trim()}
+            >
+              {rollingBack ? "Rolling back..." : "Confirm Rollback"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={promoteOpen}
+        onClose={() => setPromoteOpen(false)}
+        title="Promote Release Version"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Promote the current release manifest to a target deployment ring/environment.
+          </p>
+          <FormField label="Target Environment">
+            <Input
+              value={promoteEnv}
+              onChange={(e) => setPromoteEnv(e.target.value)}
+              placeholder="e.g. staging, canary, production"
+            />
+          </FormField>
+          <FormField label="Target Manifest Version">
+            <Input
+              value={promoteVersion}
+              onChange={(e) => setPromoteVersion(e.target.value)}
+              placeholder="e.g. v1.1.0"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setPromoteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handlePromote}
+              disabled={promoting || !promoteEnv.trim() || !promoteVersion.trim()}
+            >
+              {promoting ? "Promoting..." : "Confirm Promotion"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DomainShell>
   );
 }

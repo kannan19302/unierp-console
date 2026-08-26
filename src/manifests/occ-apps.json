@@ -1,0 +1,134 @@
+[
+  {
+    "appId": "OCC-01", "center": "OCC", "iconKey": "layout-dashboard", "entryPath": "/occ", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.dashboard.access",
+    "navigation": [{ "key": "dashboard", "label": "Operator Dashboard", "path": "/occ", "permission": "occ.dashboard.access" }],
+    "searchKeywords": ["operator", "dashboard", "kpis", "tenants", "incidents"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-01", "telemetryNamespace": "unierp.occ.dashboard", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-02", "center": "OCC", "iconKey": "building", "entryPath": "/occ/tenants", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.tenants.access",
+    "navigation": [{ "key": "tenants", "label": "Tenant Operations", "path": "/occ/tenants", "permission": "occ.tenants.access" }],
+    "searchKeywords": ["tenants", "environments", "quotas", "lifecycle"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-02", "telemetryNamespace": "unierp.occ.tenants", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-03", "center": "OCC", "iconKey": "headphones", "entryPath": "/occ/support", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.support.access",
+    "navigation": [{ "key": "support", "label": "Support Desk", "path": "/occ/support", "permission": "occ.support.access" }],
+    "searchKeywords": ["support", "tickets", "workforce", "delegated access"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-03", "telemetryNamespace": "unierp.occ.support", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-04", "center": "OCC", "iconKey": "scale", "entryPath": "/occ/audit", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.audit.access",
+    "navigation": [{ "key": "audit", "label": "Audit & Legal Hold", "path": "/occ/audit", "permission": "occ.audit.access" }],
+    "searchKeywords": ["audit", "compliance", "legal hold", "forensics"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-04", "telemetryNamespace": "unierp.occ.audit", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-05", "center": "OCC", "iconKey": "rocket", "entryPath": "/occ/deployments", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.deployments.access",
+    "navigation": [{ "key": "deployments", "label": "Deployment Rollouts", "path": "/occ/deployments", "permission": "occ.deployments.access" }],
+    "searchKeywords": ["deployments", "canary", "releases", "blue green"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-05", "telemetryNamespace": "unierp.occ.deployments", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-06", "center": "OCC", "iconKey": "server", "entryPath": "/occ/fleet", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.fleet.access",
+    "navigation": [{ "key": "fleet", "label": "Kubernetes Fleet", "path": "/occ/fleet", "permission": "occ.fleet.access" }],
+    "searchKeywords": ["k8s", "kubernetes", "clusters", "nodes", "pods"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-06", "telemetryNamespace": "unierp.occ.fleet", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-07", "center": "OCC", "iconKey": "workflow", "entryPath": "/occ/data-streams", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.streams.access",
+    "navigation": [{ "key": "streams", "label": "Data Pipelines", "path": "/occ/data-streams", "permission": "occ.streams.access" }],
+    "searchKeywords": ["kafka", "event stream", "pipelines", "outbox"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-07", "telemetryNamespace": "unierp.occ.streams", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-08", "center": "OCC", "iconKey": "database", "entryPath": "/occ/databases", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.databases.access",
+    "navigation": [{ "key": "databases", "label": "Database Fleet", "path": "/occ/databases", "permission": "occ.databases.access" }],
+    "searchKeywords": ["postgres", "shards", "migrations", "schemas"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-08", "telemetryNamespace": "unierp.occ.databases", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-09", "center": "OCC", "iconKey": "network", "entryPath": "/occ/ingress", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.ingress.access",
+    "navigation": [{ "key": "ingress", "label": "Edge & Ingress", "path": "/occ/ingress", "permission": "occ.ingress.access" }],
+    "searchKeywords": ["ingress", "gateway", "edge", "tls", "routing"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-09", "telemetryNamespace": "unierp.occ.ingress", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-10", "center": "OCC", "iconKey": "shield-alert", "entryPath": "/occ/dr", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.dr.access",
+    "navigation": [{ "key": "dr", "label": "Disaster Recovery", "path": "/occ/dr", "permission": "occ.dr.access" }],
+    "searchKeywords": ["dr", "disaster recovery", "failover", "backups", "rto", "rpo"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-10", "telemetryNamespace": "unierp.occ.dr", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-11", "center": "OCC", "iconKey": "activity", "entryPath": "/occ/telemetry", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.telemetry.access",
+    "navigation": [{ "key": "telemetry", "label": "Telemetry & Metrics", "path": "/occ/telemetry", "permission": "occ.telemetry.access" }],
+    "searchKeywords": ["metrics", "probes", "synthetics", "slo", "sli"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-11", "telemetryNamespace": "unierp.occ.telemetry", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-12", "center": "OCC", "iconKey": "git-commit", "entryPath": "/occ/tracing", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.tracing.access",
+    "navigation": [{ "key": "tracing", "label": "APM & Tracing", "path": "/occ/tracing", "permission": "occ.tracing.access" }],
+    "searchKeywords": ["tracing", "jaeger", "opentelemetry", "apm", "latency"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-12", "telemetryNamespace": "unierp.occ.tracing", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-13", "center": "OCC", "iconKey": "flame", "entryPath": "/occ/war-room", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.war-room.access",
+    "navigation": [{ "key": "war-room", "label": "Incident War Room", "path": "/occ/war-room", "permission": "occ.war-room.access" }],
+    "searchKeywords": ["incidents", "war room", "sev1", "mitigation", "bridge"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-13", "telemetryNamespace": "unierp.occ.war-room", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-14", "center": "OCC", "iconKey": "bot", "entryPath": "/occ/ai-fleet", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.ai.access",
+    "navigation": [{ "key": "ai-fleet", "label": "AI Inference Fleet", "path": "/occ/ai-fleet", "permission": "occ.ai.access" }],
+    "searchKeywords": ["ai", "llm", "inference", "tokens", "cost", "models"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-14", "telemetryNamespace": "unierp.occ.ai", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-15", "center": "OCC", "iconKey": "receipt", "entryPath": "/occ/billing-ops", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.billing.access",
+    "navigation": [{ "key": "billing-ops", "label": "Billing Operations", "path": "/occ/billing-ops", "permission": "occ.billing.access" }],
+    "searchKeywords": ["billing", "metering", "dunning", "invoices", "usage"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-15", "telemetryNamespace": "unierp.occ.billing", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-16", "center": "OCC", "iconKey": "share-2", "entryPath": "/occ/channel", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.channel.access",
+    "navigation": [{ "key": "channel", "label": "Partner Channels", "path": "/occ/channel", "permission": "occ.channel.access" }],
+    "searchKeywords": ["reseller", "partner", "channel", "distribution"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-16", "telemetryNamespace": "unierp.occ.channel", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-17", "center": "OCC", "iconKey": "code", "entryPath": "/occ/developer-ops", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.developers.access",
+    "navigation": [{ "key": "developer-ops", "label": "Developer Operations", "path": "/occ/developer-ops", "permission": "occ.developers.access" }],
+    "searchKeywords": ["developer", "api keys", "sandbox", "tokens"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-17", "telemetryNamespace": "unierp.occ.developers", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-18", "center": "OCC", "iconKey": "webhook", "entryPath": "/occ/connectors", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.connectors.access",
+    "navigation": [{ "key": "connectors", "label": "Integration Hub", "path": "/occ/connectors", "permission": "occ.connectors.access" }],
+    "searchKeywords": ["webhooks", "connectors", "integrations", "broker"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-18", "telemetryNamespace": "unierp.occ.connectors", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-19", "center": "OCC", "iconKey": "arrow-right-left", "entryPath": "/occ/migration", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.migration.access",
+    "navigation": [{ "key": "migration", "label": "Migration Operations", "path": "/occ/migration", "permission": "occ.migration.access" }],
+    "searchKeywords": ["migration", "data shifter", "import", "cutover"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-19", "telemetryNamespace": "unierp.occ.migration", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-20", "center": "OCC", "iconKey": "sliders", "entryPath": "/occ/flags", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.flags.access",
+    "navigation": [{ "key": "flags", "label": "Feature Flags & Rings", "path": "/occ/flags", "permission": "occ.flags.access" }],
+    "searchKeywords": ["flags", "feature toggles", "rings", "rollouts"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-20", "telemetryNamespace": "unierp.occ.flags", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-21", "center": "OCC", "iconKey": "puzzle", "entryPath": "/occ/extensions", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.extensions.access",
+    "navigation": [{ "key": "extensions", "label": "Extension Runtime", "path": "/occ/extensions", "permission": "occ.extensions.access" }],
+    "searchKeywords": ["extensions", "plugins", "sandbox", "wasm"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-21", "telemetryNamespace": "unierp.occ.extensions", "channels": ["WEB", "DESKTOP"]
+  },
+  {
+    "appId": "OCC-22", "center": "OCC", "iconKey": "shield-check", "entryPath": "/occ/threat-response", "availability": "ACTIVE",
+    "permissionMode": "EXPLICIT_RBAC", "requiredPermission": "occ.threats.access",
+    "navigation": [{ "key": "threat-response", "label": "Threat Response & SOC", "path": "/occ/threat-response", "permission": "occ.threats.access" }],
+    "searchKeywords": ["soc", "threat response", "quarantine", "containment"], "declaredResourceKinds": [], "helpTopic": "control-centers/occ-22", "telemetryNamespace": "unierp.occ.threats", "channels": ["WEB", "DESKTOP"]
+  }
+]

@@ -1,17 +1,27 @@
 "use client";
 /**
  * Security & Compliance → Secrets.
- * Platform credentials (masked) and enterprise-scale key rotation schedules.
+ * Platform credentials (masked), enterprise-scale key rotation schedules,
+ * and zero-downtime TLS certificate lifecycle management.
  */
+import { useState } from "react";
+import { KeyRound, Lock, Plus, RefreshCw, Shield, ShieldCheck } from "lucide-react";
 import {
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
   Badge,
+  Button,
+  FormField,
+  Input,
+  Modal,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useList } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 
 interface CredentialField {
@@ -38,13 +48,67 @@ interface KeyRotation {
   region?: string;
 }
 
+interface CertificateSummary {
+  id: string;
+  tenantId: string;
+  domainId: string;
+  status: string;
+  expiresAt: string;
+  secretRef: string;
+  provider: string;
+}
+
 export default function SecuritySecrets() {
+  const toast = useToast();
+  const canManageCerts = usePermission("system.certificate.manage");
+
   const credentials = useList<CredentialProvider>({
     path: "/admin/platform-credentials",
   });
   const rotations = useList<KeyRotation>({
     path: "/platform/v1/enterprise-scale/key-rotations",
   });
+  const certificates = useList<CertificateSummary>({
+    path: "/platform/v1/certificates",
+  });
+
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [tenantId, setTenantId] = useState("platform");
+  const [domainId, setDomainId] = useState("api.unierp.internal");
+  const [issuing, setIssuing] = useState(false);
+  const [rotatingId, setRotatingId] = useState<string | null>(null);
+
+  const handleIssueCert = async () => {
+    setIssuing(true);
+    try {
+      await api.post("/platform/v1/certificates", {
+        tenantId,
+        domainId,
+        provider: "LETS_ENCRYPT",
+      });
+      await certificates.reload();
+      toast.success("Certificate Issued", `TLS certificate issued for domain ${domainId}.`);
+      setIssueOpen(false);
+      setDomainId("");
+    } catch {
+      toast.error("Issuance Failed", "Failed to issue new TLS certificate.");
+    } finally {
+      setIssuing(false);
+    }
+  };
+
+  const handleRotateCert = async (certId: string) => {
+    setRotatingId(certId);
+    try {
+      await api.post(`/platform/v1/certificates/${certId}/rotate`);
+      await certificates.reload();
+      toast.success("Certificate Rotated", `Zero-downtime rotation completed for ${certId}.`);
+    } catch {
+      toast.error("Rotation Failed", "Could not rotate certificate.");
+    } finally {
+      setRotatingId(null);
+    }
+  };
 
   const totalFields = credentials.data.reduce(
     (acc, p) => acc + (p.fields ?? []).length,
@@ -56,29 +120,99 @@ export default function SecuritySecrets() {
   );
 
   const stats: StatCardItem[] = [
-    { label: "Credential providers", value: credentials.data.length },
-    { label: "Fields", value: totalFields },
-    { label: "Fields set", value: setFields },
-    { label: "Key rotations", value: Number(rotations.total) || rotations.data.length },
+    { label: "Credential providers", value: credentials.data.length, icon: <KeyRound size={18} /> },
+    { label: "Fields set", value: setFields, icon: <Lock size={18} /> },
+    { label: "Key rotations", value: Number(rotations.total) || rotations.data.length, icon: <RefreshCw size={18} /> },
+    { label: "Certificates", value: certificates.data.length, icon: <ShieldCheck size={18} /> },
   ];
 
-  const loading = credentials.loading || rotations.loading;
+  const loading = credentials.loading || rotations.loading || certificates.loading;
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-        <Spinner size="md" />
-      </div>
+      <DomainShell domainId="security" title="Secrets">
+        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
+          <Spinner size="md" />
+        </div>
+      </DomainShell>
     );
   }
 
   return (
     <DomainShell
       domainId="security"
-      title="Secrets"
-      description="Platform credentials and encryption key rotation schedules."
+      title="Secrets & Encryption Keys"
+      description="Platform credentials, key rotation schedules and zero-downtime TLS certificate lifecycle."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              credentials.reload();
+              rotations.reload();
+              certificates.reload();
+            }}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setIssueOpen(true)}
+            disabled={!canManageCerts}
+          >
+            <Plus size={14} />
+            Issue Certificate
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={4} />
+
+        <Card padding="md">
+          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>TLS / mTLS Certificates</h3>
+          <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)", margin: "var(--space-1) 0 0" }}>
+            Managed certificates with automated expiry alerts and zero-downtime renewal.
+          </p>
+          {certificates.error ? (
+            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
+              {certificates.error.message}
+            </p>
+          ) : certificates.data.length === 0 ? (
+            <div style={{ marginTop: "var(--space-3)" }}>
+              <EmptyState title="No active certificate alerts" description="All issued certificates are healthy and within valid lifetime." />
+            </div>
+          ) : (
+            <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
+              {certificates.data.map((c) => (
+                <li key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{c.domainId}</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                      Ref: {c.secretRef} · Tenant: {c.tenantId} · Expires: {new Date(c.expiresAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                    <Badge variant={c.status === "ACTIVE" ? "success" : "warning"}>{c.status}</Badge>
+                    {canManageCerts && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRotateCert(c.id)}
+                        disabled={rotatingId === c.id}
+                      >
+                        <RefreshCw size={12} className={rotatingId === c.id ? "animate-spin" : ""} />
+                        Rotate
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
         <Card padding="md">
           <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Platform credentials</h3>
@@ -152,6 +286,44 @@ export default function SecuritySecrets() {
           )}
         </Card>
       </div>
+
+      <Modal
+        open={issueOpen}
+        onClose={() => setIssueOpen(false)}
+        title="Issue New TLS Certificate"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Provision a new TLS certificate and securely register the redacted secret-ref into the platform vault.
+          </p>
+          <FormField label="Tenant ID" required>
+            <Input
+              value={tenantId}
+              onChange={(e) => setTenantId(e.target.value)}
+              placeholder="platform"
+            />
+          </FormField>
+          <FormField label="Fully Qualified Domain Name (FQDN)" required>
+            <Input
+              value={domainId}
+              onChange={(e) => setDomainId(e.target.value)}
+              placeholder="e.g. app.tenant.unierp.com"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setIssueOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleIssueCert}
+              disabled={issuing || !domainId.trim()}
+            >
+              {issuing ? "Issuing..." : "Issue Certificate"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DomainShell>
   );
 }

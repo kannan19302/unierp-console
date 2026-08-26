@@ -5,22 +5,32 @@
  * degraded tenants, open incidents), Grafana links and the live background-work
  * picture from the control-plane operations API. No mock rows.
  */
+import { useState } from "react";
 import {
   Activity,
   ArrowUpRight,
   Clock3,
+  Database,
   Inbox,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
   TriangleAlert,
 } from "lucide-react";
 import {
+  Button,
   Card,
+  ConfirmDialog,
   EmptyState,
   Spinner,
   StatCardRow,
   Badge,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useItem, useList } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 
 interface JobRow {
@@ -34,9 +44,18 @@ interface JobRow {
 }
 
 export default function OpsOverview() {
+  const toast = useToast();
+  const canUpdate = usePermission("system.operations.update");
+  const canBackup = usePermission("system.operations.backup");
+
   const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
   const health = useItem<Record<string, unknown>>("/platform/v1/operations/health");
   const jobs = useList<JobRow>({ path: "/platform/v1/operations/jobs" });
+
+  const [checkingHealth, setCheckingHealth] = useState(false);
+  const [retryingJobs, setRetryingJobs] = useState(false);
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [creatingBackup, setCreatingBackup] = useState(false);
 
   const s = summary.data ?? {};
   const metrics = (s.metrics ?? {}) as Record<string, unknown>;
@@ -67,6 +86,46 @@ export default function OpsOverview() {
       j.status === "PENDING" ||
       j.status === "WAITING",
   ).length;
+
+  const handleHealthCheck = async () => {
+    setCheckingHealth(true);
+    try {
+      await health.reload();
+      await summary.reload();
+      toast.success("Health Check Completed", "All platform services polled successfully.");
+    } catch {
+      toast.error("Health Check Failed", "Unable to reach platform health endpoint.");
+    } finally {
+      setCheckingHealth(false);
+    }
+  };
+
+  const handleRetryJobs = async () => {
+    setRetryingJobs(true);
+    try {
+      const res = await api.post<{ retriedCount?: number; message?: string }>("/platform/v1/operations/jobs/retry");
+      await jobs.reload();
+      await summary.reload();
+      toast.success("Jobs Re-enqueued", res.data?.message ?? "Failed jobs re-enqueued for retry.");
+    } catch {
+      toast.error("Retry Failed", "Could not trigger background job retries.");
+    } finally {
+      setRetryingJobs(false);
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    setCreatingBackup(true);
+    try {
+      await api.post("/platform/v1/operations/backups/create");
+      toast.success("Backup Initiated", "Platform-wide database backup scheduled.");
+      setBackupDialogOpen(false);
+    } catch {
+      toast.error("Backup Failed", "Unable to trigger instance-wide backup.");
+    } finally {
+      setCreatingBackup(false);
+    }
+  };
 
   const stats: StatCardItem[] = [
     { label: "Queue depth", value: queueDepth, icon: <Inbox size={18} /> },
@@ -105,6 +164,37 @@ export default function OpsOverview() {
       domainId="ops"
       title="Platform Operations"
       description="Queue, outbox, releases, workflows and maintenance for the UniERP control plane."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleHealthCheck}
+            disabled={checkingHealth}
+          >
+            <RefreshCw size={14} className={checkingHealth ? "animate-spin" : ""} />
+            {checkingHealth ? "Probing..." : "Probe Health"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRetryJobs}
+            disabled={retryingJobs || deadLetters === 0 || !canUpdate}
+          >
+            <RotateCcw size={14} className={retryingJobs ? "animate-spin" : ""} />
+            {retryingJobs ? "Retrying..." : "Retry Failed Jobs"}
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setBackupDialogOpen(true)}
+            disabled={!canBackup}
+          >
+            <Database size={14} />
+            Create Backup
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={4} />
@@ -224,6 +314,16 @@ export default function OpsOverview() {
           )}
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={backupDialogOpen}
+        onClose={() => setBackupDialogOpen(false)}
+        onConfirm={handleCreateBackup}
+        title="Create Platform Backup"
+        message="This will initiate an instance-wide PostgreSQL database backup across all tenant partitions. Are you sure you want to proceed?"
+        confirmLabel={creatingBackup ? "Backing up..." : "Confirm Backup"}
+        variant="primary"
+      />
     </DomainShell>
   );
 }

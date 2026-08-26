@@ -3,16 +3,21 @@
  * Ops → Jobs.
  * Background job queues and scheduled cron tasks from the real operations API.
  */
-import { Clock3, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Clock3, Loader2, Play, RefreshCw, RotateCcw } from "lucide-react";
 import {
   Badge,
+  Button,
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useList } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 
 interface JobQueueRow {
@@ -35,11 +40,45 @@ interface TaskRow {
 }
 
 export default function OpsJobs() {
+  const toast = useToast();
+  const canUpdate = usePermission("system.operations.update");
+
   const jobs = useList<JobQueueRow>({ path: "/platform/v1/operations/jobs" });
   const tasks = useList<TaskRow>({ path: "/platform/v1/operations/tasks" });
 
+  const [retrying, setRetrying] = useState(false);
+  const [triggeringId, setTriggeringId] = useState<string | null>(null);
+
   const pending = jobs.data.reduce((acc, q) => acc + ((q.waiting ?? 0) + (q.active ?? 0)), 0);
   const failed = jobs.data.reduce((acc, q) => acc + (q.failed ?? 0), 0);
+
+  const handleRetryAll = async () => {
+    setRetrying(true);
+    try {
+      const res = await api.post<{ retriedCount?: number; message?: string }>("/platform/v1/operations/jobs/retry");
+      await jobs.reload();
+      toast.success("Jobs Re-enqueued", res.data?.message ?? "Failed jobs re-enqueued for retry.");
+    } catch {
+      toast.error("Retry Failed", "Could not trigger background job retries.");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
+  const handleTriggerTask = async (task: TaskRow) => {
+    if (!task.id) return;
+    setTriggeringId(task.id);
+    try {
+      const res = await api.post<{ message?: string; jobId?: string }>(`/platform/v1/operations/tasks/${task.id}/trigger`);
+      await tasks.reload();
+      await jobs.reload();
+      toast.success("Task Triggered", res.data?.message ?? `Triggered ${task.name || task.handler}`);
+    } catch {
+      toast.error("Trigger Failed", `Could not trigger task ${task.name || task.handler}`);
+    } finally {
+      setTriggeringId(null);
+    }
+  };
 
   const stats: StatCardItem[] = [
     { label: "Queues", value: jobs.data.length },
@@ -61,6 +100,30 @@ export default function OpsJobs() {
       domainId="ops"
       title="Jobs"
       description="Background job queues and scheduled tasks running on the platform."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              jobs.reload();
+              tasks.reload();
+            }}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRetryAll}
+            disabled={retrying || failed === 0 || !canUpdate}
+          >
+            <RotateCcw size={14} className={retrying ? "animate-spin" : ""} />
+            {retrying ? "Retrying..." : "Retry Failed"}
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={4} />
@@ -127,7 +190,7 @@ export default function OpsJobs() {
                   <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontWeight: 500 }}>
                     <Clock3 size={14} /> {t.name ?? t.handler}
                   </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
                       {t.handler ? `${t.handler} · ` : ""}
                       {t.expression ?? ""}
@@ -136,7 +199,18 @@ export default function OpsJobs() {
                     <Badge variant={taskStatusVariant(t.status, t.lastResult)}>
                       {t.status ?? "UNKNOWN"}
                     </Badge>
-                  </span>
+                    {t.id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTriggerTask(t)}
+                        disabled={triggeringId === t.id || !canUpdate}
+                      >
+                        <Play size={12} />
+                        {triggeringId === t.id ? "Running..." : "Trigger"}
+                      </Button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

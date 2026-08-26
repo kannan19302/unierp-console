@@ -1,14 +1,25 @@
 "use client";
 /**
- * Marketplace → Approvals.
+ * Marketplace → Approvals (PCC-15 Ecosystem App & Extension Marketplace & OCC-21).
  *
  * The submissions review queue. Lists pending submissions from
  * `/platform/v1/marketplace/submissions` and wires the verified approve /
- * reject actions (`POST /platform/v1/marketplace/:id/approve|reject`).
+ * reject / emergency revoke actions.
  */
 import { useCallback, useState } from "react";
-import { Check, X } from "lucide-react";
-import { Card, EmptyState, Spinner, Badge, usePermission } from "@kannan19302/ui";
+import { AlertOctagon, Check, RefreshCw, X } from "lucide-react";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  FormField,
+  Input,
+  Modal,
+  Spinner,
+  usePermission,
+  useToast,
+} from "@kannan19302/ui";
 import { api } from "@/lib/api";
 import { useList, useMutation } from "@/lib/data";
 import { useSession } from "@kannan19302/shared/auth-client/react";
@@ -34,49 +45,74 @@ const STATUS_VARIANT = (s?: string) =>
         : "default";
 
 export default function MarketplaceApprovalsPage() {
-  const canApprove = usePermission("admin.platform.update");
+  const toast = useToast();
+  const canApprove = usePermission("system.marketplace.write");
   const { claims } = useSession();
   const submissions = useList<SubmissionRow>({
     path: "/platform/v1/marketplace/submissions",
-    disabled: !canApprove,
   });
-  const [actionError, setActionError] = useState<string | null>(null);
 
-  const approve = useMutation(
-    useCallback(
-      async (id: string) => {
-        await api.post(`/platform/v1/marketplace/${id}/approve`, {
-          actorId: claims?.sub || "SYSTEM",
-        });
-      },
-      [claims],
-    ),
-  );
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [targetSubmission, setTargetSubmission] = useState<SubmissionRow | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
 
-  const reject = useMutation(
-    useCallback(
-      async (args: { id: string; reason: string }) => {
-        await api.post(`/platform/v1/marketplace/${args.id}/reject`, {
-          reason: args.reason,
-          actorId: claims?.sub || "SYSTEM",
-        });
-      },
-      [claims],
-    ),
-  );
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [revokeSlug, setRevokeSlug] = useState("");
+  const [revokeReason, setRevokeReason] = useState("");
+  const [revoking, setRevoking] = useState(false);
 
-  const runApprove = (id?: string) => {
+  const handleApprove = async (id?: string, name?: string) => {
     if (!id) return;
-    setActionError(null);
-    void approve.run(id).then(() => submissions.reload());
+    try {
+      await api.post(`/platform/v1/marketplace/${id}/approve`, {
+        actorId: claims?.sub || "operator-reviewer",
+      });
+      await submissions.reload();
+      toast.success("Extension Approved", `Approved extension ${name || id} for platform catalog.`);
+    } catch {
+      toast.error("Approval Failed", "Failed to approve extension submission.");
+    }
   };
 
-  const runReject = (id?: string) => {
-    if (!id) return;
-    const reason = window.prompt("Reason for rejection");
-    if (!reason) return;
-    setActionError(null);
-    void reject.run({ id, reason }).then(() => submissions.reload());
+  const handleReject = async () => {
+    if (!targetSubmission?.id) return;
+    setRejecting(true);
+    try {
+      await api.post(`/platform/v1/marketplace/${targetSubmission.id}/reject`, {
+        reason: rejectReason,
+        actorId: claims?.sub || "operator-reviewer",
+      });
+      await submissions.reload();
+      toast.success("Extension Rejected", `Rejected extension ${targetSubmission.name || targetSubmission.id}.`);
+      setRejectModalOpen(false);
+      setTargetSubmission(null);
+      setRejectReason("");
+    } catch {
+      toast.error("Rejection Failed", "Failed to reject extension submission.");
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    if (!revokeSlug) return;
+    setRevoking(true);
+    try {
+      await api.post(`/platform/v1/marketplace/extensions/${revokeSlug}/emergency-revoke`, {
+        reason: revokeReason,
+        actorId: claims?.sub || "security-admin",
+      });
+      await submissions.reload();
+      toast.success("Emergency Revocation Issued", `Extension ${revokeSlug} revoked across all tenant runtimes.`);
+      setRevokeModalOpen(false);
+      setRevokeSlug("");
+      setRevokeReason("");
+    } catch {
+      toast.error("Revocation Failed", "Failed to execute emergency revocation.");
+    } finally {
+      setRevoking(false);
+    }
   };
 
   if (submissions.loading) {
@@ -103,8 +139,29 @@ export default function MarketplaceApprovalsPage() {
   return (
     <DomainShell
       domainId="marketplace"
-      title="Approvals"
-      description="Review incoming extension submissions."
+      title="Marketplace Listing Reviews & Sandboxing"
+      description="Review incoming developer extensions, verify security permissions, sign off catalog listings, or execute emergency sandbox revocations."
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => submissions.reload()}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRevokeModalOpen(true)}
+            disabled={!canApprove}
+          >
+            <AlertOctagon size={14} />
+            Emergency Revoke
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {submissions.error ? (
@@ -123,11 +180,6 @@ export default function MarketplaceApprovalsPage() {
             <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
               Review queue ({queue.length})
             </h3>
-            {(approve.error || reject.error || actionError) && (
-              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-                {actionError ?? approve.error?.message ?? reject.error?.message}
-              </p>
-            )}
             <ul
               style={{
                 listStyle: "none",
@@ -156,48 +208,27 @@ export default function MarketplaceApprovalsPage() {
                   </div>
                   <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                     <Badge variant={STATUS_VARIANT(row.status)}>{row.status ?? "UNKNOWN"}</Badge>
-                    <button
-                      onClick={() => runApprove(row.id)}
-                      disabled={approve.loading || reject.loading}
-                      title="Approve"
-                      aria-label={`Approve ${row.name ?? row.id ?? "submission"}`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "var(--space-1)",
-                        padding: "var(--space-1) var(--space-2)",
-                        borderRadius: "var(--radius-md)",
-                        border: "1px solid var(--color-border)",
-                        background: "transparent",
-                        color: "var(--color-success)",
-                        fontSize: "var(--text-sm)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <Check size={14} /> Approve
-                    </button>
-                    <button
-                      onClick={() => runReject(row.id)}
-                      disabled={approve.loading || reject.loading}
-                      title="Reject"
-                      aria-label={`Reject ${row.name ?? row.id ?? "submission"}`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "var(--space-1)",
-                        padding: "var(--space-1) var(--space-2)",
-                        borderRadius: "var(--radius-md)",
-                        border: "1px solid var(--color-border)",
-                        background: "transparent",
-                        color: "var(--color-danger)",
-                        fontSize: "var(--text-sm)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <X size={14} /> Reject
-                    </button>
+                    {canApprove && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleApprove(row.id, row.name)}
+                        >
+                          <Check size={14} /> Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setTargetSubmission(row);
+                            setRejectModalOpen(true);
+                          }}
+                        >
+                          <X size={14} /> Reject
+                        </Button>
+                      </>
+                    )}
                   </span>
                 </li>
               ))}
@@ -208,7 +239,7 @@ export default function MarketplaceApprovalsPage() {
         {reviewed.length > 0 && (
           <Card padding="md">
             <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-              Previously reviewed
+              Previously reviewed ({reviewed.length})
             </h3>
             <ul
               style={{
@@ -238,6 +269,75 @@ export default function MarketplaceApprovalsPage() {
           </Card>
         )}
       </div>
+
+      <Modal
+        open={rejectModalOpen}
+        onClose={() => setRejectModalOpen(false)}
+        title={`Reject Submission: ${targetSubmission?.name || targetSubmission?.id}`}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Provide feedback explaining why this extension submission failed security, compliance, or quality criteria.
+          </p>
+          <FormField label="Rejection Reason" required>
+            <Input
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Missing required RBAC scopes or excessive permission requests"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setRejectModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleReject}
+              disabled={rejecting || !rejectReason.trim()}
+            >
+              {rejecting ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={revokeModalOpen}
+        onClose={() => setRevokeModalOpen(false)}
+        title="Emergency Extension Revocation"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-danger)" }}>
+            Warning: This immediately terminates sandbox execution and uninstalls the extension across all tenant clusters.
+          </p>
+          <FormField label="Extension App Slug" required>
+            <Input
+              value={revokeSlug}
+              onChange={(e) => setRevokeSlug(e.target.value)}
+              placeholder="e.g. malicious-webhook-connector"
+            />
+          </FormField>
+          <FormField label="Incident / Justification Reason" required>
+            <Input
+              value={revokeReason}
+              onChange={(e) => setRevokeReason(e.target.value)}
+              placeholder="e.g. Critical 0-day vulnerability identified (SEV-1)"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setRevokeModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleRevoke}
+              disabled={revoking || !revokeSlug.trim() || !revokeReason.trim()}
+            >
+              {revoking ? "Revoking..." : "Execute Emergency Revoke"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DomainShell>
   );
 }

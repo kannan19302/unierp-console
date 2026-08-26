@@ -1,20 +1,27 @@
 "use client";
 /**
- * Billing → Invoices.
+ * Billing → Invoices (PCC-06 Enterprise Billing & Revenue Engine).
  * Invoice list plus an expandable per-invoice detail read from
- * `/platform/v1/invoices/:id`.
+ * `/platform/v1/invoices/:id`, credit notes, and adjustments.
  */
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FileText, ReceiptText } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Plus, ReceiptText, RefreshCw, SlidersHorizontal } from "lucide-react";
 import {
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
   Badge,
+  Button,
+  FormField,
+  Input,
+  Modal,
+  useToast,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useItem, useList } from "@/lib/data";
+import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
 
 const fmtMoney = (v?: number | string | null): string =>
@@ -40,8 +47,63 @@ interface InvoiceRow {
 }
 
 export default function BillingInvoices() {
+  const toast = useToast();
+  const canWriteInvoice = usePermission("system.invoice.write");
+
   const invoices = useList<InvoiceRow>({ path: "/platform/v1/invoices" });
   const [selected, setSelected] = useState<string | null>(null);
+
+  const [creditNoteOpen, setCreditNoteOpen] = useState(false);
+  const [targetInvoiceId, setTargetInvoiceId] = useState("");
+  const [targetTenantId, setTargetTenantId] = useState("tnt_prod_01");
+  const [creditAmount, setCreditAmount] = useState("50");
+  const [creditReason, setCreditReason] = useState("SLA Credit for service degradation");
+  const [issuingCredit, setIssuingCredit] = useState(false);
+
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustAmount, setAdjustAmount] = useState("200");
+  const [adjustReason, setAdjustReason] = useState("Negotiated volume discount adjustment");
+  const [adjusting, setAdjusting] = useState(false);
+
+  const handleCreateCreditNote = async () => {
+    setIssuingCredit(true);
+    try {
+      await api.post("/platform/v1/invoices/credit-notes", {
+        invoiceId: targetInvoiceId,
+        tenantId: targetTenantId,
+        amount: parseFloat(creditAmount) || 0,
+        reason: creditReason,
+        actorId: "billing-operator",
+      });
+      await invoices.reload();
+      toast.success("Credit Note Issued", `Issued $${creditAmount} credit note for invoice ${targetInvoiceId}.`);
+      setCreditNoteOpen(false);
+      setTargetInvoiceId("");
+    } catch {
+      toast.error("Credit Note Failed", "Failed to create credit note.");
+    } finally {
+      setIssuingCredit(false);
+    }
+  };
+
+  const handleAdjustInvoice = async () => {
+    if (!selected) return;
+    setAdjusting(true);
+    try {
+      await api.post(`/platform/v1/invoices/${selected}/adjust`, {
+        newAmount: parseFloat(adjustAmount) || 0,
+        reason: adjustReason,
+        actorId: "billing-operator",
+      });
+      await invoices.reload();
+      toast.success("Invoice Adjusted", `Invoice ${selected} amount updated to $${adjustAmount}.`);
+      setAdjustOpen(false);
+    } catch {
+      toast.error("Adjustment Failed", "Failed to adjust invoice.");
+    } finally {
+      setAdjusting(false);
+    }
+  };
 
   const paidCount = invoices.data.filter(
     (i) => (i.status ?? "").toUpperCase() === "PAID",
@@ -59,9 +121,30 @@ export default function BillingInvoices() {
   return (
     <DomainShell
       domainId="billing"
-      title="Billing"
-      description="Revenue, plans, subscriptions, invoices and metering across the platform."
+      title="Enterprise Invoices & Settlement"
+      description="Multi-tenant invoice registry, credit notes, adjustments, and settlement workflows."
       breadcrumb={[{ label: "Billing", href: "/billing" }, { label: "Invoices" }]}
+      actions={
+        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => invoices.reload()}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCreditNoteOpen(true)}
+            disabled={!canWriteInvoice}
+          >
+            <Plus size={14} />
+            Issue Credit Note
+          </Button>
+        </div>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <StatCardRow stats={stats} columns={3} />
@@ -84,10 +167,7 @@ export default function BillingInvoices() {
                 const open = selected === key;
                 return (
                   <li key={key} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                    <button
-                      type="button"
-                      onClick={() => setSelected(open ? null : key)}
-                      aria-expanded={open}
+                    <div
                       style={{
                         width: "100%",
                         display: "flex",
@@ -95,14 +175,28 @@ export default function BillingInvoices() {
                         justifyContent: "space-between",
                         gap: "var(--space-3)",
                         padding: "var(--space-3) 0",
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--color-text)",
-                        font: "inherit",
                       }}
                     >
-                      <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelected(open ? null : key)}
+                        aria-expanded={open}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "var(--space-2)",
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--color-text)",
+                          font: "inherit",
+                          flex: 1,
+                        }}
+                      >
                         {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                         <span style={{ fontWeight: 500 }}>
                           {inv.number ?? inv.invoiceNumber ?? inv.id ?? "—"}
@@ -112,8 +206,8 @@ export default function BillingInvoices() {
                             · {inv.tenantName}
                           </span>
                         ) : null}
-                      </span>
-                      <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
+                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
                         <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
                           {inv.dueDate ? `due ${inv.dueDate}` : ""}
                         </span>
@@ -121,8 +215,21 @@ export default function BillingInvoices() {
                           {fmtMoney(inv.amount ?? inv.amountTotal)}
                         </span>
                         <Badge variant={invoiceVariant(inv.status)}>{inv.status ?? "UNKNOWN"}</Badge>
-                      </span>
-                    </button>
+                        {canWriteInvoice && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelected(key);
+                              setAdjustOpen(true);
+                            }}
+                          >
+                            <SlidersHorizontal size={12} />
+                            Adjust
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                     {open ? <InvoiceDetailContainer id={key} /> : null}
                   </li>
                 );
@@ -131,6 +238,98 @@ export default function BillingInvoices() {
           </Card>
         )}
       </div>
+
+      <Modal
+        open={creditNoteOpen}
+        onClose={() => setCreditNoteOpen(false)}
+        title="Issue Commercial Credit Note"
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Apply a credit adjustment or SLA reimbursement against a customer account or specific invoice.
+          </p>
+          <FormField label="Invoice ID / Ref" required>
+            <Input
+              value={targetInvoiceId}
+              onChange={(e) => setTargetInvoiceId(e.target.value)}
+              placeholder="e.g. inv_2026_001"
+            />
+          </FormField>
+          <FormField label="Tenant ID" required>
+            <Input
+              value={targetTenantId}
+              onChange={(e) => setTargetTenantId(e.target.value)}
+              placeholder="tnt_prod_01"
+            />
+          </FormField>
+          <FormField label="Credit Amount (USD)" required>
+            <Input
+              value={creditAmount}
+              onChange={(e) => setCreditAmount(e.target.value)}
+              type="number"
+              placeholder="50"
+            />
+          </FormField>
+          <FormField label="Reason for Credit" required>
+            <Input
+              value={creditReason}
+              onChange={(e) => setCreditReason(e.target.value)}
+              placeholder="e.g. SLA breach credit compensation"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setCreditNoteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreateCreditNote}
+              disabled={issuingCredit || !targetInvoiceId.trim()}
+            >
+              {issuingCredit ? "Issuing..." : "Issue Credit Note"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={adjustOpen}
+        onClose={() => setAdjustOpen(false)}
+        title={`Adjust Invoice ${selected}`}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+            Modify the final billed amount with operator audit justification.
+          </p>
+          <FormField label="New Total Amount (USD)" required>
+            <Input
+              value={adjustAmount}
+              onChange={(e) => setAdjustAmount(e.target.value)}
+              type="number"
+              placeholder="200"
+            />
+          </FormField>
+          <FormField label="Adjustment Reason" required>
+            <Input
+              value={adjustReason}
+              onChange={(e) => setAdjustReason(e.target.value)}
+              placeholder="e.g. Operator override for negotiated enterprise terms"
+            />
+          </FormField>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+            <Button variant="outline" onClick={() => setAdjustOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAdjustInvoice}
+              disabled={adjusting || !adjustAmount.trim()}
+            >
+              {adjusting ? "Adjusting..." : "Apply Adjustment"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </DomainShell>
   );
 }

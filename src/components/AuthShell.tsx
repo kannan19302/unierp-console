@@ -1,7 +1,7 @@
 "use client";
 
 import { UniErpAuthProvider, RequireSession, usePermissions } from "@kannan19302/shared/auth-client/react";
-import { PermissionContext } from "@kannan19302/ui";
+import { PermissionContext } from "@kannan19302/ui/components";
 import { oidcConfig } from "@/lib/oidc-config";
 import type { TokenSet } from "@kannan19302/shared/auth-client";
 
