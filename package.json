@@ -1,6 +1,10 @@
 {
   "name": "@kannan19302/console",
   "version": "0.1.0",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev --port 4002",
