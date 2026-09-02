@@ -530,6 +530,7 @@ packages:
 
   '@kannan19302/contracts@file:../unierp-contracts':
     resolution: {directory: ../unierp-contracts, type: directory}
+    engines: {node: '>=22 <23'}
 
   '@kannan19302/database@1.0.14':
     resolution: {integrity: sha512-S/bAFo+AH0RXKr1eAcGVHng2JEQ+FOq7sVa5Wigd/Bm5U33EfvAaUgdYc6PgGMM0gBSO+H2ZcrsQnl6QoXriWQ==}
@@ -548,6 +549,7 @@ packages:
 
   '@kannan19302/shared@file:../shared':
     resolution: {directory: ../shared, type: directory}
+    engines: {node: '>=22 <23'}
     peerDependencies:
       react: ^18.3.1 || ^19.0.0
     peerDependenciesMeta:
@@ -566,6 +568,7 @@ packages:
 
   '@kannan19302/ui@file:../design-system':
     resolution: {directory: ../design-system, type: directory}
+    engines: {node: '>=22 <23'}
     peerDependencies:
       next: '>=14.0.0'
       react: ^19.0.0

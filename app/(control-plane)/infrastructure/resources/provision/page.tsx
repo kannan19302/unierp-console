@@ -193,7 +193,7 @@ export default function InfrastructureResourceProvisioning() {
           <Input placeholder="New size / target value" value={scaleValue} onChange={(e: any) => setScaleValue(e.target.value)} />
         }
         confirmLabel="Apply"
-        loading={scale.loading}
+        isLoading={scale.loading}
       />
 
       <ConfirmDialog
@@ -204,7 +204,7 @@ export default function InfrastructureResourceProvisioning() {
         message="Refused if any other resource depends on this one — the dependents will be named in the error."
         confirmLabel="Deprovision"
         variant="danger"
-        loading={deprovision.loading}
+        isLoading={deprovision.loading}
       />
     </DomainShell>
   );

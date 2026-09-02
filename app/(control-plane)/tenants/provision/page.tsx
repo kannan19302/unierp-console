@@ -89,11 +89,11 @@ export default function ProvisionTenantPage() {
         <div className={styles.provisionLayout}>
           <div className={styles.provisionSidebar}>
             <Stepper 
-              activeStep={activeStep}
+              current={activeStep}
               steps={[
-                { label: "Basics", description: "Name and region" },
-                { label: "Configuration", description: "Plan and owner" },
-                { label: "Review", description: "Confirm and provision" }
+                { title: "Basics", description: "Name and region" },
+                { title: "Configuration", description: "Plan and owner" },
+                { title: "Review", description: "Confirm and provision" }
               ]}
             />
           </div>

@@ -24,9 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable} data-theme="dark" suppressHydrationWarning>
+    <html lang="en" className={inter.variable} data-theme="strata-dark" data-platform="platform-admin" suppressHydrationWarning>
       <body style={{ margin: 0, padding: 0, fontFamily: "var(--font-sans, system-ui, sans-serif)", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
-        <ThemeProvider defaultSetting="dark">
+        <ThemeProvider defaultSetting="strata-dark" defaultPlatform="platform-admin">
           <RootAuthProvider>
             <ToastProvider>
               {children}

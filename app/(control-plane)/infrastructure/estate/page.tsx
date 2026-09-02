@@ -267,7 +267,7 @@ export default function InfrastructureEstate() {
         message={`This will set desired-state archived=true on ${selectedKeys.length} resource(s). Each item's outcome is reported individually, and the operation resumes if interrupted.`}
         confirmLabel="Archive"
         variant="danger"
-        loading={bulkArchive.loading}
+        isLoading={bulkArchive.loading}
       />
     </DomainShell>
   );
