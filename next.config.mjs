@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 /** @type {import('next').NextConfig} */
 // Provider Admin Console — internal control-plane tooling (L4 Presentation).
 // API default matches the canonical port map (api=3001). In compose the env
@@ -6,6 +8,7 @@ const apiBaseUrl = process.env.API_URL || 'http://localhost:3001';
 const idpBaseUrl = process.env.IDP_URL || 'http://localhost:3005';
 
 const nextConfig = {
+  outputFileTracingRoot: path.resolve(process.cwd(), '..'),
   reactStrictMode: true,
 
   // Transpiled, not externalised (single React instance + CSS ownership).

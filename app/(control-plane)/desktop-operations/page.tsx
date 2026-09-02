@@ -158,7 +158,7 @@ export default function DesktopOperationsPage() {
         </div>
 
         {activeTab === "overview" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "var(--space-4)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--size-panel-min, 360px), 1fr))", gap: "var(--space-4)" }}>
             <Card padding="md">
               <h3 style={{ margin: "0 0 var(--space-3)", fontSize: "var(--text-base)", fontWeight: 600 }}>
                 Desktop Update Channels
@@ -337,7 +337,7 @@ export default function DesktopOperationsPage() {
             <h3 style={{ margin: "0 0 var(--space-4)", fontSize: "var(--text-base)", fontWeight: 600 }}>
               Code Signing Certificates & Notarization
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-4)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--size-card-min, 320px), 1fr))", gap: "var(--space-4)" }}>
               {signingList.map((s) => (
                 <div
                   key={s.platform}

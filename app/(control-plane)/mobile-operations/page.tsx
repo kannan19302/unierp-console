@@ -182,7 +182,7 @@ export default function MobileOperationsPage() {
         </div>
 
         {activeTab === "overview" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "var(--space-4)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--size-panel-min, 360px), 1fr))", gap: "var(--space-4)" }}>
             <Card padding="md">
               <h3 style={{ margin: "0 0 var(--space-3)", fontSize: "var(--text-base)", fontWeight: 600 }}>
                 Active Release Rings
@@ -392,7 +392,7 @@ export default function MobileOperationsPage() {
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-4)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--size-card-min, 320px), 1fr))", gap: "var(--space-4)" }}>
               {pushList.map((p) => (
                 <div
                   key={p.provider}

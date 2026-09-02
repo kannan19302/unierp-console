@@ -166,7 +166,7 @@ export default function SettingsBranding() {
           </Badge>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--size-card-min, 340px), 1fr))", gap: "var(--space-4)" }}>
           <Card padding="md">
             <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
               Identity
@@ -228,7 +228,7 @@ export default function SettingsBranding() {
           </Card>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--size-card-min, 340px), 1fr))", gap: "var(--space-4)" }}>
           <Card padding="md">
             <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
               <Mail size={16} /> Support contact
