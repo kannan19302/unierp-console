@@ -68,7 +68,7 @@ interface FallbackChain {
   fallbackOrder?: string[];
 }
 
-export default function SettingsLocalization() {
+export default function LocalizationSettingsPage() {
   const locales = useList<LocaleRow>({ path: "/admin/localization/locales" });
   const rules = useList<FormattingRule>({ path: "/admin/localization/formatting-rules" });
   const glossary = useList<GlossaryEntry>({ path: "/admin/localization/glossary" });

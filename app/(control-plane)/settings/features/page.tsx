@@ -28,7 +28,7 @@ interface FeatureFlagRule {
   enabled?: boolean;
 }
 
-export default function SettingsFeatures() {
+export default function FeaturesSettingsPage() {
   const flags = useList<FeatureFlagRule>({
     path: "/platform/v1/flags-metering/feature-flags/rules",
   });

@@ -35,7 +35,7 @@ function formatDate(value: string | undefined): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
 }
 
-export default function SettingsTemplates() {
+export default function TemplatesSettingsPage() {
   const templates = useList<ReportTemplate>({
     path: "/reporting/templates-deep/templates",
   });

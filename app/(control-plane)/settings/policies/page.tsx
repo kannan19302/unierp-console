@@ -48,7 +48,7 @@ interface AccessPolicy {
   status?: string;
 }
 
-export default function SettingsPolicies() {
+export default function PoliciesSettingsPage() {
   const rateLimits = useList<RateLimitPolicy>({
     path: "/platform/v1/enterprise-scale/rate-limit-policies",
   });

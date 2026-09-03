@@ -48,7 +48,7 @@ interface Branding {
   customDomain?: BrandingDomain | null;
 }
 
-export default function SettingsBranding() {
+export default function BrandingSettingsPage() {
   const toast = useToast();
   const canManageBranding = usePermission("system.whitelabel.update");
 

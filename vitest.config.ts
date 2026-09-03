@@ -18,6 +18,7 @@ export default defineConfig({
     alias: {
       react: path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      jose: path.resolve(__dirname, '../shared/node_modules/jose'),
     },
     // The actual fix: without this, Vite resolves the pnpm-link symlink to
     // its REAL path before doing node_modules lookups, landing in

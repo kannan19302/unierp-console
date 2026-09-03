@@ -57,7 +57,7 @@ interface FormattingRule {
 
 const DEFAULT_KEYS = ["locale", "currency", "timezone", "dateFormat", "date_format", "defaultPlan"];
 
-export default function SettingsDefaults() {
+export default function DefaultsSettingsPage() {
   const settings = useItem<SettingsPayload>("/admin/settings");
   const rules = useList<FormattingRule>({ path: "/admin/localization/formatting-rules" });
 

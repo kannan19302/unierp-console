@@ -84,7 +84,7 @@ function formatDate(value: string): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
 }
 
-export default function SettingsPlatform() {
+export default function PlatformSettingsPage() {
   const modules = useList<PlatformModule>({ path: "/admin/platform/modules" });
   const flags = useList<PlatformFlag>({ path: "/admin/platform/feature-flags" });
   const environments = useList<PlatformEnvironment>({ path: "/admin/platform/environments" });

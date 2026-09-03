@@ -16,7 +16,7 @@
     "test:watch": "vitest",
     "test:e2e": "tsx scripts/test-e2e.ts",
     "test:playwright": "playwright test",
-    "check:tokens": "node node_modules/@kannan19302/ui/scripts/check-tokens.mjs ."
+    "check:tokens": "node ../design-system/scripts/check-tokens.mjs ."
   },
   "dependencies": {
     "@kannan19302/auth": "^1.0.4",

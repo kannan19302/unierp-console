@@ -98,7 +98,7 @@ function badgeForStatus(status: string | undefined): "success" | "warning" | "da
   return "default";
 }
 
-export default function SettingsOverview() {
+export default function OverviewSettingsPage() {
   const flags = useList<FeatureFlagRule>({
     path: "/platform/v1/flags-metering/feature-flags/rules",
   });
