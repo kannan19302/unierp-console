@@ -19,12 +19,15 @@ const nextConfig = {
   },
 
   webpack: (config, { dev }) => {
+
+
     if (dev) {
+      const isDocker = Boolean(process.env.DOCKER_CONTAINER || process.env.WATCHPACK_POLLING);
       config.watchOptions = {
         ...(config.watchOptions || {}),
-        poll: 1000,
-        aggregateTimeout: 300,
-        ignored: /node_modules/,
+        aggregateTimeout: 200,
+        ...(isDocker ? { poll: 1000 } : {}),
+        ignored: /[\\/](node_modules|\.git|\.next|dist|\.turbo|coverage|test-results|playwright-report|\.stryker-tmp)[\\/]/,
       };
     }
     return config;
