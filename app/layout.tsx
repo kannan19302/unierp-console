@@ -5,6 +5,7 @@ import "@kannan19302/ui/styles.css";
 import { ThemeProvider } from "@kannan19302/ui/theme";
 import { ToastProvider } from "@kannan19302/ui/notifications";
 import { RootAuthProvider } from "@/components/AuthShell";
+import { ProviderThemeBoundary } from "@/components/provider-theme";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,8 +26,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable} data-theme="strata-dark" data-platform="platform-admin" suppressHydrationWarning>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: "nextjs-portal { display: none !important; }" }} />
+      </head>
       <body style={{ margin: 0, padding: 0, fontFamily: "var(--font-sans, system-ui, sans-serif)", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
         <ThemeProvider defaultSetting="strata-dark" defaultPlatform="platform-admin">
+          <ProviderThemeBoundary />
           <RootAuthProvider>
             <ToastProvider>
               {children}

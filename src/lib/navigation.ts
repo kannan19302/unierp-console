@@ -1,30 +1,17 @@
 /**
  * Platform Admin Console — manifest-driven navigation runtime.
  *
- * M01: this was a single frozen array (`NAV_ITEMS`) that the sidebar,
- * breadcrumbs and command palette all imported directly — adding an app meant
- * editing this file, and there was no single place a new capability declared
- * itself once. `registerApp()` is that place now. The fifteen apps below are
- * the same fourteen sidebar items this console shipped with (plus this
- * comment's own count staying honest about it), converted from array-literal
- * entries into individual manifest registrations — no navigational data
- * changed, only how it is declared.
+ * Provides the central application registry for the Provider Control Center (Admin OS),
+ * governing all 22 canonical PCC applications across 6 functional enterprise clusters:
+ *   - Platform & Infrastructure OS (PCC-01, PCC-19, PCC-13)
+ *   - Trust, Security & Compliance (PCC-02, PCC-03, PCC-07, PCC-09, PCC-10)
+ *   - Tenancy, Commercial & Revenue (PCC-18, PCC-04, PCC-05, PCC-06)
+ *   - Developer Platform & Ecosystem (PCC-14, PCC-17, PCC-20, PCC-08)
+ *   - Multi-Experience & Native Clients (PCC-11, PCC-12)
+ *   - Intelligence, AI & Support (PCC-21, PCC-16, PCC-22, PCC-15)
  *
- * `NAV_ITEMS` is the SAME array object `registerApp`/`unregisterApp` mutate in
- * place, not a snapshot copied at import time. `console-shell.tsx` and
- * `domain-shell.tsx` read it inside their render bodies (`NAV_ITEMS.map(...)`),
- * so a manifest registered or removed after those modules loaded is reflected
- * on the next render — sidebar, breadcrumbs, tab bar and command palette all
- * derive from this one array, so registering an app updates all four via the
- * one call.
- *
- * "The permission registry" for this phase means `getAllDeclaredPermissions()`
- * — every `permission` string named anywhere in a registered manifest's item,
- * tab or sub-tab. It is not the API-side `PERMISSION_REGISTRY`
- * (`@kannan19302/shared`) that guards `/platform/v1` endpoints — that registry
- * is cross-repo and owned by the API; this one is the console's own record of
- * which permissions its navigation actually gates, used by the visibility
- * filter each shell already applies via `item.permission`/`tab.permission`.
+ * `NAV_ITEMS` is the mutable array object `registerApp`/`unregisterApp` populate in place.
+ * Breadcrumbs, sidebar, Waffle launcher, and Command Palette derive from this registry.
  */
 import type { ComponentType } from "react";
 import {
@@ -42,9 +29,76 @@ import {
   PackageOpen,
   Globe,
   Settings,
+  Activity,
+  Shield,
+  Users,
+  KeyRound,
+  KeySquare,
+  Network,
+  Scale,
+  Radar,
+  Smartphone,
+  Monitor,
+  BookOpen,
+  Brain,
+  Layers,
 } from "lucide-react";
 
 export type IconName = ComponentType<{ size?: number; className?: string }>;
+
+export type AppClusterId =
+  | "platform"
+  | "security"
+  | "tenancy"
+  | "ecosystem"
+  | "clients"
+  | "intelligence";
+
+export interface AppCluster {
+  id: AppClusterId;
+  name: string;
+  description: string;
+  icon: IconName;
+}
+
+export const ADMIN_OS_CLUSTERS: AppCluster[] = [
+  {
+    id: "platform",
+    name: "Platform & Infrastructure OS",
+    description: "Core runtime services, multi-cloud clusters, background queues, and global configuration.",
+    icon: ServerCog,
+  },
+  {
+    id: "security",
+    name: "Trust, Security & Compliance",
+    description: "Zero-trust IAM governance, KMS secret keys, SOC threat intelligence, and compliance.",
+    icon: ShieldCheck,
+  },
+  {
+    id: "tenancy",
+    name: "Tenancy, Commercial & Revenue",
+    description: "Tenant lifecycle provisioning, subscription plans, entitlement licenses, and billing.",
+    icon: Building2,
+  },
+  {
+    id: "ecosystem",
+    name: "Developer Platform & Ecosystem",
+    description: "Partner ecosystem, API gateway traffic, native ERP connectors, and marketplace.",
+    icon: Code2,
+  },
+  {
+    id: "clients",
+    name: "Multi-Experience & Native Clients",
+    description: "Mobile build channels, push notifications, desktop installers, and code signing.",
+    icon: Smartphone,
+  },
+  {
+    id: "intelligence",
+    name: "Intelligence, AI & Support",
+    description: "Multi-model AI governance, platform analytics BI, support desk, and knowledge runbooks.",
+    icon: Brain,
+  },
+];
 
 export interface NavSubTab {
   key: string;
@@ -63,24 +117,25 @@ export interface NavTab {
 }
 
 /**
- * An app manifest — the declarative contract a control-plane app registers
- * once. `resourceKinds` and `lifecycleHooks` are declared in the shape now,
- * ahead of the phases that populate them (M07's resource model, M12's
- * provisioning pipeline), so the manifest's shape does not change under
- * those later phases — only these two fields go from always-empty to used.
+ * An app manifest — declarative contract registered once for each Admin OS application.
  */
 export interface AppManifest {
   id: string;
+  appId?: string; // Canonical ID, e.g. "PCC-01"
+  clusterId?: AppClusterId;
+  clusterName?: string;
   label: string;
+  description?: string;
   icon: IconName;
   base: string;
+  canonicalPath?: string;
   permission?: string;
   tabs: NavTab[];
   /** Extra terms the command palette should match beyond label/path. */
   searchKeywords?: string[];
-  /** Populated starting M07 — this app's managed resource kinds, if any. */
+  /** Managed resource kinds, if any. */
   resourceKinds?: string[];
-  /** Populated starting M12 — install/upgrade/remove hooks, if any. */
+  /** Lifecycle hooks, if any. */
   lifecycleHooks?: { onInstall?: string; onRemove?: string };
 }
 
@@ -88,11 +143,6 @@ export interface AppManifest {
 export type NavItem = AppManifest;
 
 // ── the registry ────────────────────────────────────────────────────────────
-//
-// `NAV_ITEMS` IS this array, not a copy of it. `registerApp`/`unregisterApp`
-// mutate it in place so every consumer that reads `NAV_ITEMS` at call time —
-// which is how React components read module-level arrays in their render
-// bodies — observes a registration or removal without re-importing anything.
 
 const _apps: AppManifest[] = [];
 
@@ -131,11 +181,16 @@ export function __resetAppRegistryForTests(): void {
   _apps.length = 0;
 }
 
-// ── the console's own apps ──────────────────────────────────────────────────
+// ── the console's applications ──────────────────────────────────────────────
 
+// Central Command Center Overview
 registerApp({
   id: "overview",
+  appId: "OCC-01",
+  clusterId: "platform",
+  clusterName: "Platform & Infrastructure OS",
   label: "Overview",
+  description: "Unified Command Center KPI dashboard and cross-estate health summary.",
   icon: LayoutDashboard,
   base: "/overview",
   permission: "platform.overview.read",
@@ -148,13 +203,443 @@ registerApp({
     { key: "security", label: "Security", path: "/overview/security", permission: "platform.overview.read" },
     { key: "activity", label: "Activity", path: "/overview/activity", permission: "platform.overview.read" },
   ],
+  searchKeywords: ["overview", "dashboard", "kpi", "command center", "metrics"],
 });
 
+// PCC-01: Platform Operations Center
+registerApp({
+  id: "ops",
+  appId: "PCC-01",
+  clusterId: "platform",
+  clusterName: "Platform & Infrastructure OS",
+  label: "Platform Operations",
+  description: "Platform services, canary releases, background jobs, queues, runbooks, and incident command.",
+  icon: ServerCog,
+  base: "/ops",
+  canonicalPath: "/operations",
+  permission: "pcc.operations.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/ops" },
+    { key: "services", label: "Services", path: "/ops/services" },
+    { key: "environments", label: "Environments", path: "/ops/environments" },
+    { key: "releases", label: "Releases", path: "/ops/releases" },
+    { key: "deployments", label: "Deployments", path: "/ops/deployments" },
+    { key: "jobs", label: "Jobs", path: "/ops/jobs" },
+    { key: "queues", label: "Queues", path: "/ops/queues" },
+    { key: "workflows", label: "Workflows", path: "/ops/workflows" },
+    { key: "automation", label: "Automation", path: "/ops/automation" },
+    { key: "incidents", label: "Incidents", path: "/ops/incidents" },
+    { key: "maintenance", label: "Maintenance", path: "/ops/maintenance" },
+  ],
+  searchKeywords: ["operations", "ops", "canary", "releases", "incidents", "queues", "jobs"],
+  resourceKinds: ["platform-service", "provider-incident", "platform-change", "platform-release", "maintenance-window", "runbook-execution", "platform-job", "platform-queue"],
+});
+
+// PCC-02: Platform Security Center
+registerApp({
+  id: "security",
+  appId: "PCC-02",
+  clusterId: "security",
+  clusterName: "Trust, Security & Compliance",
+  label: "Platform Security",
+  description: "Security posture, CVE vulnerability triage, break-glass dual-control, and encryption audits.",
+  icon: ShieldCheck,
+  base: "/security",
+  canonicalPath: "/security-center",
+  permission: "pcc.security.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/security" },
+    { key: "threats", label: "Threats", path: "/security/threats" },
+    { key: "policies", label: "Policies", path: "/security/policies" },
+    { key: "identity", label: "Identity", path: "/security/identity" },
+    { key: "secrets", label: "Secrets", path: "/security/secrets" },
+    { key: "privacy", label: "Privacy", path: "/security/privacy" },
+    { key: "compliance", label: "Compliance", path: "/security/compliance" },
+    { key: "controls", label: "Controls", path: "/security/compliance/controls" },
+    { key: "audit", label: "Audit", path: "/security/audit" },
+  ],
+  searchKeywords: ["security", "vulnerabilities", "posture", "break-glass", "cve", "policies"],
+  resourceKinds: ["provider-security-policy", "platform-vulnerability", "security-exception", "privileged-access-review", "break-glass-activation", "encryption-posture"],
+});
+
+// PCC-03: Organization Identity Governance
+registerApp({
+  id: "access",
+  appId: "PCC-03",
+  clusterId: "security",
+  clusterName: "Trust, Security & Compliance",
+  label: "Identity Governance",
+  description: "Provider workforce IAM, roles, access reviews, service principals, and support delegation.",
+  icon: UserCog,
+  base: "/access",
+  canonicalPath: "/identity-governance",
+  permission: "pcc.identity-governance.access",
+  tabs: [
+    { key: "directory", label: "Directory", path: "/access/directory" },
+    { key: "roles", label: "Roles", path: "/access/roles" },
+    { key: "permissions", label: "Permissions", path: "/access/permissions" },
+    { key: "authentication", label: "Authentication", path: "/access/authentication" },
+    { key: "sessions", label: "Sessions", path: "/access/sessions" },
+    { key: "governance", label: "Governance", path: "/access/governance" },
+    { key: "audit", label: "Audit", path: "/access/audit" },
+  ],
+  searchKeywords: ["identity", "iam", "roles", "users", "delegation", "workforce", "service principals"],
+  resourceKinds: ["provider-workforce-member", "provider-role", "provider-access-package", "provider-access-review", "provider-service-principal", "support-access-delegation"],
+});
+
+// PCC-04: Subscription Operations
+registerApp({
+  id: "subscription-operations",
+  appId: "PCC-04",
+  clusterId: "tenancy",
+  clusterName: "Tenancy, Commercial & Revenue",
+  label: "Subscription Operations",
+  description: "Commercial tiers, customer subscriptions, amendments, renewals, and enterprise contracts.",
+  icon: CreditCard,
+  base: "/subscription-operations",
+  canonicalPath: "/subscription-operations",
+  permission: "pcc.subscriptions.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/subscription-operations" },
+    { key: "plans", label: "Plans", path: "/billing/plans" },
+    { key: "subscriptions", label: "Subscriptions", path: "/billing/subscriptions" },
+    { key: "amendments", label: "Amendments", path: "/subscription-operations#amendments" },
+    { key: "renewals", label: "Renewals", path: "/subscription-operations#renewals" },
+    { key: "contracts", label: "Contracts", path: "/subscription-operations#contracts" },
+  ],
+  searchKeywords: ["plans", "subscriptions", "amendments", "renewals", "contracts", "commercial"],
+  resourceKinds: ["commercial-plan", "commercial-offer", "customer-subscription", "subscription-amendment", "subscription-renewal", "subscription-migration", "commercial-contract"],
+});
+
+// PCC-05: Entitlement & License Authority
+registerApp({
+  id: "entitlement-authority",
+  appId: "PCC-05",
+  clusterId: "tenancy",
+  clusterName: "Tenancy, Commercial & Revenue",
+  label: "Entitlements & Licenses",
+  description: "Tenant capability grants, module provisioning flags, offline licenses, and seat pools.",
+  icon: KeySquare,
+  base: "/entitlement-authority",
+  canonicalPath: "/entitlement-authority",
+  permission: "pcc.entitlements.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/entitlement-authority" },
+    { key: "modules", label: "Module Grants", path: "/tenants/modules" },
+    { key: "pools", label: "License Pools", path: "/entitlement-authority#pools" },
+    { key: "offline", label: "Offline Licenses", path: "/entitlement-authority#offline" },
+    { key: "reconciliation", label: "Reconciliation", path: "/entitlement-authority#reconciliation" },
+  ],
+  searchKeywords: ["entitlements", "licenses", "grants", "seats", "offline licenses", "modules"],
+  resourceKinds: ["entitlement-definition", "organization-entitlement-grant", "license-pool", "license-policy", "offline-license", "entitlement-reconciliation"],
+});
+
+// PCC-06: Revenue & Billing Operations
+registerApp({
+  id: "billing",
+  appId: "PCC-06",
+  clusterId: "tenancy",
+  clusterName: "Tenancy, Commercial & Revenue",
+  label: "Revenue & Billing",
+  description: "Usage rating, invoice generation, payment gateways, credit notes, and financial reconciliation.",
+  icon: CreditCard,
+  base: "/billing",
+  canonicalPath: "/revenue-billing",
+  permission: "pcc.billing.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/billing" },
+    { key: "plans", label: "Plans", path: "/billing/plans" },
+    { key: "subscriptions", label: "Subscriptions", path: "/billing/subscriptions" },
+    { key: "customers", label: "Customers", path: "/billing/customers" },
+    { key: "invoices", label: "Invoices", path: "/billing/invoices" },
+    { key: "payments", label: "Payments", path: "/billing/payments" },
+    { key: "usage", label: "Usage", path: "/billing/usage" },
+    { key: "revenue", label: "Revenue", path: "/billing/revenue" },
+    { key: "configuration", label: "Configuration", path: "/billing/configuration" },
+  ],
+  searchKeywords: ["billing", "invoices", "payments", "revenue", "charges", "credit notes"],
+  resourceKinds: ["provider-billing-account", "price-book", "rated-charge", "provider-invoice", "provider-payment", "credit-note", "revenue-schedule", "marketplace-payout", "financial-reconciliation"],
+});
+
+// PCC-07: Key & Secrets Authority
+registerApp({
+  id: "keys-secrets",
+  appId: "PCC-07",
+  clusterId: "security",
+  clusterName: "Trust, Security & Compliance",
+  label: "Keys & Secrets",
+  description: "Platform KMS master keys, mTLS certificate lifecycles, HSM bindings, and zero-trust rotation.",
+  icon: KeyRound,
+  base: "/keys-secrets",
+  canonicalPath: "/keys-secrets",
+  permission: "pcc.secrets.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/keys-secrets" },
+    { key: "secrets", label: "Secret References", path: "/security/secrets" },
+    { key: "certificates", label: "Certificates", path: "/keys-secrets#certificates" },
+    { key: "leases", label: "Secret Leases", path: "/keys-secrets#leases" },
+    { key: "ceremonies", label: "Key Ceremonies", path: "/keys-secrets#ceremonies" },
+  ],
+  searchKeywords: ["secrets", "keys", "kms", "certificates", "mtls", "leases", "rotation"],
+  resourceKinds: ["provider-secret-reference", "cryptographic-key", "signing-key", "platform-certificate", "secret-lease", "key-ceremony"],
+});
+
+// PCC-08: API Traffic Control
+registerApp({
+  id: "api-traffic",
+  appId: "PCC-08",
+  clusterId: "ecosystem",
+  clusterName: "Developer Platform & Ecosystem",
+  label: "API Traffic Control",
+  description: "API gateway routing, rate limits, traffic shaping, WAF, and API deprecation policies.",
+  icon: Network,
+  base: "/api-traffic",
+  canonicalPath: "/api-traffic",
+  permission: "pcc.api-traffic.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/api-traffic" },
+    { key: "apis", label: "Gateway Routes", path: "/developers/apis" },
+    { key: "rate-limits", label: "Rate Limits", path: "/api-traffic#rate-limits" },
+    { key: "traffic-rules", label: "Traffic Rules", path: "/api-traffic#traffic-rules" },
+    { key: "usage", label: "API Usage", path: "/billing/usage" },
+  ],
+  searchKeywords: ["api", "traffic", "gateway", "rate limits", "waf", "meters", "quotas"],
+  resourceKinds: ["api-product", "gateway-route", "gateway-policy", "traffic-rule", "meter-definition", "abuse-case", "api-deprecation"],
+});
+
+// PCC-09: Governance & Compliance Center
+registerApp({
+  id: "governance-compliance",
+  appId: "PCC-09",
+  clusterId: "security",
+  clusterName: "Trust, Security & Compliance",
+  label: "Governance & Compliance",
+  description: "SOC2, ISO27001, HIPAA, GDPR frameworks, evidence locker, and audit engagements.",
+  icon: Scale,
+  base: "/governance-compliance",
+  canonicalPath: "/governance-compliance",
+  permission: "pcc.compliance.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/governance-compliance" },
+    { key: "compliance", label: "Compliance Posture", path: "/security/compliance" },
+    { key: "controls", label: "Controls", path: "/security/compliance/controls" },
+    { key: "evidence", label: "Evidence Locker", path: "/governance-compliance#evidence" },
+    { key: "audits", label: "Audit Engagements", path: "/security/audit" },
+  ],
+  searchKeywords: ["compliance", "governance", "soc2", "iso27001", "gdpr", "controls", "evidence"],
+  resourceKinds: ["regulatory-framework", "provider-control", "provider-evidence", "provider-audit-engagement", "provider-risk", "provider-attestation", "privacy-impact-assessment"],
+});
+
+// PCC-10: Security Intelligence (SOC)
+registerApp({
+  id: "security-intelligence",
+  appId: "PCC-10",
+  clusterId: "security",
+  clusterName: "Trust, Security & Compliance",
+  label: "Security Intelligence (SOC)",
+  description: "Real-time threat detection rules, SOC cases, SIEM feeds, and automated containment.",
+  icon: Radar,
+  base: "/security-intelligence",
+  canonicalPath: "/security-intelligence",
+  permission: "pcc.security-intelligence.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/security-intelligence" },
+    { key: "threats", label: "Threat Events", path: "/security/threats" },
+    { key: "detection-rules", label: "Detection Rules", path: "/security-intelligence#detection-rules" },
+    { key: "soc-cases", label: "SOC Cases", path: "/security-intelligence#soc-cases" },
+    { key: "containment", label: "Containment Actions", path: "/security-intelligence#containment" },
+  ],
+  searchKeywords: ["soc", "threats", "intelligence", "siem", "containment", "detections"],
+  resourceKinds: ["security-telemetry-source", "detection-rule", "security-alert", "soc-case", "threat-indicator", "threat-hunt", "containment-action"],
+});
+
+// PCC-11: Mobile Platform Operations
+registerApp({
+  id: "mobile-operations",
+  appId: "PCC-11",
+  clusterId: "clients",
+  clusterName: "Multi-Experience & Native Clients",
+  label: "Mobile Platform Operations",
+  description: "iOS/Android build pipelines, OTA updates, push gateways (APNs/FCM), and store releases.",
+  icon: Smartphone,
+  base: "/mobile-operations",
+  canonicalPath: "/mobile-operations",
+  permission: "pcc.mobile.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/mobile-operations" },
+    { key: "builds", label: "Builds", path: "/mobile-operations#builds" },
+    { key: "channels", label: "Release Channels", path: "/mobile-operations#channels" },
+    { key: "push", label: "Push Gateways", path: "/mobile-operations#push" },
+    { key: "signing", label: "Signing Profiles", path: "/mobile-operations#signing" },
+  ],
+  searchKeywords: ["mobile", "ios", "android", "ota", "push", "fcm", "apns", "app store"],
+  resourceKinds: ["mobile-build", "mobile-release-channel", "mobile-version-policy", "mobile-signing-profile", "mobile-store-release", "push-provider-binding"],
+});
+
+// PCC-12: Desktop Platform Operations
+registerApp({
+  id: "desktop-operations",
+  appId: "PCC-12",
+  clusterId: "clients",
+  clusterName: "Multi-Experience & Native Clients",
+  label: "Desktop Platform Operations",
+  description: "Windows/macOS/Linux client packaging, Apple Notarization, Windows Authenticode, auto-updates.",
+  icon: Monitor,
+  base: "/desktop-operations",
+  canonicalPath: "/desktop-operations",
+  permission: "pcc.desktop.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/desktop-operations" },
+    { key: "builds", label: "Builds", path: "/desktop-operations#builds" },
+    { key: "channels", label: "Channels", path: "/desktop-operations#channels" },
+    { key: "signing", label: "Code Signing", path: "/desktop-operations#signing" },
+    { key: "autoupdate", label: "Auto-Update", path: "/desktop-operations#autoupdate" },
+  ],
+  searchKeywords: ["desktop", "windows", "macos", "linux", "notarization", "authenticode", "installers"],
+  resourceKinds: ["desktop-build", "desktop-release-channel", "desktop-version-policy", "desktop-signing-profile", "desktop-installer", "desktop-update-policy"],
+});
+
+// PCC-13: Global Platform Configuration
+registerApp({
+  id: "settings",
+  appId: "PCC-13",
+  clusterId: "platform",
+  clusterName: "Platform & Infrastructure OS",
+  label: "Global Configuration",
+  description: "Global schemas, dynamic feature toggles, platform parameters, and configuration drift.",
+  icon: Settings,
+  base: "/settings",
+  canonicalPath: "/platform-configuration",
+  permission: "pcc.configuration.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/settings" },
+    { key: "platform", label: "Platform", path: "/settings/platform" },
+    { key: "defaults", label: "Defaults", path: "/settings/defaults" },
+    { key: "localization", label: "Localization", path: "/settings/localization" },
+    { key: "templates", label: "Templates", path: "/settings/templates" },
+    { key: "branding", label: "Branding", path: "/settings/branding" },
+    { key: "policies", label: "Policies", path: "/settings/policies" },
+    { key: "features", label: "Features", path: "/settings/features" },
+  ],
+  searchKeywords: ["configuration", "settings", "feature flags", "schemas", "defaults", "drift"],
+  resourceKinds: ["configuration-schema", "platform-configuration-value", "configuration-template", "feature-rollout", "configuration-promotion", "configuration-drift"],
+});
+
+// PCC-14: Developer Ecosystem Operations
+registerApp({
+  id: "developers",
+  appId: "PCC-14",
+  clusterId: "ecosystem",
+  clusterName: "Developer Platform & Ecosystem",
+  label: "Developer Ecosystem",
+  description: "Developer applications, partner programs, SDK releases, sandboxes, and certifications.",
+  icon: Code2,
+  base: "/developers",
+  canonicalPath: "/developer-ecosystem",
+  permission: "pcc.developer-ecosystem.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/developers" },
+    { key: "apps", label: "Apps", path: "/developers/apps" },
+    { key: "apis", label: "APIs", path: "/developers/apis" },
+    { key: "authentication", label: "Authentication", path: "/developers/authentication" },
+    { key: "webhooks", label: "Webhooks", path: "/developers/webhooks" },
+    { key: "sdk", label: "SDKs", path: "/developers/sdk" },
+    { key: "usage", label: "Usage", path: "/developers/usage" },
+    { key: "sandbox", label: "Sandbox", path: "/developers/sandbox" },
+    { key: "documentation", label: "Documentation", path: "/developers/documentation" },
+  ],
+  searchKeywords: ["developers", "sdk", "sandbox", "api keys", "webhooks", "ecosystem"],
+  resourceKinds: ["publisher-organization", "developer-program", "sdk-release", "developer-app-registration", "sandbox-allocation", "certification-run"],
+});
+
+// PCC-15: Knowledge & Adoption Operations
+registerApp({
+  id: "knowledge-adoption",
+  appId: "PCC-15",
+  clusterId: "intelligence",
+  clusterName: "Intelligence, AI & Support",
+  label: "Knowledge & Adoption",
+  description: "Documentation, runbooks, training curricula, adoption campaigns, and user feedback.",
+  icon: BookOpen,
+  base: "/knowledge-adoption",
+  canonicalPath: "/knowledge-adoption",
+  permission: "pcc.knowledge-adoption.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/knowledge-adoption" },
+    { key: "knowledge", label: "Knowledge Base", path: "/support/knowledge" },
+    { key: "runbooks", label: "Runbooks", path: "/knowledge-adoption#runbooks" },
+    { key: "onboarding", label: "Onboarding", path: "/knowledge-adoption#onboarding" },
+    { key: "feedback", label: "Feedback", path: "/knowledge-adoption#feedback" },
+  ],
+  searchKeywords: ["knowledge", "adoption", "documentation", "runbooks", "training", "learning"],
+  resourceKinds: ["provider-knowledge-article", "learning-path", "product-certification", "onboarding-program", "adoption-campaign", "product-feedback"],
+});
+
+// PCC-16: Platform Intelligence & Analytics
+registerApp({
+  id: "analytics",
+  appId: "PCC-16",
+  clusterId: "intelligence",
+  clusterName: "Intelligence, AI & Support",
+  label: "Platform Intelligence",
+  description: "Cross-tenant analytics, semantic metrics, MRR forecasting, and cluster telemetry.",
+  icon: PackageOpen,
+  base: "/analytics",
+  canonicalPath: "/platform-intelligence",
+  permission: "pcc.intelligence.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/analytics" },
+    { key: "customers", label: "Customers", path: "/analytics/customers" },
+    { key: "product", label: "Product", path: "/analytics/product" },
+    { key: "usage", label: "Usage", path: "/analytics/usage" },
+    { key: "financial", label: "Financial", path: "/analytics/financial" },
+    { key: "performance", label: "Performance", path: "/analytics/performance" },
+    { key: "support", label: "Support", path: "/analytics/support" },
+    { key: "reports", label: "Reports", path: "/analytics/reports" },
+  ],
+  searchKeywords: ["analytics", "intelligence", "metrics", "bi", "mrr", "telemetry", "reports"],
+  resourceKinds: ["provider-semantic-metric", "provider-dataset", "provider-dashboard", "provider-report", "provider-forecast", "provider-anomaly"],
+});
+
+// PCC-17: Marketplace Operations
+registerApp({
+  id: "marketplace",
+  appId: "PCC-17",
+  clusterId: "ecosystem",
+  clusterName: "Developer Platform & Ecosystem",
+  label: "Marketplace Operations",
+  description: "Extension verification, security review pipeline, app store listings, and commission payouts.",
+  icon: Puzzle,
+  base: "/marketplace",
+  canonicalPath: "/marketplace-operations",
+  permission: "pcc.marketplace.access",
+  tabs: [
+    { key: "overview", label: "Overview", path: "/marketplace" },
+    { key: "catalog", label: "Catalog", path: "/marketplace/catalog" },
+    { key: "apps", label: "Applications", path: "/marketplace/apps" },
+    { key: "extensions", label: "Extensions", path: "/marketplace/extensions" },
+    { key: "versions", label: "Versions", path: "/marketplace/versions" },
+    { key: "publishing", label: "Publishing", path: "/marketplace/publishing" },
+    { key: "approvals", label: "Approvals", path: "/marketplace/approvals" },
+    { key: "installations", label: "Installations", path: "/marketplace/installations" },
+    { key: "reviews", label: "Reviews", path: "/marketplace/reviews" },
+  ],
+  searchKeywords: ["marketplace", "extensions", "apps", "store", "catalog", "publishing"],
+  resourceKinds: ["marketplace-listing", "marketplace-submission", "marketplace-certification", "marketplace-version", "marketplace-review", "marketplace-recall"],
+});
+
+// PCC-18: Tenant & Customer Lifecycle
 registerApp({
   id: "tenants",
-  label: "Tenants",
+  appId: "PCC-18",
+  clusterId: "tenancy",
+  clusterName: "Tenancy, Commercial & Revenue",
+  label: "Tenant & Customer Lifecycle",
+  description: "Tenant provisioning, regional cell placement, isolation tiering, suspension, and migration.",
   icon: Building2,
   base: "/tenants",
+  canonicalPath: "/organizations",
+  permission: "pcc.organizations.access",
   tabs: [
     {
       key: "overview",
@@ -177,121 +662,22 @@ registerApp({
     { key: "activity", label: "Activity", path: "/tenants/activity" },
     { key: "support", label: "Support", path: "/tenants/support" },
   ],
+  searchKeywords: ["tenants", "organizations", "provisioning", "lifecycle", "customers", "isolation"],
+  resourceKinds: ["organization-account", "customer-account", "organization-provisioning-operation", "organization-placement", "organization-migration", "organization-offboarding"],
 });
 
-registerApp({
-  id: "access",
-  label: "Users & Access",
-  icon: UserCog,
-  base: "/access",
-  tabs: [
-    { key: "directory", label: "Directory", path: "/access/directory" },
-    { key: "roles", label: "Roles", path: "/access/roles" },
-    { key: "permissions", label: "Permissions", path: "/access/permissions" },
-    { key: "authentication", label: "Authentication", path: "/access/authentication" },
-    { key: "sessions", label: "Sessions", path: "/access/sessions" },
-    { key: "governance", label: "Governance", path: "/access/governance" },
-    { key: "audit", label: "Audit", path: "/access/audit" },
-  ],
-});
-
-registerApp({
-  id: "billing",
-  label: "Billing",
-  icon: CreditCard,
-  base: "/billing",
-  tabs: [
-    { key: "overview", label: "Overview", path: "/billing" },
-    { key: "plans", label: "Plans", path: "/billing/plans" },
-    { key: "subscriptions", label: "Subscriptions", path: "/billing/subscriptions" },
-    { key: "customers", label: "Customers", path: "/billing/customers" },
-    { key: "invoices", label: "Invoices", path: "/billing/invoices" },
-    { key: "payments", label: "Payments", path: "/billing/payments" },
-    { key: "usage", label: "Usage", path: "/billing/usage" },
-    { key: "revenue", label: "Revenue", path: "/billing/revenue" },
-    { key: "configuration", label: "Configuration", path: "/billing/configuration" },
-  ],
-});
-
-registerApp({
-  id: "marketplace",
-  label: "Marketplace",
-  icon: Puzzle,
-  base: "/marketplace",
-  tabs: [
-    { key: "overview", label: "Overview", path: "/marketplace" },
-    { key: "catalog", label: "Catalog", path: "/marketplace/catalog" },
-    { key: "apps", label: "Applications", path: "/marketplace/apps" },
-    { key: "extensions", label: "Extensions", path: "/marketplace/extensions" },
-    { key: "versions", label: "Versions", path: "/marketplace/versions" },
-    { key: "publishing", label: "Publishing", path: "/marketplace/publishing" },
-    { key: "approvals", label: "Approvals", path: "/marketplace/approvals" },
-    { key: "installations", label: "Installations", path: "/marketplace/installations" },
-    { key: "reviews", label: "Reviews", path: "/marketplace/reviews" },
-  ],
-});
-
-registerApp({
-  id: "developers",
-  label: "Developers",
-  icon: Code2,
-  base: "/developers",
-  tabs: [
-    { key: "overview", label: "Overview", path: "/developers" },
-    { key: "apps", label: "Apps", path: "/developers/apps" },
-    { key: "apis", label: "APIs", path: "/developers/apis" },
-    { key: "authentication", label: "Authentication", path: "/developers/authentication" },
-    { key: "webhooks", label: "Webhooks", path: "/developers/webhooks" },
-    { key: "sdk", label: "SDKs", path: "/developers/sdk" },
-    { key: "usage", label: "Usage", path: "/developers/usage" },
-    { key: "sandbox", label: "Sandbox", path: "/developers/sandbox" },
-    { key: "documentation", label: "Documentation", path: "/developers/documentation" },
-  ],
-});
-
-registerApp({
-  id: "integrations",
-  label: "Integrations",
-  icon: Blocks,
-  base: "/integrations",
-  tabs: [
-    { key: "overview", label: "Overview", path: "/integrations" },
-    { key: "catalog", label: "Catalog", path: "/integrations/catalog" },
-    { key: "connections", label: "Connections", path: "/integrations/connections" },
-    { key: "credentials", label: "Credentials", path: "/integrations/credentials", permission: "system.security.admin" },
-    { key: "synchronization", label: "Synchronization", path: "/integrations/synchronization" },
-    { key: "mapping", label: "Mapping", path: "/integrations/mapping" },
-    { key: "events", label: "Events", path: "/integrations/events" },
-    { key: "logs", label: "Logs", path: "/integrations/logs" },
-    { key: "health", label: "Health", path: "/integrations/health" },
-  ],
-});
-
-registerApp({
-  id: "ops",
-  label: "Platform Operations",
-  icon: ServerCog,
-  base: "/ops",
-  tabs: [
-    { key: "overview", label: "Overview", path: "/ops" },
-    { key: "services", label: "Services", path: "/ops/services" },
-    { key: "environments", label: "Environments", path: "/ops/environments" },
-    { key: "releases", label: "Releases", path: "/ops/releases" },
-    { key: "deployments", label: "Deployments", path: "/ops/deployments" },
-    { key: "jobs", label: "Jobs", path: "/ops/jobs" },
-    { key: "queues", label: "Queues", path: "/ops/queues" },
-    { key: "workflows", label: "Workflows", path: "/ops/workflows" },
-    { key: "automation", label: "Automation", path: "/ops/automation" },
-    { key: "incidents", label: "Incidents", path: "/ops/incidents" },
-    { key: "maintenance", label: "Maintenance", path: "/ops/maintenance" },
-  ],
-});
-
+// PCC-19: Cloud Infrastructure & Reliability
 registerApp({
   id: "infrastructure",
-  label: "Infrastructure",
+  appId: "PCC-19",
+  clusterId: "platform",
+  clusterName: "Platform & Infrastructure OS",
+  label: "Cloud Infrastructure",
+  description: "Multi-cloud clusters, database shards, storage buckets, DR, and regional cell topology.",
   icon: Server,
   base: "/infrastructure",
+  canonicalPath: "/cloud-infrastructure",
+  permission: "pcc.infrastructure.access",
   tabs: [
     { key: "overview", label: "Overview", path: "/infrastructure" },
     { key: "compute", label: "Compute", path: "/infrastructure/compute" },
@@ -308,64 +694,49 @@ registerApp({
     { key: "dr", label: "Disaster Recovery", path: "/infrastructure/dr" },
     { key: "regions", label: "Regions", path: "/infrastructure/regions" },
   ],
+  searchKeywords: ["infrastructure", "cloud", "kubernetes", "database", "storage", "disaster recovery", "clusters"],
+  resourceKinds: ["cloud-account", "platform-region", "platform-cell", "compute-resource", "network-resource", "storage-resource", "database-resource", "backup-set", "recovery-plan"],
 });
 
+// PCC-20: Integration & Connector Operations
 registerApp({
-  id: "security",
-  label: "Security & Compliance",
-  icon: ShieldCheck,
-  base: "/security",
+  id: "integrations",
+  appId: "PCC-20",
+  clusterId: "ecosystem",
+  clusterName: "Developer Platform & Ecosystem",
+  label: "Connector Operations",
+  description: "Enterprise ERP connectors (SAP, Salesforce, Workday), webhook dispatch, and ETL mappings.",
+  icon: Blocks,
+  base: "/integrations",
+  canonicalPath: "/connector-operations",
+  permission: "pcc.connectors.access",
   tabs: [
-    { key: "overview", label: "Overview", path: "/security" },
-    { key: "threats", label: "Threats", path: "/security/threats" },
-    { key: "policies", label: "Policies", path: "/security/policies" },
-    { key: "identity", label: "Identity", path: "/security/identity" },
-    { key: "secrets", label: "Secrets", path: "/security/secrets" },
-    { key: "privacy", label: "Privacy", path: "/security/privacy" },
-    { key: "compliance", label: "Compliance", path: "/security/compliance" },
-    { key: "controls", label: "Controls", path: "/security/compliance/controls" },
-    { key: "audit", label: "Audit", path: "/security/audit" },
+    { key: "overview", label: "Overview", path: "/integrations" },
+    { key: "catalog", label: "Catalog", path: "/integrations/catalog" },
+    { key: "connections", label: "Connections", path: "/integrations/connections" },
+    { key: "credentials", label: "Credentials", path: "/integrations/credentials", permission: "system.security.admin" },
+    { key: "synchronization", label: "Synchronization", path: "/integrations/synchronization" },
+    { key: "mapping", label: "Mapping", path: "/integrations/mapping" },
+    { key: "events", label: "Events", path: "/integrations/events" },
+    { key: "logs", label: "Logs", path: "/integrations/logs" },
+    { key: "health", label: "Health", path: "/integrations/health" },
   ],
+  searchKeywords: ["integrations", "connectors", "sap", "salesforce", "workday", "webhooks", "etl"],
+  resourceKinds: ["connector-definition", "connector-adapter-version", "provider-connection-account", "connector-certification", "connector-health-policy", "connector-deprecation"],
 });
 
-registerApp({
-  id: "support",
-  label: "Support",
-  icon: LifeBuoy,
-  base: "/support",
-  tabs: [
-    { key: "dashboard", label: "Dashboard", path: "/support" },
-    { key: "tickets", label: "Tickets", path: "/support/tickets" },
-    { key: "customers", label: "Customers", path: "/support/customers" },
-    { key: "sla", label: "SLA", path: "/support/sla" },
-    { key: "knowledge", label: "Knowledge Base", path: "/support/knowledge" },
-    { key: "communications", label: "Communications", path: "/support/communications" },
-    { key: "incidents", label: "Incidents", path: "/support/incidents" },
-  ],
-});
-
-registerApp({
-  id: "analytics",
-  label: "Analytics",
-  icon: PackageOpen,
-  base: "/analytics",
-  tabs: [
-    { key: "overview", label: "Overview", path: "/analytics" },
-    { key: "customers", label: "Customers", path: "/analytics/customers" },
-    { key: "product", label: "Product", path: "/analytics/product" },
-    { key: "usage", label: "Usage", path: "/analytics/usage" },
-    { key: "financial", label: "Financial", path: "/analytics/financial" },
-    { key: "performance", label: "Performance", path: "/analytics/performance" },
-    { key: "support", label: "Support", path: "/analytics/support" },
-    { key: "reports", label: "Reports", path: "/analytics/reports" },
-  ],
-});
-
+// PCC-21: AI Platform & Model Governance
 registerApp({
   id: "ai",
-  label: "AI Platform",
-  icon: Globe,
+  appId: "PCC-21",
+  clusterId: "intelligence",
+  clusterName: "Intelligence, AI & Support",
+  label: "AI Platform Governance",
+  description: "Multi-LLM routing, token rate budgeting, AI safety guardrails, and model evaluations.",
+  icon: Brain,
   base: "/ai",
+  canonicalPath: "/ai-platform",
+  permission: "pcc.ai-platform.access",
   tabs: [
     { key: "overview", label: "Overview", path: "/ai" },
     { key: "providers", label: "Providers", path: "/ai/providers" },
@@ -380,23 +751,33 @@ registerApp({
     { key: "evaluation", label: "Evaluation", path: "/ai/evaluation" },
     { key: "governance", label: "Governance", path: "/ai/governance" },
   ],
+  searchKeywords: ["ai", "models", "llm", "agents", "guardrails", "evaluations", "openai", "gemini", "anthropic"],
+  resourceKinds: ["ai-provider", "ai-model", "ai-model-version", "platform-ai-policy", "ai-evaluation-standard", "ai-routing-policy", "platform-ai-incident"],
 });
 
+// PCC-22: Support & Service Operations
 registerApp({
-  id: "settings",
-  label: "Settings",
-  icon: Settings,
-  base: "/settings",
+  id: "support",
+  appId: "PCC-22",
+  clusterId: "intelligence",
+  clusterName: "Intelligence, AI & Support",
+  label: "Support Operations",
+  description: "Super-admin support desk, customer ticket triage, diagnostic consent, and SLA tracking.",
+  icon: LifeBuoy,
+  base: "/support",
+  canonicalPath: "/service-operations",
+  permission: "pcc.support.access",
   tabs: [
-    { key: "overview", label: "Overview", path: "/settings" },
-    { key: "platform", label: "Platform", path: "/settings/platform" },
-    { key: "defaults", label: "Defaults", path: "/settings/defaults" },
-    { key: "localization", label: "Localization", path: "/settings/localization" },
-    { key: "templates", label: "Templates", path: "/settings/templates" },
-    { key: "branding", label: "Branding", path: "/settings/branding" },
-    { key: "policies", label: "Policies", path: "/settings/policies" },
-    { key: "features", label: "Features", path: "/settings/features" },
+    { key: "dashboard", label: "Dashboard", path: "/support" },
+    { key: "tickets", label: "Tickets", path: "/support/tickets" },
+    { key: "customers", label: "Customers", path: "/support/customers" },
+    { key: "sla", label: "SLA", path: "/support/sla" },
+    { key: "knowledge", label: "Knowledge Base", path: "/support/knowledge" },
+    { key: "communications", label: "Communications", path: "/support/communications" },
+    { key: "incidents", label: "Incidents", path: "/support/incidents" },
   ],
+  searchKeywords: ["support", "tickets", "sla", "service desk", "cases", "customers"],
+  resourceKinds: ["provider-support-case", "service-request-definition", "support-sla", "support-queue", "support-diagnostic-consent", "support-quality-review"],
 });
 
 // ── derived views ────────────────────────────────────────────────────────────
@@ -411,7 +792,19 @@ export function navItemById(id: string): AppManifest | undefined {
 }
 
 export function navItemForPath(pathname: string): AppManifest | undefined {
-  return _apps.find((item) => item.base === pathname);
+  return _apps.find((item) => item.base === pathname || item.canonicalPath === pathname);
+}
+
+export function getAppsByCluster(clusterId: AppClusterId): AppManifest[] {
+  return _apps.filter((a) => a.clusterId === clusterId);
+}
+
+export function getAppByPccId(appId: string): AppManifest | undefined {
+  return _apps.find((a) => a.appId === appId);
+}
+
+export function getAllPccApps(): AppManifest[] {
+  return _apps.filter((a) => a.appId && a.appId.startsWith("PCC-"));
 }
 
 export interface BreadcrumbItem {
@@ -422,7 +815,7 @@ export interface BreadcrumbItem {
 
 export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const crumbs: BreadcrumbItem[] = [
-    { key: "console", label: "Console", href: "/overview" },
+    { key: "console", label: "Admin OS", href: "/overview" },
   ];
 
   if (!pathname || pathname === "/" || pathname === "/overview") {
@@ -430,9 +823,17 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     return crumbs;
   }
 
-  // Find active top-level nav item
+  if (pathname === "/apps") {
+    crumbs.push({ key: "apps", label: "App Launchpad", href: "/apps" });
+    return crumbs;
+  }
+
+  // Find active top-level nav item by base or canonicalPath
   const activeItem = _apps.find(
-    (i) => pathname === i.base || pathname.startsWith(`${i.base}/`),
+    (i) =>
+      pathname === i.base ||
+      pathname.startsWith(`${i.base}/`) ||
+      (i.canonicalPath && (pathname === i.canonicalPath || pathname.startsWith(`${i.canonicalPath}/`))),
   );
 
   if (!activeItem) {
@@ -445,6 +846,14 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
       crumbs.push({ key: currentPath, label, href: currentPath });
     }
     return crumbs;
+  }
+
+  if (activeItem.clusterName) {
+    crumbs.push({
+      key: `cluster-${activeItem.clusterId}`,
+      label: activeItem.clusterName,
+      href: "/apps",
+    });
   }
 
   crumbs.push({
@@ -483,12 +892,13 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
         }
       }
     }
-  } else if (pathname !== activeItem.base) {
+  } else if (pathname !== activeItem.base && (!activeItem.canonicalPath || pathname !== activeItem.canonicalPath)) {
     // Handle sub-routes directly under item base
-    const remainder = pathname.slice(activeItem.base.length).replace(/^\//, "");
+    const basePrefix = pathname.startsWith(activeItem.base) ? activeItem.base : (activeItem.canonicalPath ?? activeItem.base);
+    const remainder = pathname.slice(basePrefix.length).replace(/^\//, "");
     if (remainder) {
       const parts = remainder.split("/").filter(Boolean);
-      let accPath = activeItem.base;
+      let accPath = basePrefix;
       for (const part of parts) {
         accPath += `/${part}`;
         const label =

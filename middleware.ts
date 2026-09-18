@@ -1,56 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isControlPlaneSession } from "./src/lib/middleware";
 
-function decodeJwtPayload(token: string): any {
-  try {
-    const [header, payload, signature] = token.split(".");
-    if (!payload) return null;
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const json = Buffer.from(padded, "base64").toString("utf8");
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
-export function middleware(req: NextRequest) {
-  console.log("--> MIDDLEWARE HIT:", req.nextUrl.pathname);
-  const url = req.nextUrl.clone();
-  const sessionPayload = decodeJwtPayload(
-    req.cookies.get("__session")?.value ??
-      req.cookies.get("auth_token")?.value ??
-      "",
-  );
-  const isValidSession = sessionPayload && isControlPlaneSession(sessionPayload);
-  const isProviderSession = sessionPayload && sessionPayload.realm === "provider";
-
-  // If trying to access login page
-  if (url.pathname === "/login") {
-    if (isValidSession) {
-      url.pathname = "/overview";
-      return NextResponse.redirect(url);
-    }
-    if (isProviderSession && !isValidSession) {
-      url.pathname = "/profile";
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
-  }
-
-  // If session is completely invalid or not a provider
-  if (!isProviderSession) {
-    url.pathname = "/login";
-    url.searchParams.set("returnUrl", req.nextUrl.pathname);
-    return NextResponse.redirect(url);
-  }
-
-  // If session is a provider but missing MFA
-  if (!isValidSession && url.pathname !== "/profile") {
-    url.pathname = "/profile";
-    return NextResponse.redirect(url);
-  }
-
+/**
+ * P2 — Provider Admin OS (Platform Control Center).
+ *
+ * Session authentication and authorization are managed by:
+ * 1. Client session boundary: `<RootAuthProvider>` and `<ControlPlaneGate>`
+ *    (`RequireSession`) in `src/components/AuthShell.tsx`.
+ * 2. Hosted OIDC Auth flow: `/login` -> `/oidc/authorize` -> `/auth/callback`.
+ * 3. Server-side API guard: `RbacGuard` + `@Permissions(...)` on all control plane APIs.
+ *
+ * Edge middleware keeps platform static assets and API paths out of the way.
+ */
+export function middleware(_req: NextRequest) {
   return NextResponse.next();
 }
 

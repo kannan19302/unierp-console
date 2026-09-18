@@ -28,7 +28,21 @@ function readCookie(name: string): string | null {
   return null;
 }
 
+let inMemoryTokenGetter: (() => string | null) | null = null;
+
+export function setTokenGetter(getter: (() => string | null) | null): void {
+  inMemoryTokenGetter = getter;
+}
+
 function getSessionToken(): string {
+  if (inMemoryTokenGetter) {
+    try {
+      const mem = inMemoryTokenGetter();
+      if (mem && !mem.endsWith(".devsignature")) return mem;
+    } catch {
+      // fallback to cookie/localStorage
+    }
+  }
   const bearer = readCookie("auth_token");
   if (bearer && !bearer.endsWith(".devsignature")) return bearer;
   const session = readCookie("__session");

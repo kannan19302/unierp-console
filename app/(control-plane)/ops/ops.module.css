@@ -1,0 +1,319 @@
+/* Platform Operations Overview - Strata Dashboard Styles */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-bottom: var(--space-8);
+}
+
+.topBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--surface-1-bg, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: var(--radius-md);
+}
+
+.topBarStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.statusIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.liveDot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--color-success);
+  box-shadow: 0 0 var(--space-2) var(--color-success);
+  animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.2);
+  }
+}
+
+.observedTime {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.topBarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Quick Navigation Links */
+.quickNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-2) 0;
+}
+
+.navPill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background-color: var(--surface-1-bg, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.navPill:hover {
+  color: var(--color-text);
+  border-color: var(--color-primary);
+  background-color: var(--surface-2-bg, var(--color-bg));
+  transform: translateY(calc(-1 * var(--space-half)));
+}
+
+/* Toast banner */
+.toastBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-2)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toastSuccess {
+  background-color: var(--color-success-light);
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+
+.toastError {
+  background-color: var(--color-danger-light);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* Grid layout for cards */
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-4);
+}
+
+.col8 {
+  grid-column: span 8;
+}
+
+.col4 {
+  grid-column: span 4;
+}
+
+.col12 {
+  grid-column: span 12;
+}
+
+@media (max-width: 64rem) {
+  .col8, .col4 {
+    grid-column: span 12;
+  }
+}
+
+/* Section cards */
+.sectionCard {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-1-bg, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
+  background-color: var(--surface-sunken-bg, var(--color-bg-sunken));
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.sectionBody {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Subsystems Matrix */
+.subsystemsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--sidebar-width), 1fr));
+  gap: var(--space-3);
+}
+
+.subsystemCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--surface-2-bg, var(--color-bg));
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease;
+}
+
+.subsystemCard:hover {
+  border-color: var(--color-border);
+}
+
+.subsystemIconBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-1-bg, var(--color-bg-elevated));
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.subsystemDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-width: 0;
+  flex: 1;
+}
+
+.subsystemName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subsystemRole {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.subsystemMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.latencyPill {
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+/* Incident / Health sidebar cards */
+.metricItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--surface-2-bg, var(--color-bg));
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.metricLabel {
+  color: var(--color-text-secondary);
+}
+
+.metricValue {
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+}
+
+.quickLinkRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.quickLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--surface-2-bg, var(--color-bg));
+  border: 1px solid var(--color-border-subtle, var(--color-border));
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.quickLink:hover {
+  background-color: var(--surface-1-bg, var(--color-bg-elevated));
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liveDot, .toastBanner { animation: none; }
+}

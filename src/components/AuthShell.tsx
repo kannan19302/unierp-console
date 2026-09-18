@@ -1,9 +1,20 @@
 "use client";
 
-import { UniErpAuthProvider, RequireSession, usePermissions } from "@kannan19302/shared/auth-client/react";
+import { useEffect } from "react";
+import { UniErpAuthProvider, RequireSession, usePermissions, useSession } from "@kannan19302/shared/auth-client/react";
 import { PermissionContext } from "@kannan19302/ui/components";
 import { oidcConfig } from "@/lib/oidc-config";
+import { setTokenGetter } from "@/lib/api";
 import type { TokenSet } from "@kannan19302/shared/auth-client";
+
+function TokenBridge() {
+  const { getAccessToken } = useSession();
+  useEffect(() => {
+    setTokenGetter(getAccessToken);
+    return () => setTokenGetter(null);
+  }, [getAccessToken]);
+  return null;
+}
 
 /**
  * Client-side auth boundary for the Provider Admin OS — the control-plane
@@ -69,6 +80,7 @@ export function RootAuthProvider({ children }: { children: React.ReactNode }) {
       restoreSession={restoreSession}
       defaultPostLogoutRedirectUri="http://localhost:4000/"
     >
+      <TokenBridge />
       {children}
     </UniErpAuthProvider>
   );
@@ -76,7 +88,13 @@ export function RootAuthProvider({ children }: { children: React.ReactNode }) {
 
 export function ControlPlaneGate({ children }: { children: React.ReactNode }) {
   return (
-    <RequireSession>
+    <RequireSession fallback={
+      <main aria-label="Provider sign-in" style={{ padding: "var(--space-6)" }}>
+        <h1>Opening the provider console</h1>
+        <p role="status">Checking your session and connecting to sign-in…</p>
+        <a href="/login">Continue to sign-in</a>
+      </main>
+    }>
       <PermissionBridge>{children}</PermissionBridge>
     </RequireSession>
   );

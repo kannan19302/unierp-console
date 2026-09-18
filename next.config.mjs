@@ -2,12 +2,15 @@ import path from 'node:path';
 
 /** @type {import('next').NextConfig} */
 // Provider Admin Console — internal control-plane tooling (L4 Presentation).
+// Updated to invalidate CSS cache.
 // API default matches the canonical port map (api=3001). In compose the env
 // sets API_URL=http://api:3001 and IDP_URL=http://idp:3005.
 const apiBaseUrl = process.env.API_URL || 'http://localhost:3001';
 const idpBaseUrl = process.env.IDP_URL || 'http://localhost:3005';
 
 const nextConfig = {
+  // Allow verification builds to run without replacing a running dev server's chunks.
+  distDir: process.env.NEXT_BUILD_DIR || '.next',
   outputFileTracingRoot: path.resolve(process.cwd(), '..'),
   reactStrictMode: true,
 
@@ -31,6 +34,24 @@ const nextConfig = {
       };
     }
     return config;
+  },
+
+  async redirects() {
+    return [
+      { source: '/operations', destination: '/ops', permanent: false },
+      { source: '/security-center', destination: '/security', permanent: false },
+      { source: '/identity-governance', destination: '/access', permanent: false },
+      { source: '/revenue-billing', destination: '/billing', permanent: false },
+      { source: '/platform-configuration', destination: '/settings', permanent: false },
+      { source: '/developer-ecosystem', destination: '/developers', permanent: false },
+      { source: '/platform-intelligence', destination: '/analytics', permanent: false },
+      { source: '/marketplace-operations', destination: '/marketplace', permanent: false },
+      { source: '/organizations', destination: '/tenants', permanent: false },
+      { source: '/cloud-infrastructure', destination: '/infrastructure', permanent: false },
+      { source: '/connector-operations', destination: '/integrations', permanent: false },
+      { source: '/ai-platform', destination: '/ai', permanent: false },
+      { source: '/service-operations', destination: '/support', permanent: false },
+    ];
   },
 
   // The console talks to the control-plane router and the IdP.

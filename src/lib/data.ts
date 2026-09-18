@@ -9,7 +9,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -28,9 +27,9 @@ export interface UseListResult<T> {
   total: number | undefined;
   loading: boolean;
   error: Error | null;
-  /** Manual re-fetch. Returns void. */
-  reload: () => void;
-  refresh: () => void;
+  /** Resolves true only when the latest request succeeds. */
+  reload: () => Promise<boolean>;
+  refresh: () => Promise<boolean>;
 }
 
 export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
@@ -40,40 +39,41 @@ export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
   const [loading, setLoading] = useState(!disabled);
   const [error, setError] = useState<Error | null>(null);
   const seq = useRef(0);
-  const fallback = useRef(initial ?? []);
 
   const paramsStr = JSON.stringify(params ?? {});
 
   const run = useCallback(async () => {
-    if (disabled) return;
+    if (disabled) {
+      setLoading(false);
+      return false;
+    }
     const mySeq = ++seq.current;
     setLoading(true);
     setError(null);
     try {
       const resp = await api.get<unknown>(path, JSON.parse(paramsStr));
-      if (mySeq !== seq.current) return;
+      if (mySeq !== seq.current) return false;
       setItems(unwrapList<T>(resp.data));
       setTotal(unwrapTotal(resp.data));
+      return true;
     } catch (e) {
-      if (mySeq !== seq.current) return;
-      // Suppress API errors to allow the UI to render gracefully with empty lists
-      setError(null);
-      if (fallback.current.length > 0) {
-        setItems(fallback.current);
-      } else {
-        setItems([]);
-      }
+      if (mySeq !== seq.current) return false;
+      setError(e instanceof Error ? e : new Error("Unable to load records."));
+      setItems([]);
+      setTotal(undefined);
+      return false;
     } finally {
       if (mySeq === seq.current) setLoading(false);
     }
   }, [path, paramsStr, disabled]);
 
   useEffect(() => {
-    run();
+    void run();
+    return () => { seq.current += 1; };
   }, [run]);
 
   const reload = useCallback(() => {
-    run();
+    return run();
   }, [run]);
 
   return {
@@ -90,23 +90,9 @@ export interface UseItemResult<T> {
   data: T | null;
   loading: boolean;
   error: Error | null;
-  reload: () => void;
-  refresh: () => void;
+  reload: () => Promise<boolean>;
+  refresh: () => Promise<boolean>;
 }
-
-// A safe fallback proxy to prevent crashes when accessing missing mock data
-const emptyProxy = new Proxy(
-  {},
-  {
-    get(target, prop) {
-      if (prop === "length") return 0;
-      if (prop === "slice" || prop === "map" || prop === "filter" || prop === "reduce" || prop === "forEach") {
-        return () => [];
-      }
-      return undefined;
-    },
-  }
-);
 
 export function useItem<T>(path: string | null | undefined): UseItemResult<T> {
   const [data, setData] = useState<T | null>(null);
@@ -115,30 +101,36 @@ export function useItem<T>(path: string | null | undefined): UseItemResult<T> {
   const seq = useRef(0);
 
   const run = useCallback(async () => {
-    if (!path) return;
+    if (!path) {
+      setData(null);
+      setLoading(false);
+      return false;
+    }
     const mySeq = ++seq.current;
     setLoading(true);
     setError(null);
     try {
       const resp = await api.get<T>(path);
-      if (mySeq !== seq.current) return;
+      if (mySeq !== seq.current) return false;
       setData(resp.data);
+      return true;
     } catch (e) {
-      if (mySeq !== seq.current) return;
-      // In development/mock mode, suppress missing API errors to allow the UI to render
-      setError(null);
-      setData(emptyProxy as T);
+      if (mySeq !== seq.current) return false;
+      setError(e instanceof Error ? e : new Error("Unable to load record."));
+      setData(null);
+      return false;
     } finally {
       if (mySeq === seq.current) setLoading(false);
     }
   }, [path]);
 
   useEffect(() => {
-    run();
+    void run();
+    return () => { seq.current += 1; };
   }, [run]);
 
   const reload = useCallback(() => {
-    run();
+    return run();
   }, [run]);
 
   return { data, loading, error, reload, refresh: reload };

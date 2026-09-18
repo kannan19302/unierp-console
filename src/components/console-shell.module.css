@@ -1,158 +1,614 @@
-.sidebarNav {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-3);
+/* ==========================================================================
+   UniERP Provider Admin OS — Design Parity
+   ========================================================================== */
+
+.sidebar {
+  width: 14.5rem; /* 232px */
+  min-width: 14.5rem;
+  height: 100vh;
+  background: var(--color-bg-elevated);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  flex-shrink: 0;
+  transition: width var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)),
+    min-width var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)),
+    opacity var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1));
+  will-change: width, min-width, opacity;
+}
+
+.sidebarCollapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  border-right-color: transparent !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebarInner {
+  width: 14.5rem;
+  min-width: 14.5rem;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: transform var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.sidebarCollapsed .sidebarInner {
+  transform: translateX(-0.5rem);
+}
+
+/* ─── Header ─── */
+.header {
+  padding: var(--space-3) var(--space-3) var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-}
-
-.sidebarButton {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2-5) var(--space-3);
-  border-radius: var(--radius-md);
-  border: none;
-  font-size: var(--text-sm);
-  text-align: left;
-  cursor: pointer;
-  width: 100%;
-}
-
-.sidebarButtonActive {
-  background: var(--color-primary-light, rgba(59,130,246,0.12));
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.sidebarButtonInactive {
-  background: transparent;
-  color: var(--color-text);
-  font-weight: 400;
-}
-
-.buttonText {
-  flex: 1;
-}
-
-.profileFooter {
-  padding: var(--space-3);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.profileInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.profileAvatar {
-  width: var(--space-8);
-  height: var(--space-8);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary);
-  /* --on-primary, not #fff. meridian-dark lifts the accent to #48c5ce, where
-     white is 2:1 and the initials vanish. */
-  color: var(--on-primary);
-  font-weight: 700;
-  font-size: var(--text-xs);
-}
-
-.profileText {
-  flex: 1;
-  min-width: 0;
-}
-
-.profileName {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profileEmail {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.signOutButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  width: 100%;
-}
-
-.layout {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-.sidebar {
-  background: var(--color-bg-elevated);
-  border-right: 1px solid var(--color-border);
-  transition: width var(--duration-normal) var(--ease-default);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  position: relative;
   flex-shrink: 0;
 }
 
-.sidebarHeader {
-  padding: var(--space-4);
+.titleRow {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  justify-content: space-between;
 }
 
-.sidebarLogo {
-  width: var(--space-8);
-  height: var(--space-8);
-  border-radius: var(--radius-md);
+.workspaceSwitcherTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-sans);
+  text-align: left;
+}
+
+.title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text);
+  line-height: var(--leading-tight, 1.25);
+}
+
+.chevronIcon {
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-fast, 150ms ease);
+}
+
+.collapseButton {
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Flat, not a gradient. `--color-primary-strong` is defined in NO token
-     file, so this resolved to the #1d4ed8 fallback and rendered teal→stale
-     blue — the old palette showing through. §13.1 allows one accent anyway. */
-  background: var(--color-primary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
 }
 
-.sidebarTitleContainer {
-  overflow: hidden;
+.collapseButton:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
 }
 
-.sidebarTitle {
-  font-size: var(--text-base);
-  font-weight: 700;
-  white-space: nowrap;
+.edgeExpandBtn {
+  position: fixed;
+  top: calc(var(--header-height, 3.25rem) + 0.5rem);
+  left: 0;
+  z-index: 100;
+  width: 1.5rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: width 120ms ease, background 120ms ease, color 120ms ease;
 }
 
-.sidebarSubtitle {
+.edgeExpandBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-primary);
+  width: 1.75rem;
+}
+
+.scopeSubtitle {
   font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  color: var(--color-text-tertiary);
+  margin-top: calc(-1 * var(--space-0-5, 2px));
+  padding-left: var(--space-half, 2px);
+}
+
+/* ─── Search Input ─── */
+.searchWrap {
+  padding: var(--space-2) var(--space-3);
+  flex-shrink: 0;
+}
+
+.searchInputBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2-5);
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  width: 100%;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.searchIcon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* ─── Nav Body / Scrollable Content ─── */
+.navBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-1) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+}
+
+.sectionHeader {
+  font-size: var(--text-2xs, 0.625rem);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-1) var(--space-2);
+}
+
+/* ─── Nav Items (Single Links) ─── */
+.navItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  transition: background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);
+}
+
+.navItem:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.navItem:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-primary));
+  outline-offset: -2px;
+}
+
+.navItemActive {
+  background: var(--color-primary-light, var(--color-primary-subtle));
+  color: var(--color-primary);
+  font-weight: var(--weight-medium, 500);
+  border-left: 0.1875rem solid var(--color-primary);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.navItemLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.navItemIcon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.navItemActive .navItemIcon {
+  color: var(--color-primary);
+}
+
+.navBadge {
+  font-size: var(--text-2xs, 0.625rem);
+  font-weight: var(--weight-semibold, 600);
+  padding: var(--space-half) var(--space-1-5);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+  line-height: var(--leading-none, 1);
+}
+
+.navBadgeBlue {
+  font-size: var(--text-2xs, 0.625rem);
+  font-weight: var(--weight-semibold, 600);
+  padding: var(--space-half) var(--space-1-5);
+  background: var(--color-primary-light, var(--color-primary-subtle));
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  line-height: var(--leading-none, 1);
+}
+
+.navItemRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.moreBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-xs, 2px);
+  color: var(--color-text-tertiary);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: opacity var(--duration-fast, 120ms) ease,
+    background var(--duration-fast, 120ms) ease,
+    color var(--duration-fast, 120ms) ease;
+}
+
+.moreBtn:hover,
+.moreBtn:focus-visible {
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+  outline: none;
+}
+
+/* (...) only visible on row hover or focus */
+.navItem:hover .moreBtn,
+.navItem:focus-within .moreBtn,
+.groupItemHeader:hover .moreBtn,
+.groupItemHeader:focus-within .moreBtn {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Floating Context Menu */
+.contextMenu {
+  position: fixed;
+  z-index: var(--z-modal, 1000);
+  min-width: 13.5rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl, 0 8px 32px rgba(0, 0, 0, 0.25));
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  outline: none;
+  animation: contextMenuPop 120ms ease;
+}
+
+@keyframes contextMenuPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.contextMenuHeader {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-2xs, 0.625rem);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+
+.contextMenuDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-half) 0;
+}
+
+.contextMenuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1-5) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+  white-space: nowrap;
+}
+
+.contextMenuItem:hover,
+.contextMenuItem:focus-visible {
+  background: var(--color-primary-light, var(--color-primary-subtle));
+  color: var(--color-primary);
+  outline: none;
+}
+
+.contextMenuItemIcon {
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+
+.contextMenuItem:hover .contextMenuItemIcon,
+.contextMenuItem:focus-visible .contextMenuItemIcon {
+  color: var(--color-primary);
+}
+
+/* ─── Expandable Groups ─── */
+.expandableGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+}
+
+.groupItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium, 500);
+  color: var(--color-text);
+  width: 100%;
+  text-align: left;
+  transition: background var(--transition-fast, 150ms ease);
+}
+
+.groupItemHeader:hover {
+  background: var(--color-bg-hover);
+}
+
+.groupItemTitleLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  padding: var(--space-1-5) var(--space-2);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium, 500);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupItemTitleLink:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-primary));
+  outline-offset: -2px;
+}
+
+.groupChevronBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.875rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  padding: 0;
+  border-radius: var(--radius-xs);
+}
+
+.groupChevronBtn:hover {
+  color: var(--color-text);
+}
+
+.layout :global(nextjs-portal) {
+  display: none !important;
+}
+
+.subItemsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  padding-left: var(--space-3);
+  margin-left: var(--space-2);
+  border-left: 1px solid var(--color-border);
+}
+
+/* ─── Footer Section ─── */
+.footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  background: var(--color-bg-elevated);
+  flex-shrink: 0;
+}
+
+.periodTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-decoration: none;
+}
+
+.periodTrigger:hover {
+  background: var(--color-bg-hover);
+}
+
+.periodLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.greenDot {
+  width: var(--status-dot-size, 0.375rem);
+  height: var(--status-dot-size, 0.375rem);
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  flex-shrink: 0;
+}
+
+.footerBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-decoration: none;
+}
+
+.footerBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.footerBtn:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-primary));
+  outline-offset: -2px;
+}
+
+.userFooterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1-5) var(--space-2);
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+}
+
+.userFooterLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userAvatarMini {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--on-primary, #fff);
+  font-size: 0.625rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.userNameMini {
+  font-weight: var(--weight-medium, 500);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signOutIconBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signOutIconBtn:hover {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+}
+
+/* ─── Shell Layout & Topbar ─── */
+.layout {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .mainWrapper {
@@ -164,8 +620,6 @@
 }
 
 .topbar {
-  /* --header-height. It was 58px: two pixels off the token every other
-     surface reads, which is exactly how chrome stops lining up between apps. */
   height: var(--header-height);
   background: var(--color-bg-elevated);
   border-bottom: 1px solid var(--color-border);
@@ -173,6 +627,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--space-4);
+  flex-shrink: 0;
 }
 
 .menuToggle {
@@ -182,6 +637,12 @@
   color: var(--color-text-secondary);
   padding: var(--space-2);
   display: inline-flex;
+  border-radius: var(--radius-sm);
+}
+
+.menuToggle:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
 }
 
 .spacer {
@@ -192,13 +653,17 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1-5) var(--space-3);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   cursor: pointer;
+}
+
+.searchButton:hover {
+  background: var(--color-bg-hover);
 }
 
 .searchLabel {
@@ -243,10 +708,7 @@
 .outageTicker {
   padding: var(--space-2) var(--space-4);
   background: var(--color-danger);
-  /* --on-danger, added to both themes for this. A banner announcing an outage
-     is the last thing that should be unreadable, and #fff here is 3.16:1 in
-     meridian-dark — the contrast gate now fails on it. */
-  color: var(--on-danger);
+  color: var(--on-danger, #fff);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -262,7 +724,7 @@
 .outageTickerDismiss {
   background: none;
   border: none;
-  color: var(--on-danger);
+  color: var(--on-danger, #fff);
   cursor: pointer;
 }
 
@@ -280,10 +742,55 @@
 }
 
 .socketDot {
-  width: 8px;
-  height: 8px;
+  width: var(--space-2);
+  height: var(--space-2);
   border-radius: 50%;
-  background-color: var(--color-success, #10b981);
-  box-shadow: 0 0 4px var(--color-success, #10b981);
+  background-color: var(--color-success);
+  box-shadow: 0 0 var(--space-1) var(--color-success);
 }
 
+.skipLink {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-modal, 1000);
+  transform: translateY(-200%);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  padding: var(--space-3);
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}
+
+.themeSelect {
+  color: var(--color-text);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  min-height: var(--density-row-height);
+  font: inherit;
+}
+
+@media (max-width: 48rem) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: var(--z-dropdown, 100);
+    width: 14.5rem;
+    min-width: 14.5rem;
+    box-shadow: var(--shadow-xl);
+  }
+
+  .sidebarCollapsed {
+    transform: translateX(-100%) !important;
+    width: 14.5rem !important;
+    min-width: 14.5rem !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}

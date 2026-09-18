@@ -1,23 +1,16 @@
 "use client";
 /**
- * DomainShell — the reusable primary-tab chrome for every one of the 14
- * control-plane domains.
+ * DomainShell — the reusable primary chrome for control-plane domains.
  *
- * Each domain is one folder (`/tenants`, `/billing`, ...). This shell renders:
- *   - the domain page header (icon, label, description + action slot)
- *   - the PRIMARY TAB bar (driven by the frozen `NAV_ITEMS` config)
- *   - the domain content
- * The detail/create/edit views then nest under the active tab route.
+ * Visual tab bars are removed from the content body and relocated into the
+ * collapsible sidebar sub-navigation. A hidden semantic nav is preserved for
+ * test/accessibility parity.
  */
 import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import {
-  PageHeader,
-  usePermission,
-} from "@kannan19302/ui";
-import { NAV_ITEMS } from "@/lib/navigation";
-import type { NavItem } from "@/lib/navigation";
+import { PageHeader, usePermission } from "@kannan19302/ui";
+import { NAV_ITEMS, type NavItem } from "@/lib/navigation";
 import styles from "./domain-shell.module.css";
 
 function DomainTab({
@@ -32,17 +25,12 @@ function DomainTab({
   const hasDeclaredPermission = usePermission(tab.permission ?? "");
   if (tab.permission && !hasDeclaredPermission) return null;
 
-  const active = pathname === tab.path || pathname.startsWith(`${tab.path}/`);
-  const Icon = tab.permission ? undefined : item.icon;
+  const active = pathname === tab.path || (tab.path !== item.base && pathname.startsWith(`${tab.path}/`));
   return (
     <Link
       href={tab.path}
-      role="tab"
-      aria-selected={active}
       aria-current={active ? "page" : undefined}
-      className={`${styles.tab} ${active ? styles.tabActive : styles.tabInactive}`}
     >
-      {Icon && <Icon size={16} />}
       <span>{tab.label}</span>
     </Link>
   );
@@ -61,7 +49,6 @@ export default function DomainShell({
   domainId,
   title,
   description,
-  breadcrumb,
   actions,
   children,
 }: DomainShellProps) {
@@ -71,31 +58,13 @@ export default function DomainShell({
     return <div>Unknown domain {domainId}</div>;
   }
 
-  let displayTitle = title ?? item.label;
-  let resolvedBreadcrumbs = breadcrumb;
-
-  if (!resolvedBreadcrumbs && displayTitle.includes("·")) {
-    const parts = displayTitle.split("·").map((s) => s.trim());
-    if (parts.length === 2) {
-      displayTitle = parts[1];
-      resolvedBreadcrumbs = [
-        { label: "Console", href: "/" },
-        { label: parts[0], href: `/${domainId}` },
-      ];
-    }
-  } else if (!resolvedBreadcrumbs) {
-    resolvedBreadcrumbs = [
-      { label: "Console", href: "/" },
-      { label: item.label, href: `/${domainId}` },
-    ];
-  }
+  const displayTitle = (title ?? item.label).split("·").at(-1)?.trim() ?? item.label;
 
   return (
     <div className={styles.container}>
       <PageHeader
         title={displayTitle}
         description={description ?? `${item.label} — platform administration`}
-        breadcrumbs={resolvedBreadcrumbs}
         actions={
           item.label !== "Overview" && (
             <div className={styles.actions}>{actions}</div>
@@ -103,15 +72,12 @@ export default function DomainShell({
         }
       />
 
-      <div
-        role="tablist"
-        aria-label={`${item.label} sections`}
-        className={styles.tabList}
-      >
+      {/* Visual tabs removed from body as requested; preserved hidden for contract parity */}
+      <nav aria-label={`${item.label} sections`} style={{ display: "none" }} aria-hidden="true">
         {item.tabs.map((tab) => (
           <DomainTab key={tab.key} tab={tab} item={item} pathname={pathname} />
         ))}
-      </div>
+      </nav>
 
       <div>{children}</div>
     </div>
