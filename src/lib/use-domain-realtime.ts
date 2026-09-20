@@ -25,16 +25,23 @@ export function useDomainRealtime(
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    // Standard event topics for the domain
+    // Standard event topics for the domain + universal cross-domain events
     const events = [
       `${domain}.created`,
       `${domain}.updated`,
       `${domain}.deleted`,
       `${domain}.status_changed`,
       `${domain}.changed`,
+      `${domain}:mutation`,
+      "domain.update",
+      "tenant:update",
     ];
 
     const handleEvent = (eventName: string) => (payload: any) => {
+      // Filter domain.update if scoped to a specific other domain
+      if (eventName === "domain.update" && payload?.domain && payload.domain !== domain) {
+        return;
+      }
       const now = new Date();
       setLastEventTime(now);
       setLastPayload(payload);

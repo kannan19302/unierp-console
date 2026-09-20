@@ -16,7 +16,7 @@
  *       • Quick settings access
  *       • Clean user profile row with sign out control (Next.js dev indicator hidden)
  */
-import React, { useEffect, useState, useRef, useMemo, type ReactNode } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { StrataBar } from "@kannan19302/ui/shell";
@@ -92,10 +92,165 @@ interface FlattenedNavigationItem {
   keywords?: string[];
 }
 
+function SidebarTabItem({
+  tab,
+  app,
+  pathname,
+  hasActiveIncident,
+  cleanQuery,
+  isMobile,
+  setSearchQuery,
+  setSidebarOpen,
+  openNavContextMenu,
+  renderMoreButton,
+}: {
+  tab: any;
+  app: any;
+  pathname: string;
+  hasActiveIncident: boolean;
+  cleanQuery: string;
+  isMobile: boolean;
+  setSearchQuery: (q: string) => void;
+  setSidebarOpen: (o: boolean) => void;
+  openNavContextMenu: (href: string, label: string, e: React.MouseEvent) => void;
+  renderMoreButton: (href: string, label: string) => React.ReactNode;
+}) {
+  const hasTabPermission = usePermission(tab.permission ?? "");
+  if (tab.permission && !hasTabPermission) return null;
+
+  const isTabActive =
+    pathname === tab.path ||
+    (tab.path !== app.base && pathname.startsWith(`${tab.path}/`));
+  const isIncidentTab = tab.path === "/ops/incidents" && hasActiveIncident;
+
+  return (
+    <Link
+      key={tab.key}
+      href={tab.path}
+      aria-current={isTabActive ? "page" : undefined}
+      className={`${styles.navItem} ${isTabActive ? styles.navItemActive : ""}`}
+      onContextMenu={(e) => openNavContextMenu(tab.path, tab.label, e)}
+      onClick={() => {
+        if (cleanQuery) setSearchQuery("");
+        if (isMobile) setSidebarOpen(false);
+      }}
+    >
+      <div className={styles.navItemLeft}>
+        <span>{tab.label}</span>
+      </div>
+      <div className={styles.navItemRight}>
+        {isIncidentTab && (
+          <span className={`${styles.navBadge} ${styles.navBadgeBlue}`}>1</span>
+        )}
+        {renderMoreButton(tab.path, tab.label)}
+      </div>
+    </Link>
+  );
+}
+
+function SidebarAppGroup({
+  app,
+  pathname,
+  isOpen,
+  isConnected,
+  isMobile,
+  cleanQuery,
+  hasActiveIncident,
+  setSearchQuery,
+  setSidebarOpen,
+  toggleAppExpanded,
+  openNavContextMenu,
+  renderMoreButton,
+}: {
+  app: any;
+  pathname: string;
+  isOpen: boolean;
+  isConnected: boolean;
+  isMobile: boolean;
+  cleanQuery: string;
+  hasActiveIncident: boolean;
+  setSearchQuery: (q: string) => void;
+  setSidebarOpen: (o: boolean) => void;
+  toggleAppExpanded: (appId: string, e?: React.MouseEvent) => void;
+  openNavContextMenu: (href: string, label: string, e: React.MouseEvent) => void;
+  renderMoreButton: (href: string, label: string) => React.ReactNode;
+}) {
+  const hasAppPermission = usePermission(app.permission ?? "");
+  if (app.permission && !hasAppPermission) return null;
+
+  const Icon = app.icon;
+
+  return (
+    <div key={app.id} className={styles.expandableGroup}>
+      <div
+        className={styles.groupItemHeader}
+        onContextMenu={(e) => openNavContextMenu(app.base, app.label, e)}
+      >
+        <Link
+          href={app.base}
+          className={styles.groupItemTitleLink}
+          aria-label={app.label}
+          onClick={() => {
+            if (!isOpen) toggleAppExpanded(app.id);
+            if (isMobile) setSidebarOpen(false);
+          }}
+        >
+          <Icon size={15} className={styles.navItemIcon} />
+          <span>{app.label}</span>
+          {isConnected && (
+            <span
+              className={styles.realTimeDot}
+              title={`WebSocket real-time active for ${app.label}`}
+              aria-label={`${app.label} real-time active`}
+            />
+          )}
+        </Link>
+
+        <div className={styles.navItemRight}>
+          {renderMoreButton(app.base, app.label)}
+          <button
+            type="button"
+            className={styles.groupChevronBtn}
+            onClick={(e) => toggleAppExpanded(app.id, e)}
+            aria-label={`Toggle ${app.label} section`}
+            aria-expanded={isOpen}
+            title={isOpen ? `Collapse ${app.label}` : `Expand ${app.label}`}
+          >
+            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Indented Sub-Items Tree */}
+      {isOpen && app.tabs && app.tabs.length > 0 && (
+        <div className={styles.subItemsContainer}>
+          {app.tabs.map((tab: any) => (
+            <SidebarTabItem
+              key={tab.key}
+              tab={tab}
+              app={app}
+              pathname={pathname}
+              hasActiveIncident={hasActiveIncident}
+              cleanQuery={cleanQuery}
+              isMobile={isMobile}
+              setSearchQuery={setSearchQuery}
+              setSidebarOpen={setSidebarOpen}
+              openNavContextMenu={openNavContextMenu}
+              renderMoreButton={renderMoreButton}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ControlPlaneShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { claims, signOut } = useSession();
+  const { isConnected } = useConsoleSocket();
+
   const accountEmail = (claims as unknown as { email?: string } | null)?.email ?? "";
   const displayName = nameFromEmail(accountEmail);
   const initial = displayName.charAt(0) || "P";
@@ -295,7 +450,7 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isExpanded]);
 
-  // Command palette items without PCC badges
+  // Command palette items
   const commandItems = useMemo(() => [
     {
       id: "admin-os-launchpad",
@@ -651,88 +806,23 @@ export default function ControlPlaneShell({ children }: { children: ReactNode })
                     </Link>
 
                     {/* Domain Expandable Groups */}
-                    {domainApps.map((app) => {
-                      const isOpen = Boolean(expandedApps[app.id]);
-                      const isAppActive =
-                        pathname === app.base ||
-                        pathname.startsWith(`${app.base}/`) ||
-                        Boolean(app.canonicalPath && (pathname === app.canonicalPath || pathname.startsWith(`${app.canonicalPath}/`)));
-                      const Icon = app.icon;
-
-                      return (
-                        <div key={app.id} className={styles.expandableGroup}>
-                          <div
-                            className={styles.groupItemHeader}
-                            onContextMenu={(e) => openNavContextMenu(app.base, app.label, e)}
-                          >
-                            <Link
-                              href={app.base}
-                              className={styles.groupItemTitleLink}
-                              aria-label={app.label}
-                              onClick={() => {
-                                if (!isOpen) toggleAppExpanded(app.id);
-                                if (isMobile) setSidebarOpen(false);
-                              }}
-                            >
-                              <Icon size={15} className={styles.navItemIcon} />
-                              <span>{app.label}</span>
-                            </Link>
-
-                            <div className={styles.navItemRight}>
-                              {renderMoreButton(app.base, app.label)}
-                              <button
-                                type="button"
-                                className={styles.groupChevronBtn}
-                                onClick={(e) => toggleAppExpanded(app.id, e)}
-                                aria-label={`Toggle ${app.label} section`}
-                                aria-expanded={isOpen}
-                                title={isOpen ? `Collapse ${app.label}` : `Expand ${app.label}`}
-                              >
-                                {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Indented Sub-Items Tree */}
-                          {isOpen && app.tabs && app.tabs.length > 0 && (
-                            <div className={styles.subItemsContainer}>
-                              {app.tabs.map((tab) => {
-                                const isTabActive =
-                                  pathname === tab.path ||
-                                  (tab.path !== app.base && pathname.startsWith(`${tab.path}/`));
-                                const isIncidentTab = tab.path === "/ops/incidents" && hasActiveIncident;
-
-                                return (
-                                  <Link
-                                    key={tab.key}
-                                    href={tab.path}
-                                    aria-current={isTabActive ? "page" : undefined}
-                                    className={`${styles.navItem} ${
-                                      isTabActive ? styles.navItemActive : ""
-                                    }`}
-                                    onContextMenu={(e) => openNavContextMenu(tab.path, tab.label, e)}
-                                    onClick={() => {
-                                      if (cleanQuery) setSearchQuery("");
-                                      if (isMobile) setSidebarOpen(false);
-                                    }}
-                                  >
-                                    <div className={styles.navItemLeft}>
-                                      <span>{tab.label}</span>
-                                    </div>
-                                    <div className={styles.navItemRight}>
-                                      {isIncidentTab && (
-                                        <span className={`${styles.navBadge} ${styles.navBadgeBlue}`}>1</span>
-                                      )}
-                                      {renderMoreButton(tab.path, tab.label)}
-                                    </div>
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {domainApps.map((app) => (
+                      <SidebarAppGroup
+                        key={app.id}
+                        app={app}
+                        pathname={pathname}
+                        isOpen={Boolean(expandedApps[app.id])}
+                        isConnected={isConnected}
+                        isMobile={isMobile}
+                        cleanQuery={cleanQuery}
+                        hasActiveIncident={hasActiveIncident}
+                        setSearchQuery={setSearchQuery}
+                        setSidebarOpen={setSidebarOpen}
+                        toggleAppExpanded={toggleAppExpanded}
+                        openNavContextMenu={openNavContextMenu}
+                        renderMoreButton={renderMoreButton}
+                      />
+                    ))}
                   </div>
                 </>
               )}
