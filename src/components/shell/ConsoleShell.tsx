@@ -15,9 +15,9 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import {
-  CommandPalette,
   useCommandPalette,
 } from "@kannan19302/ui/components";
+import { UniversalSearch } from "./UniversalSearch";
 import { NAV_ITEMS, getBreadcrumbs } from "@/lib/navigation";
 import { useSession } from "@kannan19302/shared/auth-client/react";
 import { ControlPlaneGate } from "@/components/AuthShell";
@@ -498,7 +498,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
           </main>
         </div>
 
-        <CommandPalette open={open} onClose={() => setOpen(false)} items={commandItems} />
+        <UniversalSearch open={open} onClose={() => setOpen(false)} />
 
         {/* Floating Context Menu for (...) and right-click */}
         {contextMenu && (

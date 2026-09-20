@@ -9,4 +9,8 @@ export * from "./use-realtime-data";
 export * from "./use-toast";
 export * from "./use-unsaved-changes";
 export * from "./use-url-state";
+export * from "./use-crud-form";
+export * from "./use-smart-defaults";
+export * from "./use-tab-sync";
+
 

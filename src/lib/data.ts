@@ -14,6 +14,22 @@ import {
 } from "react";
 import { api, unwrapList, unwrapTotal } from "./api";
 
+interface CacheEntry<T> {
+  data: T;
+  total?: number;
+  timestamp: number;
+}
+
+const listCache = new Map<string, CacheEntry<unknown>>();
+const itemCache = new Map<string, CacheEntry<unknown>>();
+const SWR_DEFAULT_TTL_MS = 60_000;
+
+/** Clear in-memory SWR cache for list and item data */
+export function clearDataCache(): void {
+  listCache.clear();
+  itemCache.clear();
+}
+
 export interface UseListOptions<T> {
   path: string;
   params?: Record<string, string | number | boolean | undefined>;
@@ -34,30 +50,46 @@ export interface UseListResult<T> {
 
 export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
   const { path, params, initial, disabled = false } = options;
-  const [items, setItems] = useState<T[]>(initial ?? []);
-  const [total, setTotal] = useState<number | undefined>(undefined);
-  const [loading, setLoading] = useState(!disabled);
+  const paramsStr = JSON.stringify(params ?? {});
+  const cacheKey = `${path}?${paramsStr}`;
+  const cached = listCache.get(cacheKey) as CacheEntry<T[]> | undefined;
+
+  const [items, setItems] = useState<T[]>(() => {
+    if (cached) return cached.data;
+    return initial ?? [];
+  });
+  const [total, setTotal] = useState<number | undefined>(() => cached?.total);
+  const [loading, setLoading] = useState(!disabled && !cached);
   const [error, setError] = useState<Error | null>(null);
   const seq = useRef(0);
 
-  const paramsStr = JSON.stringify(params ?? {});
-
-  const run = useCallback(async () => {
+  const run = useCallback(async (bypassCache = false) => {
     if (disabled) {
       setLoading(false);
       return false;
     }
     const mySeq = ++seq.current;
-    setLoading(true);
+    const currentCached = listCache.get(cacheKey) as CacheEntry<T[]> | undefined;
+    if (!bypassCache && !currentCached) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const resp = await api.get<unknown>(path, JSON.parse(paramsStr));
       if (mySeq !== seq.current) return false;
-      setItems(unwrapList<T>(resp.data));
-      setTotal(unwrapTotal(resp.data));
+      const fetchedItems = unwrapList<T>(resp.data);
+      const fetchedTotal = unwrapTotal(resp.data);
+      listCache.set(cacheKey, {
+        data: fetchedItems,
+        total: fetchedTotal,
+        timestamp: Date.now(),
+      });
+      setItems(fetchedItems);
+      setTotal(fetchedTotal);
       return true;
     } catch (e) {
       if (mySeq !== seq.current) return false;
+      listCache.delete(cacheKey);
       setError(e instanceof Error ? e : new Error("Unable to load records."));
       setItems([]);
       setTotal(undefined);
@@ -65,7 +97,7 @@ export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
     } finally {
       if (mySeq === seq.current) setLoading(false);
     }
-  }, [path, paramsStr, disabled]);
+  }, [path, paramsStr, disabled, cacheKey]);
 
   useEffect(() => {
     void run();
@@ -73,7 +105,7 @@ export function useList<T>(options: UseListOptions<T>): UseListResult<T> {
   }, [run]);
 
   const reload = useCallback(() => {
-    return run();
+    return run(true);
   }, [run]);
 
   return {
@@ -95,34 +127,45 @@ export interface UseItemResult<T> {
 }
 
 export function useItem<T>(path: string | null | undefined): UseItemResult<T> {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState<boolean>(!!path);
+  const cacheKey = path || "";
+  const cached = path ? (itemCache.get(cacheKey) as CacheEntry<T> | undefined) : undefined;
+
+  const [data, setData] = useState<T | null>(() => (cached ? cached.data : null));
+  const [loading, setLoading] = useState<boolean>(!!path && !cached);
   const [error, setError] = useState<Error | null>(null);
   const seq = useRef(0);
 
-  const run = useCallback(async () => {
+  const run = useCallback(async (bypassCache = false) => {
     if (!path) {
       setData(null);
       setLoading(false);
       return false;
     }
     const mySeq = ++seq.current;
-    setLoading(true);
+    const currentCached = itemCache.get(cacheKey) as CacheEntry<T> | undefined;
+    if (!bypassCache && !currentCached) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const resp = await api.get<T>(path);
       if (mySeq !== seq.current) return false;
+      itemCache.set(cacheKey, {
+        data: resp.data,
+        timestamp: Date.now(),
+      });
       setData(resp.data);
       return true;
     } catch (e) {
       if (mySeq !== seq.current) return false;
+      itemCache.delete(cacheKey);
       setError(e instanceof Error ? e : new Error("Unable to load record."));
       setData(null);
       return false;
     } finally {
       if (mySeq === seq.current) setLoading(false);
     }
-  }, [path]);
+  }, [path, cacheKey]);
 
   useEffect(() => {
     void run();
@@ -130,7 +173,7 @@ export function useItem<T>(path: string | null | undefined): UseItemResult<T> {
   }, [run]);
 
   const reload = useCallback(() => {
-    return run();
+    return run(true);
   }, [run]);
 
   return { data, loading, error, reload, refresh: reload };
