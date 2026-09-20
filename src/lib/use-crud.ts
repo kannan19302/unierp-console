@@ -176,6 +176,8 @@ export function useCrud<T extends { id: string | number }>({
     isMutating,
     setPage,
     setPageSize,
+    setSortColumn,
+    setSortDirection,
     setSort: (col: string, dir: "asc" | "desc" | null) => {
       setSortColumn(col);
       setSortDirection(dir);
@@ -195,6 +197,22 @@ export function useCrud<T extends { id: string | number }>({
     openEdit,
     closeDrawer,
     handleSave,
+    handleCreate: async (data: Record<string, any>) => {
+      setIsMutating(true);
+      try {
+        const created = await adapter.create(data as Partial<T>);
+        setItems((prev) => [created, ...prev]);
+        setTotal((prev) => prev + 1);
+        toast.success(`${entityName} created successfully`);
+        await reload();
+        return created;
+      } catch (err: any) {
+        toast.error(err?.message || `Failed to create ${entityName}`, "Create Failed");
+        throw err;
+      } finally {
+        setIsMutating(false);
+      }
+    },
     handleUpdate: async (id: string | number, data: Record<string, any>) => {
       setIsMutating(true);
       try {
