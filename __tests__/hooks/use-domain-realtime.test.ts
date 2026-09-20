@@ -23,6 +23,13 @@ vi.mock("../../src/lib/use-console-socket", () => ({
   }),
 }));
 
+vi.mock("../../src/lib/hooks/use-console-socket", () => ({
+  useConsoleSocket: () => ({
+    socket: mockSocket,
+    isConnected: true,
+  }),
+}));
+
 describe("useDomainRealtime hook", () => {
   it("subscribes to domain events when connected", () => {
     const handleEvent = vi.fn();

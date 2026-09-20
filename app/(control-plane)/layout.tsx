@@ -1,4 +1,4 @@
-import ControlPlaneShell from "@/components/console-shell";
+import ControlPlaneShell from "@/components/shell";
 
 export default function ControlPlaneLayout({ children }: { children: React.ReactNode }) {
   return <ControlPlaneShell>{children}</ControlPlaneShell>;

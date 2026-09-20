@@ -15,6 +15,10 @@ vi.mock("../../src/lib/use-toast", () => ({
   useToast: () => mockToast,
 }));
 
+vi.mock("../../src/lib/hooks/use-toast", () => ({
+  useToast: () => mockToast,
+}));
+
 interface Item {
   id: string;
   name: string;

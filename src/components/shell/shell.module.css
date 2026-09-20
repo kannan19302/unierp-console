@@ -697,11 +697,11 @@
 
 .notificationBadge {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  top: var(--space-1-5, 0.375rem);
+  right: var(--space-1-5, 0.375rem);
+  width: var(--status-dot-size, 0.4375rem);
+  height: var(--status-dot-size, 0.4375rem);
+  border-radius: var(--radius-full, 50%);
   background: var(--color-danger);
 }
 

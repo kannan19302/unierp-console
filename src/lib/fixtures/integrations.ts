@@ -1,0 +1,105 @@
+import type {
+  ConnectorHealthItem,
+  DataMappingDefinition,
+  SyncScheduleJob,
+} from "@/lib/integration-schema";
+
+export const INITIAL_CONNECTORS: ConnectorHealthItem[] = [
+  {
+    id: "conn-sfdc",
+    name: "Salesforce CRM Enterprise Bridge",
+    type: "SALESFORCE",
+    status: "HEALTHY",
+    latencyMs: 142,
+    errorRatePct: 0.04,
+    throughputRowsSec: 450,
+    recordsSynced24h: 185420,
+    lastHealthCheckAt: new Date().toISOString(),
+    activeJobsCount: 3,
+  },
+  {
+    id: "conn-shopify",
+    name: "Shopify Plus B2B Storefront",
+    type: "SHOPIFY",
+    status: "HEALTHY",
+    latencyMs: 98,
+    errorRatePct: 0.01,
+    throughputRowsSec: 1200,
+    recordsSynced24h: 524100,
+    lastHealthCheckAt: new Date().toISOString(),
+    activeJobsCount: 2,
+  },
+  {
+    id: "conn-netsuite",
+    name: "Oracle NetSuite GL Master",
+    type: "NETSUITE",
+    status: "DEGRADED",
+    latencyMs: 840,
+    errorRatePct: 2.15,
+    throughputRowsSec: 85,
+    recordsSynced24h: 42300,
+    lastHealthCheckAt: new Date().toISOString(),
+    activeJobsCount: 1,
+  },
+];
+
+export const INITIAL_MAPPINGS: DataMappingDefinition[] = [
+  {
+    id: "map-sfdc-accounts",
+    name: "Salesforce Account → UniERP Customer",
+    connectorId: "conn-sfdc",
+    sourceEntity: "Account",
+    targetEntity: "Customer",
+    fieldMappings: [
+      { sourceField: "Name", targetField: "companyName", transform: "TRIM" },
+      { sourceField: "AccountNumber", targetField: "customerCode", transform: "UPPERCASE" },
+      { sourceField: "AnnualRevenue", targetField: "creditLimit", transform: "PARSE_FLOAT" },
+      { sourceField: "CreatedDate", targetField: "onboardingDate", transform: "FORMAT_DATE" },
+      { sourceField: "BillingCity", targetField: "city", transform: "TRIM" },
+    ],
+    createdAt: "2026-02-10T10:00:00Z",
+    updatedAt: "2026-03-12T14:20:00Z",
+  },
+  {
+    id: "map-shopify-orders",
+    name: "Shopify Order → UniERP Sales Order",
+    connectorId: "conn-shopify",
+    sourceEntity: "Order",
+    targetEntity: "SalesOrder",
+    fieldMappings: [
+      { sourceField: "order_number", targetField: "orderRef", transform: "UPPERCASE" },
+      { sourceField: "total_price", targetField: "grandTotal", transform: "PARSE_FLOAT" },
+      { sourceField: "created_at", targetField: "orderDate", transform: "FORMAT_DATE" },
+      { sourceField: "email", targetField: "customerEmail", transform: "LOWERCASE" },
+    ],
+    createdAt: "2026-03-01T08:30:00Z",
+    updatedAt: "2026-03-15T09:45:00Z",
+  },
+];
+
+export const INITIAL_SYNC_JOBS: SyncScheduleJob[] = [
+  {
+    id: "job-sfdc-sync",
+    connectorId: "conn-sfdc",
+    name: "Hourly SFDC Account Reconciler",
+    direction: "BI_DIRECTIONAL",
+    scheduleCron: "0 * * * *",
+    conflictStrategy: "SOURCE_WINS",
+    batchSize: 500,
+    status: "ENABLED",
+    lastRunAt: "2026-03-20T14:00:00Z",
+    nextRunAt: "2026-03-20T15:00:00Z",
+  },
+  {
+    id: "job-shopify-stream",
+    connectorId: "conn-shopify",
+    name: "Continuous Shopify Order Ingestion",
+    direction: "ONE_WAY",
+    scheduleCron: "*/5 * * * *",
+    conflictStrategy: "SOURCE_WINS",
+    batchSize: 100,
+    status: "ENABLED",
+    lastRunAt: "2026-03-20T14:25:00Z",
+    nextRunAt: "2026-03-20T14:30:00Z",
+  },
+];

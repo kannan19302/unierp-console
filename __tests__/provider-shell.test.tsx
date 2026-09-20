@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import ControlPlaneShell from "../src/components/console-shell";
+import ControlPlaneShell from "../src/components/shell";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/ops/services", useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("@kannan19302/shared/auth-client/react", () => ({ useSession: () => ({ claims: null, signOut: vi.fn() }) }));
