@@ -1,0 +1,125 @@
+.filterBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.controlsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary, #9ca3af);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: var(--space-2, 8px) var(--space-3, 12px) var(--space-2, 8px) 34px;
+  font-size: var(--text-sm, 14px);
+  background-color: var(--surface-1-bg, #ffffff);
+  border: 1px solid var(--surface-1-border, #d1d5db);
+  border-radius: var(--radius-md, 6px);
+  color: var(--text-primary, #111827);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.dropdownFilters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.select {
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  font-size: var(--text-sm, 14px);
+  background-color: var(--surface-1-bg, #ffffff);
+  border: 1px solid var(--surface-1-border, #d1d5db);
+  border-radius: var(--radius-md, 6px);
+  color: var(--text-primary, #374151);
+  outline: none;
+  cursor: pointer;
+}
+
+.select:focus {
+  border-color: var(--color-primary, #2563eb);
+}
+
+.chipsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--text-xs, 12px);
+  color: var(--text-primary, #374151);
+}
+
+.chipLabel {
+  font-weight: var(--weight-medium, 500);
+}
+
+.chipValue {
+  color: var(--text-secondary, #6b7280);
+}
+
+.chipRemoveButton {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.chipRemoveButton:hover {
+  color: var(--color-danger, #dc2626);
+}
+
+.clearAllButton {
+  background: transparent;
+  border: none;
+  color: var(--color-primary, #2563eb);
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-medium, 500);
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.clearAllButton:hover {
+  text-decoration: underline;
+}

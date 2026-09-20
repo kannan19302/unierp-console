@@ -1,0 +1,194 @@
+.wrapper {
+  width: 100%;
+  background-color: var(--surface-1-bg, #ffffff);
+  border: 1px solid var(--surface-1-border, #e5e7eb);
+  border-radius: var(--radius-lg, 8px);
+  overflow: hidden;
+  box-shadow: var(--elevation-1, 0 1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  flex-direction: column;
+}
+
+.bulkToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  background-color: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  font-size: var(--text-sm, 14px);
+  color: #1e40af;
+  animation: slideDown 150ms ease;
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--text-sm, 14px);
+  color: var(--text-primary, #111827);
+}
+
+.th {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  background-color: var(--surface-2-bg, #f9fafb);
+  border-bottom: 1px solid var(--surface-1-border, #e5e7eb);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--text-secondary, #4b5563);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.th.sortable {
+  cursor: pointer;
+}
+
+.th.sortable:hover {
+  background-color: var(--surface-hover, #f3f4f6);
+  color: var(--text-primary, #111827);
+}
+
+.sortHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+}
+
+.sortIcon {
+  color: var(--text-tertiary, #9ca3af);
+  display: flex;
+  align-items: center;
+}
+
+.sortIcon.active {
+  color: var(--color-primary, #2563eb);
+}
+
+.td {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border-bottom: 1px solid var(--surface-1-border, #f3f4f6);
+  vertical-align: middle;
+}
+
+.tr {
+  transition: background-color 100ms ease;
+}
+
+.tr:hover {
+  background-color: var(--surface-hover, #f9fafb);
+}
+
+.tr.selected {
+  background-color: #eff6ff;
+}
+
+.checkboxTh,
+.checkboxTd {
+  width: 40px;
+  padding: var(--space-3, 12px);
+  text-align: center;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary, #2563eb);
+}
+
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  background-color: var(--surface-1-bg, #ffffff);
+  border-top: 1px solid var(--surface-1-border, #e5e7eb);
+  font-size: var(--text-sm, 14px);
+  color: var(--text-secondary, #6b7280);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.pageSizeSelect {
+  padding: 4px 8px;
+  font-size: var(--text-xs, 12px);
+  border: 1px solid var(--surface-1-border, #d1d5db);
+  border-radius: var(--radius-sm, 4px);
+  background-color: var(--surface-1-bg, #ffffff);
+  color: var(--text-primary, #374151);
+  outline: none;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--surface-1-border, #d1d5db);
+  border-radius: var(--radius-sm, 4px);
+  background-color: var(--surface-1-bg, #ffffff);
+  color: var(--text-primary, #374151);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.pageButton:hover:not(:disabled) {
+  background-color: var(--surface-hover, #f3f4f6);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  padding: var(--space-8, 32px) var(--space-4, 16px);
+  text-align: center;
+  color: var(--text-secondary, #6b7280);
+}
+
+.skeletonRow {
+  height: 48px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm, 4px);
+  margin: var(--space-2, 8px) var(--space-4, 16px);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

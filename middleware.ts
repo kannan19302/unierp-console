@@ -12,7 +12,23 @@ import { NextRequest, NextResponse } from "next/server";
  * Edge middleware keeps platform static assets and API paths out of the way.
  */
 export function middleware(_req: NextRequest) {
-  return NextResponse.next();
+  const res = NextResponse.next();
+
+  // Defense-in-depth security headers
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.headers.set(
+    "Strict-Transport-Security",
+    "max-age=63072000; includeSubDomains; preload"
+  );
+  res.headers.set(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; img-src 'self' data: https:; connect-src 'self' http://localhost:* ws://localhost:* https: wss:;"
+  );
+
+  return res;
 }
 
 export const config = {

@@ -4,6 +4,7 @@ import "@kannan19302/ui/styles";
 import "@kannan19302/ui/styles.css";
 import { ThemeProvider } from "@kannan19302/ui/theme";
 import { ToastProvider } from "@kannan19302/ui/notifications";
+import { ToastProvider as ProviderAdminToastProvider } from "@/components/ToastProvider";
 import { RootAuthProvider } from "@/components/AuthShell";
 import { ProviderThemeBoundary } from "@/components/provider-theme";
 
@@ -34,7 +35,9 @@ export default function RootLayout({
           <ProviderThemeBoundary />
           <RootAuthProvider>
             <ToastProvider>
-              {children}
+              <ProviderAdminToastProvider>
+                {children}
+              </ProviderAdminToastProvider>
             </ToastProvider>
           </RootAuthProvider>
         </ThemeProvider>

@@ -7,7 +7,7 @@ interface ConsoleSocketOptions {
 }
 
 export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
-  const { claims } = useSession();
+  const { claims, accessToken } = useSession();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
@@ -30,7 +30,7 @@ export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
 
     const newSocket = io(namespaceUrl, {
       auth: {
-        token: claims.sid,
+        token: accessToken || claims.sid,
       },
       transports: ["websocket"],
       reconnectionAttempts: 5,

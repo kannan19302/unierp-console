@@ -1,0 +1,45 @@
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 4px 8px;
+  background-color: var(--surface-2-bg, #f9fafb);
+  border: 1px solid var(--surface-1-border, #e5e7eb);
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--text-xs, 12px);
+  color: var(--text-secondary, #4b5563);
+  position: relative;
+  cursor: default;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: background-color 200ms ease;
+}
+
+.dot.connected {
+  background-color: var(--color-success, #16a34a);
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+.dot.disconnected {
+  background-color: var(--color-danger, #dc2626);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+.dot.connecting {
+  background-color: var(--color-warning, #d97706);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}

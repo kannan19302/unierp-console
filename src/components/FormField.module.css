@@ -1,0 +1,107 @@
+.fieldContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5, 6px);
+  margin-bottom: var(--space-4, 16px);
+  width: 100%;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--weight-medium, 500);
+  color: var(--text-primary, #111827);
+  user-select: none;
+}
+
+.requiredAsterisk {
+  color: var(--color-danger, #dc2626);
+  margin-left: var(--space-1, 4px);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  font-size: var(--text-sm, 14px);
+  font-family: var(--font-sans, inherit);
+  color: var(--text-primary, #111827);
+  background-color: var(--surface-1-bg, #ffffff);
+  border: 1px solid var(--surface-1-border, #d1d5db);
+  border-radius: var(--radius-md, 6px);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  box-sizing: border-box;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.input.hasError,
+.select.hasError,
+.textarea.hasError {
+  border-color: var(--color-danger, #dc2626);
+}
+
+.input.hasError:focus,
+.select.hasError:focus,
+.textarea.hasError:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  background-color: var(--surface-sunken-bg, #f3f4f6);
+  color: var(--text-tertiary, #9ca3af);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary, #2563eb);
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: var(--text-sm, 14px);
+  color: var(--text-primary, #111827);
+}
+
+.errorText {
+  font-size: var(--text-xs, 12px);
+  color: var(--color-danger, #dc2626);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.helpText {
+  font-size: var(--text-xs, 12px);
+  color: var(--text-secondary, #6b7280);
+}
