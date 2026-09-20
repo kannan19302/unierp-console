@@ -9,5 +9,6 @@ export { TopBar } from "./TopBar";
 export { Breadcrumbs } from "./Breadcrumbs";
 export { SkipToContent } from "./SkipToContent";
 export { UniversalSearch } from "./UniversalSearch";
+export { LocaleSwitcher } from "./LocaleSwitcher";
 export * from "./types";
 

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ChevronRight, Settings, LogOut } from "lucide-react";
+import { LocaleSwitcher } from "./LocaleSwitcher";
 import styles from "./shell.module.css";
 
 interface SidebarFooterProps {
@@ -32,6 +33,8 @@ export function SidebarFooter({
           <span>Settings</span>
         </div>
       </Link>
+
+      <LocaleSwitcher />
 
       <div className={styles.userFooterRow}>
         <a
