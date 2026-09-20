@@ -6,13 +6,15 @@
  * `/reporting/templates-deep/templates`). Every section renders honest
  * loading/error/empty states.
  */
-import { FileText, FolderOpen, LayoutTemplate, Package } from "lucide-react";
+import { FileText, FolderOpen, LayoutTemplate, Package, Mail } from "lucide-react";
+import Link from "next/link";
 import {
   Badge,
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
+  Button,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useList } from "@/lib/data";
@@ -68,6 +70,23 @@ export default function TemplatesSettingsPage() {
       description="Reporting templates available across the platform."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-bg-subtle, #f8fafc)", padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--color-border, #e2e8f0)", flexWrap: "wrap", gap: "10px" }}>
+          <div>
+            <span style={{ fontWeight: 600, fontSize: "var(--text-sm)", color: "var(--color-text-primary)" }}>
+              System Transactional Email Templates
+            </span>
+            <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+              Preview and configure authentication, email verification, welcome, and security email templates.
+            </p>
+          </div>
+          <Link href="/settings/templates/email" style={{ textDecoration: "none" }}>
+            <Button variant="outline" size="sm" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <Mail size={14} />
+              <span>Manage Email Templates &rarr;</span>
+            </Button>
+          </Link>
+        </div>
+
         <StatCardRow stats={stats} columns={4} />
 
         {templates.error ? (

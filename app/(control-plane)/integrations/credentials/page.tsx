@@ -1,42 +1,32 @@
 "use client";
+
 /**
  * Integrations → Credentials.
- * Platform-level integration credential providers. This tab requires the
- * `system.security.admin` permission: without it only a note is shown, never
- * any credential data.
+ * Platform-level integration credential providers and email routing console.
+ * Requires `system.security.admin` or `admin.setting.read` to view,
+ * and `admin.setting.update` or `system.security.admin` to edit.
  */
-import { KeyRound, EyeOff } from "lucide-react";
+import { KeyRound, EyeOff, Sliders } from "lucide-react";
 import {
   Card,
   EmptyState,
   Spinner,
   StatCardRow,
-  Badge,
   usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
 import { useList } from "@/lib/data";
 import DomainShell from "@/components/domain-shell";
-
-interface CredentialField {
-  key?: string;
-  label?: string;
-  value?: string;
-  isSet?: boolean;
-  sensitive?: boolean;
-}
-
-interface CredentialProvider {
-  provider: string;
-  label?: string;
-  fields?: CredentialField[];
-}
+import { CredentialEditCard, type CredentialProvider } from "./credential-edit-card";
+import { EmailProviderSelector } from "./email-provider-selector";
 
 export default function IntegrationsCredentials() {
-  const allowed = usePermission("system.security.admin");
+  const allowedView = usePermission("system.security.admin");
+  const canEdit = usePermission("admin.setting.update") || allowedView;
+
   const credentials = useList<CredentialProvider>({
     path: "/admin/platform-credentials",
-    disabled: !allowed,
+    disabled: !allowedView,
   });
 
   const setFields = credentials.data.reduce((acc, p) => {
@@ -44,11 +34,12 @@ export default function IntegrationsCredentials() {
   }, 0);
 
   const stats: StatCardItem[] = [
-    { label: "Providers", value: credentials.data.length, icon: <KeyRound size={18} /> },
-    { label: "Configured fields", value: setFields, icon: <EyeOff size={18} /> },
+    { label: "Credential Providers", value: credentials.data.length, icon: <KeyRound size={18} /> },
+    { label: "Configured Secrets & Keys", value: setFields, icon: <EyeOff size={18} /> },
+    { label: "Delivery Channels", value: "Multi-Cloud Active", icon: <Sliders size={18} /> },
   ];
 
-  if (!allowed) {
+  if (!allowedView) {
     return (
       <DomainShell
         domainId="integrations"
@@ -92,44 +83,58 @@ export default function IntegrationsCredentials() {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <div>
-          <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 700, margin: 0 }}>Credentials</h2>
+          <h2 style={{ fontSize: "var(--text-xl)", fontWeight: 700, margin: 0 }}>
+            Platform Credentials & Outbound Integrations
+          </h2>
           <p style={{ color: "var(--color-text-secondary)", margin: "var(--space-1) 0 0" }}>
-            Platform credential providers. Values are masked on this endpoint.
+            Configure and manage production API credentials, email delivery providers, payment gateways, and sovereign cloud keys.
           </p>
         </div>
 
-        <StatCardRow stats={stats} columns={2} />
+        <StatCardRow stats={stats} columns={3} />
 
-        {credentials.error ? (
-          <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>{credentials.error.message}</p>
-        ) : credentials.data.length === 0 ? (
-          <EmptyState title="No credential providers" description="The platform credentials endpoint returned no providers." />
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-4)" }}>
-            {credentials.data.map((p) => (
-              <Card key={p.provider} padding="md">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-                    {p.label ?? p.provider}
-                  </h3>
-                  <Badge variant={(p.fields ?? []).some((f) => f.isSet) ? "success" : "warning"}>
-                    {(p.fields ?? []).some((f) => f.isSet) ? "Set" : "Unset"}
-                  </Badge>
-                </div>
-                <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-                  {(p.fields ?? []).map((f) => (
-                    <li key={f.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
-                      <span style={{ fontSize: "var(--text-sm)" }}>{f.label ?? f.key}</span>
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                        {f.value ? f.value : f.isSet ? "••••••••" : "—"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            ))}
-          </div>
-        )}
+        {/* Dedicated Email Provider Selection & Test Console */}
+        <EmailProviderSelector
+          providers={credentials.data}
+          canEdit={canEdit}
+          onUpdated={() => credentials.reload()}
+        />
+
+        <div>
+          <h3 style={{ fontSize: "var(--text-base)", fontWeight: 700, margin: "0 0 var(--space-3) 0" }}>
+            Integration Providers & Secrets
+          </h3>
+
+          {credentials.error ? (
+            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>
+              {credentials.error.message}
+            </p>
+          ) : credentials.data.length === 0 ? (
+            <EmptyState
+              title="No credential providers"
+              description="The platform credentials endpoint returned no providers."
+            />
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: "var(--space-4)",
+              }}
+            >
+              {credentials.data
+                .filter((p) => p.provider !== "email-config")
+                .map((p) => (
+                  <CredentialEditCard
+                    key={p.provider}
+                    provider={p}
+                    canEdit={canEdit}
+                    onSaved={() => credentials.reload()}
+                  />
+                ))}
+            </div>
+          )}
+        </div>
       </div>
     </DomainShell>
   );
