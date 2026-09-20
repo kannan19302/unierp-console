@@ -17,11 +17,11 @@ import {
 import {
   StatCardRow,
   type StatCardItem,
-  EmptyState,
-  LoadingState,
   ForbiddenState,
   usePermission,
 } from "@kannan19302/ui";
+import { DomainSkeleton } from "@/components/data-display";
+import { EmptyStateIllustration } from "@/components/feedback";
 import PrivilegedCommandModal from "./PrivilegedCommandModal";
 import styles from "./AppSkeletonView.module.css";
 
@@ -97,7 +97,7 @@ export default function AppSkeletonView<T extends Record<string, any>>({
   if (loading) {
     return (
       <div className={styles.container}>
-        <LoadingState message={`Loading ${title} telemetry…`} />
+        <DomainSkeleton variant="table" />
       </div>
     );
   }
@@ -175,7 +175,11 @@ export default function AppSkeletonView<T extends Record<string, any>>({
       {/* Data Table */}
       <div className={styles.tableWrapper}>
         {filteredItems.length === 0 ? (
-          <EmptyState title={emptyTitle} description={emptyDescription} />
+          <EmptyStateIllustration
+            type="no-data"
+            title={emptyTitle}
+            description={emptyDescription}
+          />
         ) : (
           <div className={styles.tableContainer}>
             <table className={styles.table}>
