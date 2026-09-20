@@ -1,50 +1,56 @@
 "use client";
 /**
- * Security & Compliance → Controls.
+ * Security & Compliance → Compliance Control Catalogue.
  *
- * The M38 control catalogue: every control mapped to its frameworks,
- * its LATEST monitoring status, and the ability to run monitoring or
- * export evidence artefacts generated from the real audit spine. A
- * control failing here is failing in the console before it is
- * failing in an audit.
+ * Continuous monitoring of individual compliance controls across frameworks,
+ * automated spine evaluation, custom control lifecycle management, and evidence export.
  */
-import { useMemo, useState } from "react";
-import { Activity, ClipboardCheck, Download, RefreshCw, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  ClipboardCheck,
+  ShieldCheck,
+  ShieldAlert,
+  Activity,
+  Plus,
+  Zap,
+  Download,
+  Edit2,
+  Trash2,
+  Play,
+  ArrowLeft,
+} from "lucide-react";
+import Link from "next/link";
 import {
   Badge,
   Button,
   Card,
   EmptyState,
+  FormField,
+  Input,
   Modal,
   Spinner,
   StatCardRow,
+  usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
+import { useToast } from "@/lib/use-toast";
 import { useList } from "@/lib/data";
 import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
+import { PaginatedTable, type ColumnDef } from "@/components/PaginatedTable";
+import { FilterBar } from "@/components/FilterBar";
+import { CrudDrawer } from "@/components/CrudDrawer";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import {
+  type ComplianceControl,
+  createControlSchema,
+  createControlFieldDefs,
+  editControlSchema,
+  editControlFieldDefs,
+  controlFilterConfigs,
+} from "@/lib/compliance-schema";
 
-interface ComplianceControl {
-  code: string;
-  frameworks?: string;
-  title?: string;
-  description?: string;
-  status?: "PASS" | "FAIL" | null;
-  observed?: number;
-  finding?: string | null;
-  evaluatedAt?: string | null;
-}
-
-interface ExportedEvidence {
-  id?: string;
-  controlCode?: string;
-  auditorQuestion?: string;
-  generatedAt?: string;
-  generatedBy?: string;
-  recordCount?: number;
-}
-
-function statusVariant(status: ComplianceControl["status"]) {
+function statusVariant(status: ComplianceControl["status"]): "success" | "danger" | "default" {
   if (status === "PASS") return "success";
   if (status === "FAIL") return "danger";
   return "default";
@@ -56,180 +62,440 @@ function statusLabel(status: ComplianceControl["status"]) {
   return "NOT RUN";
 }
 
-export default function SecurityComplianceControls() {
+export default function SecurityComplianceControlsPage() {
+  const toast = useToast();
+  const canManage = usePermission("system.compliance.manage");
+
   const controls = useList<ComplianceControl>({
     path: "/platform/v1/compliance-controls",
   });
-  const [monitoring, setMonitoring] = useState(false);
-  const [monitorMessage, setMonitorMessage] = useState<string | null>(null);
-  const [evidenceFor, setEvidenceFor] = useState<ComplianceControl | null>(null);
-  const [question, setQuestion] = useState("");
-  const [exporting, setExporting] = useState(false);
-  const [exportResult, setExportResult] = useState<ExportedEvidence | null>(null);
 
+  const [monitoring, setMonitoring] = useState(false);
+  const [evaluatingCode, setEvaluatingCode] = useState<string | null>(null);
+
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+
+  // CRUD Drawer states
+  const [drawerMode, setDrawerMode] = useState<"create" | "edit" | null>(null);
+  const [selectedControl, setSelectedControl] = useState<ComplianceControl | null>(null);
+
+  // Delete Confirm Dialog
+  const [deleteTarget, setDeleteTarget] = useState<ComplianceControl | null>(null);
+
+  // Evidence Export Modal state
+  const [exportTarget, setExportTarget] = useState<ComplianceControl | null>(null);
+  const [auditorQuestion, setAuditorQuestion] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  // Stats calculation
   const passing = controls.data.filter((c) => c.status === "PASS").length;
   const failing = controls.data.filter((c) => c.status === "FAIL").length;
   const notRun = controls.data.filter((c) => c.status !== "PASS" && c.status !== "FAIL").length;
 
   const stats: StatCardItem[] = [
-    { label: "Controls", value: controls.data.length, icon: <ClipboardCheck size={18} /> },
-    { label: "Passing", value: passing, icon: <ShieldCheck size={18} /> },
-    { label: "Failing", value: failing, icon: <ShieldAlert size={18} /> },
-    { label: "Not run", value: notRun, icon: <Activity size={18} /> },
+    { label: "Total Controls", value: controls.data.length, icon: <ClipboardCheck size={18} /> },
+    { label: "Passing (Compliant)", value: passing, icon: <ShieldCheck size={18} /> },
+    { label: "Failing (Non-Compliant)", value: failing, icon: <ShieldAlert size={18} /> },
+    { label: "Not Evaluated", value: notRun, icon: <Activity size={18} /> },
   ];
 
-  async function runMonitoring() {
+  // Run all controls monitoring
+  const handleRunMonitoring = async () => {
     setMonitoring(true);
-    setMonitorMessage(null);
     try {
       await api.post("/platform/v1/compliance-controls/monitor");
-      controls.reload();
-      setMonitorMessage("Monitoring pass complete. Status reflects the real audit spine.");
-    } catch (e) {
-      setMonitorMessage((e as Error).message);
+      await controls.reload();
+      toast.success("Continuous monitoring completed over all active controls.", "Monitoring Pass Complete");
+    } catch {
+      toast.error("Could not run continuous compliance monitoring.", "Monitoring Failed");
     } finally {
       setMonitoring(false);
     }
-  }
+  };
 
-  async function exportEvidence() {
-    if (!evidenceFor) return;
-    setExporting(true);
-    setExportResult(null);
+  // Evaluate single control
+  const handleEvaluateSingle = async (code: string) => {
+    setEvaluatingCode(code);
     try {
-      const resp = await api.post<ExportedEvidence>(`/platform/v1/compliance-controls/${evidenceFor.code}/evidence`, {
-        auditorQuestion: question,
+      const resp = await api.post<ComplianceControl>(`/platform/v1/compliance-controls/${code}/evaluate`);
+      await controls.reload();
+      if (resp.data?.status === "PASS") {
+        toast.success(`Control ${code} PASSED with ${resp.data.observed ?? 0} spine records.`, "Evaluation Passed");
+      } else {
+        toast.error(`Control ${code} FAILED: ${resp.data?.finding ?? "Missing required records."}`, "Evaluation Failed");
+      }
+    } catch {
+      toast.error(`Failed to evaluate control ${code}.`, "Evaluation Error");
+    } finally {
+      setEvaluatingCode(null);
+    }
+  };
+
+  // Export evidence
+  const handleExportEvidence = async () => {
+    if (!exportTarget || !auditorQuestion.trim()) return;
+    setExporting(true);
+    try {
+      await api.post(`/platform/v1/compliance-controls/${exportTarget.code}/evidence`, {
+        auditorQuestion: auditorQuestion.trim(),
       });
-      setExportResult(resp.data);
-    } catch (e) {
-      setExportResult({ auditorQuestion: (e as Error).message });
+      toast.success(`Cryptographic evidence generated for ${exportTarget.code}.`, "Evidence Generated");
+      setExportTarget(null);
+      setAuditorQuestion("");
+    } catch {
+      toast.error("Failed to generate compliance evidence bundle.", "Export Failed");
     } finally {
       setExporting(false);
     }
-  }
+  };
 
-  const failingControls = useMemo(() => controls.data.filter((c) => c.status === "FAIL"), [controls.data]);
+  // Create control submit
+  const handleCreateSubmit = async (data: Record<string, unknown>) => {
+    try {
+      await api.post("/platform/v1/compliance-controls", data);
+      toast.success(`Control ${String(data.code)} registered successfully.`, "Control Created");
+      setDrawerMode(null);
+      await controls.reload();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to register control";
+      toast.error(msg, "Creation Failed");
+      throw err;
+    }
+  };
+
+  // Edit control submit
+  const handleEditSubmit = async (data: Record<string, unknown>) => {
+    if (!selectedControl) return;
+    try {
+      await api.patch(`/platform/v1/compliance-controls/${selectedControl.code}`, data);
+      toast.success(`Control ${selectedControl.code} updated successfully.`, "Control Updated");
+      setDrawerMode(null);
+      setSelectedControl(null);
+      await controls.reload();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update control";
+      toast.error(msg, "Update Failed");
+      throw err;
+    }
+  };
+
+  // Delete control submit
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      await api.del(`/platform/v1/compliance-controls/${deleteTarget.code}`);
+      toast.success(`Custom control ${deleteTarget.code} removed.`, "Control Deleted");
+      setDeleteTarget(null);
+      await controls.reload();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Cannot delete control";
+      toast.error(msg, "Deletion Failed");
+    }
+  };
+
+  // Filter & search controls
+  const filteredControls = useMemo(() => {
+    return controls.data.filter((c) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesQ =
+          c.code.toLowerCase().includes(q) ||
+          c.title?.toLowerCase().includes(q) ||
+          c.description?.toLowerCase().includes(q) ||
+          c.frameworks?.toLowerCase().includes(q);
+        if (!matchesQ) return false;
+      }
+      if (activeFilters.status) {
+        if (activeFilters.status === "NOT_RUN") {
+          if (c.status === "PASS" || c.status === "FAIL") return false;
+        } else if (c.status !== activeFilters.status) {
+          return false;
+        }
+      }
+      if (activeFilters.framework) {
+        if (!c.frameworks?.toUpperCase().includes(activeFilters.framework.toUpperCase())) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [controls.data, searchQuery, activeFilters]);
+
+  const columns: ColumnDef<ComplianceControl>[] = [
+    {
+      key: "code",
+      label: "Control Code",
+      render: (_, row) => (
+        <span style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{row.code}</span>
+      ),
+    },
+    {
+      key: "title",
+      label: "Control Objective & Procedure",
+      render: (_, row) => (
+        <div style={{ maxWidth: "22rem" }}>
+          <div style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>{row.title}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginTop: "var(--space-0-5)" }}>
+            {row.description}
+          </div>
+          {row.finding && (
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "var(--space-1)", fontWeight: 500 }}>
+              Finding: {row.finding}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "frameworks",
+      label: "Framework Mappings",
+      render: (_, row) => (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)", maxWidth: "12rem" }}>
+          {row.frameworks?.split(",").map((f: string) => (
+            <Badge key={f} variant="default">
+              {f.trim()}
+            </Badge>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (_, row) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-0-5)" }}>
+          <Badge variant={statusVariant(row.status)}>{statusLabel(row.status)}</Badge>
+          {row.observed != null && (
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+              {row.observed} spine record(s)
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (_, row) => {
+        const isBuiltin = ["AUDIT-COMPLETE", "APPROVAL-TWO-PERSON", "SEPARATION-OF-DUTIES", "IMMUTABLE-LEDGER"].includes(row.code);
+        const isEvaluating = evaluatingCode === row.code;
+
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEvaluateSingle(row.code)}
+              disabled={isEvaluating || !canManage}
+              title="Evaluate this control against audit spine"
+            >
+              <Play size={13} className={isEvaluating ? "animate-spin" : ""} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setExportTarget(row);
+                setAuditorQuestion(`Provide audit spine records for ${row.code}`);
+              }}
+              title="Export Cryptographic Evidence"
+            >
+              <Download size={13} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedControl(row);
+                setDrawerMode("edit");
+              }}
+              disabled={!canManage}
+              title="Edit Control"
+            >
+              <Edit2 size={13} />
+            </Button>
+            {!isBuiltin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeleteTarget(row)}
+                disabled={!canManage}
+                title="Delete Custom Control"
+              >
+                <Trash2 size={13} style={{ color: "var(--color-danger)" }} />
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
 
   if (controls.loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-        <Spinner size="lg" />
-      </div>
+      <DomainShell domainId="security" title="Compliance Controls">
+        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
+          <Spinner size="lg" />
+        </div>
+      </DomainShell>
     );
   }
 
   return (
     <DomainShell
       domainId="security"
-      title="Compliance controls"
-      description="Continuous control monitoring over the M14 audit spine, with evidence exported from real audit records."
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button onClick={runMonitoring} disabled={monitoring}>
-            <RefreshCw size={16} /> {monitoring ? "Running…" : "Run monitoring"}
+      title="Compliance Control Catalogue"
+      description="Continuous compliance verification over the audit spine. Failing controls are caught before an audit."
+      actions={
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+          <Link href="/security/compliance" style={{ textDecoration: "none" }}>
+            <Button variant="outline" size="sm">
+              <ArrowLeft size={14} /> Back to Overview
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRunMonitoring}
+            disabled={monitoring || !canManage}
+          >
+            <Zap size={14} className={monitoring ? "animate-spin" : ""} />
+            {monitoring ? "Evaluating All…" : "Run Monitoring"}
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setDrawerMode("create")}
+            disabled={!canManage}
+          >
+            <Plus size={14} /> Register Control
           </Button>
         </div>
-        {monitorMessage && (
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", margin: 0 }}>{monitorMessage}</p>
-        )}
-
+      }
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", padding: "var(--space-4)" }}>
         <StatCardRow stats={stats} columns={4} />
 
         {failing > 0 && (
           <Card padding="md">
             <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-danger)" }}>
-              <ShieldAlert size={16} /> {failing} failing control{failing > 1 ? "s" : ""} — failing here before an audit
+              <ShieldAlert size={16} /> {failing} Failing Control(s) Detected
             </h3>
-            <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              {failingControls.map((c) => (
-                <li key={c.code} style={{ fontSize: "var(--text-sm)" }}>
-                  <strong>{c.code}</strong> — {c.finding ?? c.title}
-                </li>
-              ))}
-            </ul>
+            <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+              These controls failed continuous monitoring against the real audit spine and require remediation before external certification.
+            </p>
           </Card>
         )}
 
-        <Card padding="md">
-          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-            <ClipboardCheck size={16} /> Control catalogue
-          </h3>
-          {controls.error ? (
-            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
-              {controls.error.message}
-            </p>
-          ) : controls.data.length === 0 ? (
-            <div style={{ margin: "var(--space-3) 0 0" }}>
-              <EmptyState title="No controls" description="The compliance endpoint returned no controls." />
-            </div>
-          ) : (
-            <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-              {controls.data.map((c) => (
-                <li key={c.code} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-3) 0", borderBottom: "1px solid var(--color-border)" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                      <span style={{ fontWeight: 600 }}>{c.code}</span>
-                      <Badge variant={statusVariant(c.status)}>{statusLabel(c.status)}</Badge>
-                    </div>
-                    <div style={{ fontWeight: 500, marginTop: "var(--space-1)" }}>{c.title}</div>
-                    <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>{c.description}</div>
-                    {c.finding && (
-                      <div style={{ fontSize: "var(--text-sm)", color: "var(--color-danger)", marginTop: "var(--space-1)" }}>{c.finding}</div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-2)" }}>
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                      {c.frameworks}
-                    </span>
-                    <Button size="sm" onClick={() => { setEvidenceFor(c); setQuestion(""); setExportResult(null); }}>
-                      <Download size={14} /> Export evidence
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        <FilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search controls by code, title, framework..."
+          filters={controlFilterConfigs}
+          activeFilters={activeFilters}
+          onFilterChange={(k, v) => setActiveFilters((prev) => ({ ...prev, [k]: v }))}
+          onClearAll={() => {
+            setActiveFilters({});
+            setSearchQuery("");
+          }}
+        />
+
+        {controls.error ? (
+          <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
+            {controls.error.message}
+          </p>
+        ) : controls.data.length === 0 ? (
+          <EmptyState
+            title="No Compliance Controls Found"
+            description="No controls have been registered in the platform compliance catalogue."
+          />
+        ) : (
+          <PaginatedTable
+            data={filteredControls}
+            columns={columns}
+            emptyMessage="No compliance controls match the selected filters."
+            keyField="code"
+          />
+        )}
       </div>
 
-      {evidenceFor && (
-        <Modal open onClose={() => setEvidenceFor(null)} title={`Export evidence — ${evidenceFor.code}`}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", margin: 0 }}>
-              The artefact is generated from the real audit spine records matching this control — no manual assembly step.
+      {/* Register Control Drawer */}
+      <CrudDrawer
+        open={drawerMode === "create"}
+        mode="create"
+        title="Register Compliance Control"
+        schema={createControlSchema}
+        fields={createControlFieldDefs}
+        onSubmit={handleCreateSubmit}
+        onClose={() => setDrawerMode(null)}
+      />
+
+      {/* Edit Control Drawer */}
+      <CrudDrawer
+        open={drawerMode === "edit"}
+        mode="edit"
+        title={`Edit Control: ${selectedControl?.code}`}
+        schema={editControlSchema}
+        fields={editControlFieldDefs}
+        initialData={
+          selectedControl
+            ? {
+                title: selectedControl.title,
+                frameworks: selectedControl.frameworks,
+                description: selectedControl.description,
+              }
+            : undefined
+        }
+        onSubmit={handleEditSubmit}
+        onClose={() => {
+          setDrawerMode(null);
+          setSelectedControl(null);
+        }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={`Delete Control ${deleteTarget?.code}`}
+        message={`Are you sure you want to delete custom control "${deleteTarget?.title}"? This action will remove continuous evaluation for this rule.`}
+        confirmLabel="Delete Control"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* Evidence Export Modal */}
+      {exportTarget && (
+        <Modal
+          open
+          onClose={() => setExportTarget(null)}
+          title={`Export Evidence: ${exportTarget.code}`}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
+              Extract verifiable audit records matching control <strong>{exportTarget.code}</strong> with SHA-256 integrity hashing.
             </p>
-            <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", fontSize: "var(--text-sm)" }}>
-              Auditor&apos;s question
-              <input
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="e.g. Show every provider operation recorded last quarter"
-                style={{ padding: "var(--space-2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)" }}
+            <FormField label="Auditor Inquiry / Question" required>
+              <Input
+                value={auditorQuestion}
+                onChange={(e) => setAuditorQuestion(e.target.value)}
+                placeholder="e.g. Provide evidence of two-person control approvals"
               />
-            </label>
-            <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-              <Button variant="ghost" onClick={() => setEvidenceFor(null)}>Cancel</Button>
-              <Button onClick={exportEvidence} disabled={exporting || !question.trim()}>
-                {exporting ? "Generating…" : "Export"}
+            </FormField>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+              <Button variant="outline" onClick={() => setExportTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleExportEvidence}
+                disabled={exporting || !auditorQuestion.trim()}
+              >
+                {exporting ? "Generating Artefact…" : "Generate Evidence"}
               </Button>
             </div>
-            {exportResult && (
-              <Card padding="sm">
-                <div style={{ fontSize: "var(--text-sm)" }}>
-                  {exportResult.id ? (
-                    <>
-                      <div><strong>Artefact generated:</strong> {exportResult.auditorQuestion}</div>
-                      <div style={{ color: "var(--color-text-secondary)" }}>
-                        {exportResult.recordCount} record(s) from the audit spine · by {exportResult.generatedBy} · {exportResult.generatedAt}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ color: "var(--color-danger)" }}>{exportResult.auditorQuestion}</div>
-                  )}
-                </div>
-              </Card>
-            )}
           </div>
         </Modal>
       )}

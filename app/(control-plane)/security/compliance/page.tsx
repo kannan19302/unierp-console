@@ -1,12 +1,23 @@
 "use client";
 /**
- * Security & Compliance → Compliance.
+ * Security & Compliance → Compliance Posture & Evidence Vault.
  *
- * Compliance posture from the enterprise-scale compliance endpoints: framework
- * coverage, isolation policies and enforcement state. Real reads only.
+ * Real continuous compliance posture computed across SOC 2, ISO 27001, GDPR,
+ * HIPAA, and PCI-DSS, with cryptographic evidence artefacts generated directly
+ * from the immutable audit spine.
  */
-import { useState } from "react";
-import { BookCheck, Download, Lock, RefreshCw, Scale, ShieldCheck, Zap } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Scale,
+  ShieldCheck,
+  ShieldAlert,
+  Download,
+  FileCheck,
+  Zap,
+  Eye,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
 import {
   Badge,
   Button,
@@ -17,33 +28,23 @@ import {
   Modal,
   Spinner,
   StatCardRow,
-  useToast,
   usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
+import { useToast } from "@/lib/use-toast";
 import { useList } from "@/lib/data";
 import { api } from "@/lib/api";
 import DomainShell from "@/components/domain-shell";
+import { PaginatedTable, type ColumnDef } from "@/components/PaginatedTable";
+import { FilterBar } from "@/components/FilterBar";
+import {
+  type ComplianceFramework,
+  type ExportedEvidence,
+  evidenceFilterConfigs,
+} from "@/lib/compliance-schema";
+import styles from "./compliance.module.css";
 
-interface ComplianceFramework {
-  id: string;
-  name?: string;
-  version?: string;
-  coveragePct?: number;
-  status?: string;
-  controls?: number;
-  controlsPassed?: number;
-}
-
-interface IsolationPolicy {
-  id?: string;
-  name?: string;
-  description?: string;
-  enforcement?: string;
-  isActive?: boolean;
-}
-
-function statusVariant(status: string | undefined) {
+function statusVariant(status: string | undefined): "success" | "warning" | "danger" | "default" {
   const s = (status ?? "").toUpperCase();
   if (s === "COMPLIANT" || s === "PASS" || s === "HEALTHY") return "success";
   if (s === "PARTIAL" || s === "REVIEW" || s === "IN_PROGRESS") return "warning";
@@ -51,64 +52,175 @@ function statusVariant(status: string | undefined) {
   return "default";
 }
 
-export default function SecurityCompliance() {
+function progressClass(pct: number) {
+  if (pct >= 80) return styles.progressSuccess;
+  if (pct >= 50) return styles.progressWarning;
+  return styles.progressDanger;
+}
+
+export default function SecurityCompliancePage() {
   const toast = useToast();
   const canManage = usePermission("system.compliance.manage");
 
+  const [activeTab, setActiveTab] = useState<"frameworks" | "evidence">("frameworks");
+  const [runningMonitoring, setRunningMonitoring] = useState(false);
+
+  // Evidence Export Modal state
+  const [exportOpen, setExportOpen] = useState(false);
+  const [controlCode, setControlCode] = useState("AUDIT-COMPLETE");
+  const [auditorQuestion, setAuditorQuestion] = useState("Provide real audit spine records proving operator immutability.");
+  const [exporting, setExporting] = useState(false);
+
+  // Evidence Inspection Modal state
+  const [inspectEvidence, setInspectEvidence] = useState<ExportedEvidence | null>(null);
+
+  // Filter & Search states for Evidence Vault
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+
+  // Frameworks list from backend
   const frameworks = useList<ComplianceFramework>({
-    path: "/platform/v1/enterprise-scale/compliance-frameworks",
-  });
-  const isolation = useList<IsolationPolicy>({
-    path: "/platform/v1/enterprise-scale/isolation-policies",
+    path: "/platform/v1/compliance-controls/frameworks",
   });
 
-  const [runningMonitoring, setRunningMonitoring] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
-  const [controlCode, setControlCode] = useState("AC-1");
-  const [auditorQuestion, setAuditorQuestion] = useState("Provide SOC2 Type II access review evidence.");
-  const [exporting, setExporting] = useState(false);
+  // Evidence artefacts from backend
+  const evidenceList = useList<ExportedEvidence>({
+    path: "/platform/v1/compliance-controls/evidence",
+  });
 
   const handleRunMonitoring = async () => {
     setRunningMonitoring(true);
     try {
       await api.post("/platform/v1/compliance-controls/monitor");
       await frameworks.reload();
-      toast.success("Continuous Monitoring Ran", "Evaluated all compliance controls against the audit spine.");
+      await evidenceList.reload();
+      toast.success("Continuous monitoring completed against the audit spine.", "Monitoring Run Complete");
     } catch {
-      toast.error("Monitoring Run Failed", "Could not trigger continuous compliance monitoring.");
+      toast.error("Could not trigger continuous compliance monitoring.", "Monitoring Run Failed");
     } finally {
       setRunningMonitoring(false);
     }
   };
 
   const handleExportEvidence = async () => {
+    if (!controlCode.trim() || !auditorQuestion.trim()) return;
     setExporting(true);
     try {
-      await api.post(`/platform/v1/compliance-controls/${controlCode}/evidence`, {
-        auditorQuestion,
-      });
-      toast.success("Evidence Exported", `Audit evidence generated for control ${controlCode}.`);
+      const resp = await api.post<ExportedEvidence>(
+        `/platform/v1/compliance-controls/${controlCode.trim().toUpperCase()}/evidence`,
+        { auditorQuestion: auditorQuestion.trim() }
+      );
+      toast.success(
+        `Generated cryptographically verifiable bundle with ${resp.data?.recordCount ?? 0} record(s).`,
+        "Evidence Exported"
+      );
       setExportOpen(false);
+      await evidenceList.reload();
+      await frameworks.reload();
     } catch {
-      toast.error("Export Failed", "Could not generate audit evidence bundle.");
+      toast.error("Failed to generate audit evidence artefact.", "Export Failed");
     } finally {
       setExporting(false);
     }
   };
 
-  const covered = frameworks.data.filter((f) => ((f.coveragePct ?? 0) >= 100) || f.status === "COMPLIANT");
-  const enforcedPoly = isolation.data.filter((p) => p.isActive).length;
+  // Filtered evidence items
+  const filteredEvidence = useMemo(() => {
+    return evidenceList.data.filter((ev) => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesQ =
+          ev.controlCode?.toLowerCase().includes(q) ||
+          ev.auditorQuestion?.toLowerCase().includes(q) ||
+          ev.generatedBy?.toLowerCase().includes(q) ||
+          ev.contentHash?.toLowerCase().includes(q);
+        if (!matchesQ) return false;
+      }
+      if (activeFilters.controlCode && ev.controlCode !== activeFilters.controlCode) {
+        return false;
+      }
+      return true;
+    });
+  }, [evidenceList.data, searchQuery, activeFilters]);
 
-  const stats = [
-    { label: "Frameworks", value: frameworks.data.length, icon: <Scale size={18} /> },
-    { label: "Fully covered", value: covered.length, icon: <ShieldCheck size={18} /> },
-    { label: "Isolation policies", value: isolation.data.length, icon: <Lock size={18} /> },
-    { label: "Enforced", value: enforcedPoly, icon: <ShieldCheck size={18} /> },
-  ] as StatCardItem[];
+  // Statistics calculation
+  const totalFrameworks = frameworks.data.length;
+  const compliantCount = frameworks.data.filter((f) => f.status === "COMPLIANT" || f.coveragePct === 100).length;
+  const totalControls = frameworks.data.reduce((acc, f) => acc + (f.controls ?? 0), 0);
+  const evidenceCount = evidenceList.data.length;
 
-  if (frameworks.loading || isolation.loading) {
+  const stats: StatCardItem[] = [
+    { label: "Active Frameworks", value: totalFrameworks, icon: <Scale size={18} /> },
+    { label: "Fully Compliant", value: compliantCount, icon: <ShieldCheck size={18} /> },
+    { label: "Mapped Controls", value: totalControls, icon: <FileCheck size={18} /> },
+    { label: "Evidence Artefacts", value: evidenceCount, icon: <Download size={18} /> },
+  ];
+
+  const evidenceColumns: ColumnDef<ExportedEvidence>[] = [
+    {
+      key: "controlCode",
+      label: "Control Code",
+      render: (_, row) => (
+        <span style={{ fontWeight: 600, color: "var(--color-primary)" }}>{row.controlCode}</span>
+      ),
+    },
+    {
+      key: "auditorQuestion",
+      label: "Auditor Inquiry / Scope",
+      render: (_, row) => (
+        <div style={{ maxWidth: "24rem" }}>
+          <div style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>{row.auditorQuestion}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+            Generated by {row.generatedBy}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "contentHash",
+      label: "Cryptographic SHA-256",
+      render: (_, row) => (
+        <code className={styles.hashBadge} title={row.contentHash}>
+          {row.contentHash ? `${row.contentHash.substring(0, 16)}…` : "N/A"}
+        </code>
+      ),
+    },
+    {
+      key: "recordCount",
+      label: "Spine Records",
+      render: (_, row) => (
+        <Badge variant={row.recordCount > 0 ? "success" : "warning"}>
+          {row.recordCount} records
+        </Badge>
+      ),
+    },
+    {
+      key: "generatedAt",
+      label: "Generated Date",
+      render: (_, row) => (
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+          {row.generatedAt ? new Date(row.generatedAt).toLocaleString() : "Unknown"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Action",
+      render: (_, row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setInspectEvidence(row)}
+        >
+          <Eye size={14} /> Inspect
+        </Button>
+      ),
+    },
+  ];
+
+  if (frameworks.loading || evidenceList.loading) {
     return (
-      <DomainShell domainId="security" title="Compliance">
+      <DomainShell domainId="security" title="Compliance Posture">
         <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
           <Spinner size="lg" />
         </div>
@@ -119,10 +231,15 @@ export default function SecurityCompliance() {
   return (
     <DomainShell
       domainId="security"
-      title="Compliance"
-      description="Compliance posture, frameworks and isolation enforcement."
+      title="Compliance & Audit Posture"
+      description="Continuous compliance verification over the immutable audit spine with cryptographic evidence export."
       actions={
-        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+        <div className={styles.headerActions}>
+          <Link href="/security/compliance/controls" style={{ textDecoration: "none" }}>
+            <Button variant="outline" size="sm">
+              <ExternalLink size={14} /> Control Catalogue
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -130,7 +247,7 @@ export default function SecurityCompliance() {
             disabled={runningMonitoring || !canManage}
           >
             <Zap size={14} className={runningMonitoring ? "animate-spin" : ""} />
-            {runningMonitoring ? "Evaluating..." : "Run Monitoring"}
+            {runningMonitoring ? "Evaluating Spine…" : "Run Monitoring"}
           </Button>
           <Button
             variant="primary"
@@ -138,108 +255,130 @@ export default function SecurityCompliance() {
             onClick={() => setExportOpen(true)}
             disabled={!canManage}
           >
-            <Download size={14} />
-            Export Evidence
+            <Download size={14} /> Export Evidence
           </Button>
         </div>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className={styles.container}>
         <StatCardRow stats={stats} columns={4} />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
-          <Card padding="md">
-            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-              <Scale size={16} /> Frameworks
-            </h3>
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            data-testid="tab-frameworks"
+            className={`${styles.tabButton} ${activeTab === "frameworks" ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab("frameworks")}
+          >
+            <Scale size={16} /> Framework Posture
+          </button>
+          <button
+            type="button"
+            data-testid="tab-evidence"
+            className={`${styles.tabButton} ${activeTab === "evidence" ? styles.tabActive : ""}`}
+            onClick={() => setActiveTab("evidence")}
+          >
+            <Download size={16} /> Evidence Vault ({evidenceList.data.length})
+          </button>
+        </div>
+
+        {activeTab === "frameworks" ? (
+          <div>
             {frameworks.error ? (
-              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
+              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
                 {frameworks.error.message}
               </p>
             ) : frameworks.data.length === 0 ? (
-              <div style={{ margin: "var(--space-3) 0 0" }}>
-                <EmptyState title="No compliance frameworks" description="The compliance endpoint returned no frameworks." />
-              </div>
+              <Card padding="md">
+                <EmptyState
+                  title="No Frameworks Mapped"
+                  description="No compliance frameworks are currently declared in the platform catalogue."
+                />
+              </Card>
             ) : (
-              <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-                {frameworks.data.map((f) => (
-                  <li key={f.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
-                    <span style={{ fontWeight: 500 }}>
-                      {f.name ?? f.id}
-                      {f.version ? (
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginLeft: "var(--space-2)" }}>{f.version}</span>
-                      ) : null}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                      {f.controls != null ? (
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
-                          {f.controlsPassed ?? 0}/{f.controls} passed
-                        </span>
-                      ) : null}
-                      <Badge variant={statusVariant(f.status)}>
-                        {f.coveragePct != null ? `${f.coveragePct}%` : f.status ?? "UNKNOWN"}
-                      </Badge>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+              <div className={styles.frameworkGrid}>
+                {frameworks.data.map((fw) => (
+                  <div key={fw.id} className={styles.frameworkCard}>
+                    <div className={styles.frameworkHeader}>
+                      <div>
+                        <h3 className={styles.frameworkTitle}>{fw.name}</h3>
+                        <div className={styles.frameworkVersion}>{fw.version}</div>
+                      </div>
+                      <Badge variant={statusVariant(fw.status)}>{fw.status}</Badge>
+                    </div>
 
-          <Card padding="md">
-            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-              <Lock size={16} /> Isolation policies
-            </h3>
-            {isolation.error ? (
-              <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: "var(--space-3) 0 0" }}>
-                {isolation.error.message}
-              </p>
-            ) : isolation.data.length === 0 ? (
-              <div style={{ margin: "var(--space-3) 0 0" }}>
-                <EmptyState title="No isolation policies" description="The isolation endpoint returned no policies." />
-              </div>
-            ) : (
-              <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-                {isolation.data.map((p) => (
-                  <li key={p.id ?? p.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ fontWeight: 500 }}>{p.name ?? p.id}</span>
-                      {p.description ? (
-                        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginLeft: "var(--space-2)" }}>{p.description}</span>
-                      ) : null}
-                    </span>
-                    <Badge variant={p.isActive ? "success" : "default"}>
-                      {p.isActive ? "ENFORCED" : "INACTIVE"}
-                    </Badge>
-                  </li>
+                    <div className={styles.progressContainer}>
+                      <div className={styles.progressLabelRow}>
+                        <span>Spine Compliance</span>
+                        <strong>{fw.coveragePct}%</strong>
+                      </div>
+                      <div className={styles.progressTrack}>
+                        <div
+                          className={`${styles.progressFill} ${progressClass(fw.coveragePct)}`}
+                          style={{ width: `${Math.min(100, Math.max(0, fw.coveragePct))}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.statsRow}>
+                      <span>Controls Evaluated</span>
+                      <span>
+                        <strong>{fw.controlsPassed}</strong> / {fw.controls} passing
+                      </span>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
-          </Card>
-        </div>
+          </div>
+        ) : (
+          <div>
+            <FilterBar
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder="Search by control code, inquiry, or SHA-256 hash..."
+              filters={evidenceFilterConfigs}
+              activeFilters={activeFilters}
+              onFilterChange={(k, v) => setActiveFilters((prev) => ({ ...prev, [k]: v }))}
+              onClearAll={() => {
+                setActiveFilters({});
+                setSearchQuery("");
+              }}
+            />
+            <div style={{ marginTop: "var(--space-4)" }}>
+              <PaginatedTable
+                data={filteredEvidence}
+                columns={evidenceColumns}
+                emptyMessage="No evidence artefacts exported yet. Click 'Export Evidence' to generate verifiable audit proof."
+                keyField="id"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Export Evidence Modal */}
       <Modal
         open={exportOpen}
         onClose={() => setExportOpen(false)}
-        title="Export Compliance Audit Evidence"
+        title="Export Cryptographic Compliance Evidence"
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
           <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-            Extract cryptographic evidence from the real audit spine for auditor inquiries.
+            Extract cryptographic audit records directly from the immutable audit spine with a SHA-256 integrity hash.
           </p>
           <FormField label="Control Code" required>
             <Input
               value={controlCode}
               onChange={(e) => setControlCode(e.target.value)}
-              placeholder="e.g. AC-1, IA-2, SC-7"
+              placeholder="e.g. AUDIT-COMPLETE, APPROVAL-TWO-PERSON"
             />
           </FormField>
-          <FormField label="Auditor Question / Scope" required>
+          <FormField label="Auditor Inquiry / Question" required>
             <Input
               value={auditorQuestion}
               onChange={(e) => setAuditorQuestion(e.target.value)}
-              placeholder="e.g. Provide evidence of multi-factor authentication enforcement"
+              placeholder="e.g. Show proof of two-person control approvals for privileged operations"
             />
           </FormField>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
@@ -249,13 +388,65 @@ export default function SecurityCompliance() {
             <Button
               variant="primary"
               onClick={handleExportEvidence}
-              disabled={exporting || !controlCode.trim()}
+              disabled={exporting || !controlCode.trim() || !auditorQuestion.trim()}
             >
-              {exporting ? "Exporting..." : "Generate Evidence"}
+              {exporting ? "Generating Artefact…" : "Generate Evidence"}
             </Button>
           </div>
         </div>
       </Modal>
+
+      {/* Inspect Evidence Modal */}
+      {inspectEvidence && (
+        <Modal
+          open
+          onClose={() => setInspectEvidence(null)}
+          title={`Evidence Bundle: ${inspectEvidence.controlCode}`}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-2) 0" }}>
+            <div className={styles.artefactCard}>
+              <div><strong>Auditor Question:</strong> {inspectEvidence.auditorQuestion}</div>
+              <div><strong>Exported By:</strong> {inspectEvidence.generatedBy}</div>
+              <div><strong>Generated At:</strong> {inspectEvidence.generatedAt ? new Date(inspectEvidence.generatedAt).toLocaleString() : "Unknown"}</div>
+              <div><strong>Spine Records Packaged:</strong> {inspectEvidence.recordCount}</div>
+              <div>
+                <strong>Cryptographic SHA-256:</strong>
+                <div style={{ marginTop: "var(--space-1)" }}>
+                  <code className={styles.hashBadge} style={{ maxWidth: "100%" }}>
+                    {inspectEvidence.contentHash}
+                  </code>
+                </div>
+              </div>
+            </div>
+            {inspectEvidence.artefact?.records && (
+              <div>
+                <h4 style={{ margin: "0 0 var(--space-2) 0", fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                  SAMPLE AUDIT RECORDS
+                </h4>
+                <pre
+                  style={{
+                    maxHeight: "12rem",
+                    overflowY: "auto",
+                    background: "var(--color-surface)",
+                    border: "0.0625rem solid var(--color-border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "var(--space-3)",
+                    fontSize: "var(--text-xs)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {JSON.stringify(inspectEvidence.artefact.records, null, 2)}
+                </pre>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "var(--space-2)" }}>
+              <Button variant="outline" onClick={() => setInspectEvidence(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DomainShell>
   );
 }

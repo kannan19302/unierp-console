@@ -1,0 +1,156 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-4);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 0.0625rem solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.tabButton {
+  background: transparent;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tabButton:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-subtle);
+}
+
+.tabActive {
+  color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+  font-weight: 600;
+}
+
+.frameworkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-4);
+}
+
+.frameworkCard {
+  background: var(--color-surface);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.frameworkHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.frameworkTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.frameworkVersion {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-1);
+}
+
+.progressContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.progressLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.progressTrack {
+  height: var(--space-2);
+  background-color: var(--color-bg-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-default);
+}
+
+.progressSuccess {
+  background-color: var(--color-success);
+}
+
+.progressWarning {
+  background-color: var(--color-warning);
+}
+
+.progressDanger {
+  background-color: var(--color-danger);
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  border-top: 0.0625rem solid var(--color-border);
+  padding-top: var(--space-2);
+}
+
+.hashBadge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 0.0625rem solid var(--color-border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10rem;
+  display: inline-block;
+}
+
+.artefactCard {
+  background: var(--color-bg-subtle);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
