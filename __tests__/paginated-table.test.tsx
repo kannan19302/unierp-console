@@ -93,4 +93,21 @@ describe("PaginatedTable Component", () => {
     fireEvent.change(pageSizeSelect, { target: { value: "25" } });
     expect(handlePageSizeChange).toHaveBeenCalledWith(25);
   });
+
+  it("handles CSV export when exportable is enabled", () => {
+    const handleExport = vi.fn();
+    render(
+      <PaginatedTable
+        columns={columns}
+        data={data}
+        exportable={true}
+        onExport={handleExport}
+      />
+    );
+
+    const exportBtn = screen.getByTitle("Export CSV");
+    expect(exportBtn).toBeInTheDocument();
+    fireEvent.click(exportBtn);
+    expect(handleExport).toHaveBeenCalledTimes(1);
+  });
 });
