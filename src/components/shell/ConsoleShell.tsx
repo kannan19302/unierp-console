@@ -108,6 +108,25 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("resize", updateMatch);
   }, []);
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [pathname, isMobile]);
+
+  // Close mobile sidebar on Escape key
+  useEffect(() => {
+    if (!isMobile || !sidebarOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobile, sidebarOpen]);
+
   // Unified expanded state: open when both sidebarOpen is true and collapsed is false
   const isExpanded = sidebarOpen && !collapsed;
 

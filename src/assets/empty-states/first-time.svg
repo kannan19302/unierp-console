@@ -1,0 +1,13 @@
+<svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="80" cy="60" r="46" fill="var(--color-primary-subtle, #eff6ff)" />
+  <circle cx="80" cy="60" r="36" fill="var(--surface-1-bg, #ffffff)" stroke="var(--color-primary, #2563eb)" stroke-width="2" />
+  <path d="M80 38L87 50H73L80 38Z" fill="var(--color-primary, #2563eb)" />
+  <rect x="75" y="50" width="10" height="22" rx="2" fill="var(--color-primary, #2563eb)" />
+  <path d="M72 66L66 74H75L72 66Z" fill="var(--color-primary-dark, #1d4ed8)" />
+  <path d="M88 66L94 74H85L88 66Z" fill="var(--color-primary-dark, #1d4ed8)" />
+  <circle cx="80" cy="58" r="3" fill="var(--surface-1-bg, #ffffff)" />
+  <path d="M78 74L80 79L82 74" stroke="var(--color-warning, #f59e0b)" stroke-width="2" stroke-linecap="round" />
+  <circle cx="48" cy="40" r="2" fill="var(--color-warning, #f59e0b)" />
+  <circle cx="112" cy="44" r="3" fill="var(--color-primary, #2563eb)" />
+  <circle cx="118" cy="78" r="2" fill="var(--color-success, #10b981)" />
+</svg>

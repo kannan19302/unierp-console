@@ -1,0 +1,127 @@
+/* Micro-animations and transitional utility classes */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3, 12px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-3, 12px)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--color-primary-subtle, rgba(30, 58, 138, 0.2));
+  }
+  50% {
+    box-shadow: 0 0 0 var(--space-2, 8px) var(--color-primary-subtle, rgba(30, 58, 138, 0));
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.fadeInUp {
+  animation: fadeInUp 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.slideDown {
+  animation: slideDown 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.scaleIn {
+  animation: scaleIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pulseGlow {
+  animation: pulseGlow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2-bg, rgba(255, 255, 255, 0.05)) 25%,
+    var(--surface-3-bg, rgba(255, 255, 255, 0.15)) 50%,
+    var(--surface-2-bg, rgba(255, 255, 255, 0.05)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Stagger sequence utilities */
+.staggerGrid > *:nth-child(1) { animation-delay: 30ms; }
+.staggerGrid > *:nth-child(2) { animation-delay: 60ms; }
+.staggerGrid > *:nth-child(3) { animation-delay: 90ms; }
+.staggerGrid > *:nth-child(4) { animation-delay: 120ms; }
+.staggerGrid > *:nth-child(5) { animation-delay: 150ms; }
+.staggerGrid > *:nth-child(6) { animation-delay: 180ms; }
+.staggerGrid > *:nth-child(7) { animation-delay: 210ms; }
+.staggerGrid > *:nth-child(8) { animation-delay: 240ms; }
+.staggerGrid > *:nth-child(9) { animation-delay: 270ms; }
+.staggerGrid > *:nth-child(10) { animation-delay: 300ms; }
+.staggerGrid > *:nth-child(11) { animation-delay: 330ms; }
+.staggerGrid > *:nth-child(12) { animation-delay: 360ms; }
+
+.stagger1 { animation-delay: 40ms; }
+.stagger2 { animation-delay: 80ms; }
+.stagger3 { animation-delay: 120ms; }
+.stagger4 { animation-delay: 160ms; }
+.stagger5 { animation-delay: 200ms; }
+.stagger6 { animation-delay: 240ms; }
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .fadeIn,
+  .fadeInUp,
+  .slideDown,
+  .scaleIn,
+  .pulseGlow,
+  .shimmer,
+  .staggerGrid > * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -18,6 +18,8 @@ import {
   type PccDomainEntry,
 } from "@/lib/pcc-registry";
 import { PccIconTile } from "@/components/home";
+import { SetupChecklist, SpotlightTour } from "@/components/onboarding";
+import { EmptyStateIllustration } from "@/components/feedback";
 import styles from "./home.module.css";
 
 export default function HomeLauncherPage() {
@@ -129,6 +131,12 @@ export default function HomeLauncherPage() {
         </p>
       </header>
 
+      {/* Platform Onboarding Setup Checklist */}
+      <SetupChecklist />
+
+      {/* Guided Tour Modal */}
+      <SpotlightTour />
+
       {/* Search & Cluster Filter Bar */}
       <section className={styles.searchSection} aria-label="Filter applications">
         <div className={styles.searchWrapper}>
@@ -193,22 +201,18 @@ export default function HomeLauncherPage() {
       {/* 6-Column Icon Grid (Frappe ERPNext style) */}
       <section aria-label="Application launcher grid">
         {filteredDomains.length === 0 ? (
-          <div className={styles.emptyState}>
-            <Layers size={40} color="var(--color-text-tertiary)" />
-            <div className={styles.emptyStateText}>
-              No platform domains match &quot;<strong>{searchQuery}</strong>&quot;
-            </div>
-            <button
-              type="button"
-              className={styles.filterPill}
-              onClick={() => {
+          <EmptyStateIllustration
+            type="no-search-results"
+            title={`No platform domains match "${searchQuery}"`}
+            description="Try searching for another keyword, checking the code shortcut, or resetting the cluster filter."
+            action={{
+              label: "Reset Filters",
+              onClick: () => {
                 setSearchQuery("");
                 setSelectedCluster("all");
-              }}
-            >
-              Reset Filters
-            </button>
-          </div>
+              },
+            }}
+          />
         ) : (
           <div className={styles.iconGrid} role="grid" data-testid="pcc-icon-grid">
             {filteredDomains.map((entry) => (

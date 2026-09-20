@@ -1,0 +1,6 @@
+<svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="80" cy="60" r="44" fill="var(--color-success-subtle, #ecfdf5)" stroke="var(--color-success, #10b981)" stroke-width="2" stroke-dasharray="4 4" />
+  <circle cx="80" cy="60" r="32" fill="var(--surface-1-bg, #ffffff)" stroke="var(--color-success, #10b981)" stroke-width="2" />
+  <path d="M80 40C80 40 92 44 92 56C92 68 80 76 80 76C80 76 68 68 68 56C68 44 80 40 80 40Z" fill="var(--color-success-subtle, #ecfdf5)" stroke="var(--color-success, #10b981)" stroke-width="2" />
+  <path d="M74 57L78 61L86 53" stroke="var(--color-success, #10b981)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
