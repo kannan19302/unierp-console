@@ -203,3 +203,43 @@ export const securityThreatFilterConfigs: FilterConfig[] = [
     ],
   },
 ];
+
+// ─── Control Plane Audit Spine ──────────────────────────────────────────────
+
+export interface ControlPlaneAuditRecord {
+  id: string;
+  actorId: string;
+  actorRole: string;
+  action: string;
+  targetId?: string | null;
+  details?: Record<string, unknown>;
+  correlationId?: string | null;
+  ipAddress?: string | null;
+  contentHash: string;
+  previousHash: string;
+  sequenceNum: number;
+  createdAt: string;
+}
+
+export interface AuditSpineStats {
+  totalRecords: number;
+  uniqueActorsCount: number;
+  chainIntegrityStatus: "VERIFIED" | "DEGRADED" | "CORRUPTED";
+}
+
+export const auditFilterConfigs: FilterConfig[] = [
+  {
+    key: "action",
+    label: "Action Category",
+    options: [
+      { label: "All Actions", value: "" },
+      { label: "Tenant Provision", value: "tenant.provision" },
+      { label: "Tenant Quarantine", value: "tenant.quarantine" },
+      { label: "Session Revocation", value: "session.revoke" },
+      { label: "Policy Mutation", value: "policy" },
+      { label: "Certificate Lifecycle", value: "cert" },
+      { label: "Compliance Evaluation", value: "compliance" },
+    ],
+  },
+];
+
