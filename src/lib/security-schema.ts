@@ -4,6 +4,22 @@ import type { FilterConfig } from "@/components/FilterBar";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
+export interface AbacCondition {
+  id: string;
+  attribute: "user.role" | "resource.type" | "time.hour" | "tenant.plan" | "ip.cidr" | "user.department";
+  operator: "equals" | "not_equals" | "contains" | "in_range" | "regex" | "greater_than";
+  value: string;
+}
+
+export interface AbacPolicyRule {
+  id: string;
+  name: string;
+  description?: string;
+  effect: "ALLOW" | "DENY" | "REQUIRE_APPROVAL";
+  priority: number;
+  conditions: AbacCondition[];
+}
+
 export interface SecurityPolicy {
   id: string;
   name: string;
@@ -14,6 +30,9 @@ export interface SecurityPolicy {
   isolationLevel: "ROW_LEVEL_SECURITY" | "SCHEMA_PER_TENANT" | "DATABASE_PER_TENANT" | "CELL_ISOLATED";
   enforcementMode: "BLOCK" | "ALERT" | "DRY_RUN";
   enabled: boolean;
+  priority?: number;
+  effect?: "ALLOW" | "DENY" | "REQUIRE_APPROVAL";
+  conditions?: AbacCondition[];
   createdAt: string;
   updatedAt?: string;
   overrides?: Array<{
@@ -25,6 +44,7 @@ export interface SecurityPolicy {
     expiresAt: string;
   }>;
 }
+
 
 export interface SecurityThreat {
   id: string;
