@@ -124,7 +124,14 @@ export function SetupChecklist() {
           </span>
           <span>{progressPercent}%</span>
         </div>
-        <div className={styles.progressBarBg} role="progressbar" aria-valuenow={progressPercent} aria-valuemin={0} aria-valuemax={100}>
+        <div
+          className={styles.progressBarBg}
+          role="progressbar"
+          aria-label="Setup checklist progress"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div
             className={styles.progressBarFill}
             style={{ width: `${progressPercent}%` }}

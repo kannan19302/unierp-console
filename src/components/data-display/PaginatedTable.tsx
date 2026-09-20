@@ -228,7 +228,7 @@ export function PaginatedTable<T extends Record<string, any>>({
       </div>
 
       <div className={styles.paginationBar}>
-        <div>
+        <div aria-live="polite" role="status">
           {effectiveTotal > 0 ? (
             <span>
               Showing {startIndex} to {endIndex} of {effectiveTotal} results

@@ -7,4 +7,6 @@ export { SidebarNavigation, SidebarAppGroup, SidebarTabItem } from "./SidebarNav
 export { SidebarFooter } from "./SidebarFooter";
 export { TopBar } from "./TopBar";
 export { Breadcrumbs } from "./Breadcrumbs";
+export { SkipToContent } from "./SkipToContent";
 export * from "./types";
+

@@ -83,7 +83,7 @@ export function NotificationCenter() {
       </button>
 
       {open && (
-        <div className={styles.panel} role="region" aria-label="Notification Center">
+        <div className={styles.panel} role="region" aria-label="Notification Center" aria-live="polite">
           <div className={styles.header}>
             <h3 className={styles.title}>Notifications</h3>
             {unreadCount > 0 && (

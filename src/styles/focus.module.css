@@ -1,0 +1,23 @@
+/* WCAG 2.2 AA Focus Visible styling */
+
+.focusRing {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focusRing:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-primary-subtle, rgba(37, 99, 235, 0.2));
+}
+
+.focusRingWithin:focus-within {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--color-primary-subtle, rgba(37, 99, 235, 0.2));
+}
+
+.focusRingInset:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: -2px;
+}
