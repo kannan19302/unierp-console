@@ -1,0 +1,226 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tabsRow {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
+
+.tabButton {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tabButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.tabButtonActive {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sliderGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.sliderHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-sm);
+}
+
+.sliderReadout {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-base);
+  color: var(--color-primary);
+}
+
+.rangeInput {
+  width: 100%;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.rolloutBarTrack {
+  width: 100%;
+  max-width: 8rem;
+  height: var(--space-1-5);
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: var(--space-1);
+}
+
+.rolloutBarFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width 200ms ease;
+}
+
+.segmentTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.envPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.envPill {
+  font-size: var(--font-size-xs);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+/* ── Environment Promotion Grid ─────────────────────────────────────── */
+
+.pipelineGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.envCard {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: box-shadow 150ms ease;
+}
+
+.envCard:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.envHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.envTitle {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.envVersion {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  background: var(--color-surface-subtle);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.envMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.diffSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--color-surface);
+}
+
+.diffHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.diffControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.diffTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.diffTable th {
+  text-align: left;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.diffTable td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.diffKey {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+}
+
+.diffVal {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+}
