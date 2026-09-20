@@ -18,9 +18,9 @@ export default function GlobalError({
         style={{
           margin: 0,
           padding: 0,
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          backgroundColor: "#0a0a0c",
-          color: "#e2e2e8",
+          fontFamily: "var(--font-sans, system-ui, -apple-system, sans-serif)",
+          backgroundColor: "var(--color-bg, #0a0a0c)",
+          color: "var(--color-text, #e2e2e8)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -30,45 +30,45 @@ export default function GlobalError({
         <div
           style={{
             textAlign: "center",
-            maxWidth: 480,
-            padding: "2rem",
+            maxWidth: "var(--dialog-width, 480px)",
+            padding: "var(--space-8, 2rem)",
           }}
         >
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: "var(--icon-circle-size, 64px)",
+              height: "var(--icon-circle-size, 64px)",
               borderRadius: "50%",
               backgroundColor: "rgba(239,68,68,0.12)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 1.5rem",
-              fontSize: 28,
+              margin: "0 auto var(--space-6, 1.5rem)",
+              fontSize: "var(--text-3xl, 28px)",
             }}
           >
             ⚠️
           </div>
-          <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.5rem", fontWeight: 700 }}>
+          <h1 style={{ margin: "0 0 var(--space-2, 0.5rem)", fontSize: "var(--text-2xl, 1.5rem)", fontWeight: 700 }}>
             Platform Error
           </h1>
-          <p style={{ margin: "0 0 1.5rem", opacity: 0.7, fontSize: "0.875rem", lineHeight: 1.6 }}>
+          <p style={{ margin: "0 0 var(--space-6, 1.5rem)", opacity: 0.7, fontSize: "var(--text-sm, 0.875rem)", lineHeight: 1.6 }}>
             A critical error occurred in the UniERP Platform Console.
             This has been logged for investigation.
           </p>
           {process.env.NODE_ENV === "development" && error?.message && (
             <pre
               style={{
-                margin: "0 0 1.5rem",
-                padding: "0.75rem 1rem",
-                borderRadius: 8,
+                margin: "0 0 var(--space-6, 1.5rem)",
+                padding: "var(--space-3, 0.75rem) var(--space-4, 1rem)",
+                borderRadius: "var(--radius-md, 8px)",
                 backgroundColor: "rgba(239,68,68,0.08)",
                 border: "1px solid rgba(239,68,68,0.2)",
-                fontSize: "0.75rem",
+                fontSize: "var(--text-xs, 0.75rem)",
                 textAlign: "left",
                 overflow: "auto",
-                maxHeight: 160,
-                color: "#f87171",
+                maxHeight: "var(--code-max-height, 160px)",
+                color: "var(--color-danger, #f87171)",
               }}
             >
               {error.message}
@@ -77,13 +77,13 @@ export default function GlobalError({
           <button
             onClick={reset}
             style={{
-              padding: "0.625rem 1.5rem",
-              borderRadius: 8,
+              padding: "var(--space-2-5, 0.625rem) var(--space-6, 1.5rem)",
+              borderRadius: "var(--radius-md, 8px)",
               border: "none",
-              backgroundColor: "#6366f1",
-              color: "#fff",
+              backgroundColor: "var(--color-primary, #6366f1)",
+              color: "var(--color-white, #ffffff)",
               fontWeight: 600,
-              fontSize: "0.875rem",
+              fontSize: "var(--text-sm, 0.875rem)",
               cursor: "pointer",
             }}
           >

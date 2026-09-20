@@ -1,0 +1,97 @@
+.dropzone {
+  border: 2px dashed var(--surface-1-border, #d1d5db);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--space-6, 24px);
+  text-align: center;
+  background-color: var(--surface-2-bg, #f9fafb);
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+  position: relative;
+}
+
+.dropzone:hover,
+.dropzone.dragOver {
+  border-color: var(--color-primary, #2563eb);
+  background-color: var(--color-primary-subtle, #eff6ff);
+}
+
+.hiddenInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.icon {
+  color: var(--text-tertiary, #9ca3af);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.primaryText {
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--weight-medium, 500);
+  color: var(--text-primary, #111827);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.subText {
+  font-size: var(--text-xs, 12px);
+  color: var(--text-secondary, #6b7280);
+}
+
+.fileList {
+  margin-top: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2, 8px) var(--space-3, 12px);
+  background-color: var(--surface-1-bg, #ffffff);
+  border: 1px solid var(--surface-1-border, #e5e7eb);
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--text-xs, 12px);
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileName {
+  color: var(--text-primary, #111827);
+  font-weight: var(--weight-medium, 500);
+}
+
+.fileSize {
+  color: var(--text-tertiary, #9ca3af);
+}
+
+.removeButton {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #9ca3af);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.removeButton:hover {
+  color: var(--color-danger, #dc2626);
+}
+
+.errorText {
+  font-size: var(--text-xs, 12px);
+  color: var(--color-danger, #dc2626);
+  margin-top: var(--space-2, 8px);
+  text-align: left;
+}

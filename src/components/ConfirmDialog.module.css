@@ -20,7 +20,7 @@
 
 .dialog {
   width: 100%;
-  max-width: 460px;
+  max-width: var(--dialog-width, 460px);
   background-color: var(--surface-1-bg, #ffffff);
   border: 1px solid var(--surface-1-border, #e5e7eb);
   border-radius: var(--radius-lg, 8px);
@@ -46,8 +46,8 @@
 
 .iconWrapper {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: var(--icon-box-size, 40px);
+  height: var(--icon-box-size, 40px);
   border-radius: var(--radius-full, 9999px);
   display: flex;
   align-items: center;
@@ -55,12 +55,12 @@
 }
 
 .iconWrapper.danger {
-  background-color: #fee2e2;
+  background-color: var(--color-danger-subtle, #fee2e2);
   color: var(--color-danger, #dc2626);
 }
 
 .iconWrapper.warning {
-  background-color: #fef3c7;
+  background-color: var(--color-warning-subtle, #fef3c7);
   color: var(--color-warning, #d97706);
 }
 
@@ -96,8 +96,8 @@
   color: var(--text-primary, #111827);
   font-family: var(--font-mono, monospace);
   background-color: var(--surface-sunken-bg, #f3f4f6);
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 1px var(--space-1, 4px);
+  border-radius: var(--radius-sm, 3px);
 }
 
 .input {
@@ -112,7 +112,7 @@
 
 .input:focus {
   border-color: var(--color-danger, #dc2626);
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+  box-shadow: 0 0 0 var(--focus-ring-width, 3px) rgba(220, 38, 38, 0.15);
 }
 
 .footer {
@@ -149,7 +149,7 @@
   padding: var(--space-2, 8px) var(--space-4, 16px);
   font-size: var(--text-sm, 14px);
   font-weight: var(--weight-medium, 500);
-  color: #ffffff;
+  color: var(--color-white, #ffffff);
   border: 1px solid transparent;
   border-radius: var(--radius-md, 6px);
   cursor: pointer;
@@ -161,7 +161,7 @@
 }
 
 .confirmButton.danger:hover:not(:disabled) {
-  background-color: #b91c1c;
+  background-color: var(--color-danger-hover, #b91c1c);
 }
 
 .confirmButton.warning {
@@ -169,7 +169,7 @@
 }
 
 .confirmButton.warning:hover:not(:disabled) {
-  background-color: #b45309;
+  background-color: var(--color-warning-hover, #b45309);
 }
 
 .confirmButton:disabled,
@@ -179,10 +179,10 @@
 }
 
 .spinner {
-  width: 14px;
-  height: 14px;
+  width: var(--spinner-size, 14px);
+  height: var(--spinner-size, 14px);
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #ffffff;
+  border-top-color: var(--color-white, #ffffff);
   border-radius: 50%;
   animation: spin 600ms linear infinite;
 }

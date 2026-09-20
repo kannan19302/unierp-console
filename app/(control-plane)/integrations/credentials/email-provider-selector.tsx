@@ -137,14 +137,14 @@ export function EmailProviderSelector({
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-4)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff" }}>
+            <div style={{ width: "var(--space-10, 40px)", height: "var(--space-10, 40px)", borderRadius: "var(--radius-md, 8px)", background: "linear-gradient(135deg, var(--color-brand-primary, #2563eb) 0%, var(--color-brand-emphasis, #1d4ed8) 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-inverse, #ffffff)" }}>
               <Mail size={20} />
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: 700 }}>
                 Active Email Provider & Routing
               </h3>
-              <p style={{ margin: "2px 0 0", color: "var(--color-text-secondary)", fontSize: "var(--text-xs)" }}>
+              <p style={{ margin: "var(--space-0-5, 2px) 0 0", color: "var(--color-text-secondary)", fontSize: "var(--text-xs)" }}>
                 Select the primary outbound delivery provider across all UniERP transactional and auth flows.
               </p>
             </div>
@@ -158,14 +158,14 @@ export function EmailProviderSelector({
         </div>
 
         {routingError && (
-          <div style={{ padding: "10px 14px", background: "var(--color-danger-bg, #fef2f2)", border: "1px solid var(--color-danger-border, #fecaca)", borderRadius: "6px", color: "var(--color-danger, #ef4444)", fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ padding: "var(--space-2-5, 10px) var(--space-3-5, 14px)", background: "var(--color-danger-bg, #fef2f2)", border: "1px solid var(--color-danger-border, #fecaca)", borderRadius: "var(--radius-md, 6px)", color: "var(--color-danger, #ef4444)", fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: "var(--space-2, 8px)" }}>
             <AlertCircle size={16} />
             <span>{routingError}</span>
           </div>
         )}
 
         {routingSaved && (
-          <div style={{ padding: "10px 14px", background: "var(--color-success-bg, #ecfdf5)", border: "1px solid var(--color-success-border, #a7f3d0)", borderRadius: "6px", color: "var(--color-success, #10b981)", fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ padding: "var(--space-2-5, 10px) var(--space-3-5, 14px)", background: "var(--color-success-bg, #ecfdf5)", border: "1px solid var(--color-success-border, #a7f3d0)", borderRadius: "var(--radius-md, 6px)", color: "var(--color-success, #10b981)", fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: "var(--space-2, 8px)" }}>
             <CheckCircle2 size={16} />
             <span>Active email provider and routing saved successfully.</span>
           </div>
@@ -173,11 +173,11 @@ export function EmailProviderSelector({
 
         {/* Provider Cards Selection Grid */}
         <div>
-          <label style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--color-text-secondary)", marginBottom: "var(--space-3)", display: "block" }}>
+          <label style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "var(--letter-spacing-wide, 0.05em)", color: "var(--color-text-secondary)", marginBottom: "var(--space-3)", display: "block" }}>
             Select Preferred Provider
           </label>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "var(--space-3)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(15rem, 1fr))", gap: "var(--space-3)" }}>
             {SUPPORTED_EMAIL_PROVIDERS.map((ep) => {
               const isSelected = selectedProvider === ep.id;
               const isConfigured = isProviderConfigured(ep.id);
@@ -188,7 +188,7 @@ export function EmailProviderSelector({
                   onClick={() => canEdit && setSelectedProvider(ep.id)}
                   style={{
                     padding: "var(--space-4)",
-                    borderRadius: "8px",
+                    borderRadius: "var(--radius-md, 8px)",
                     border: `2px solid ${
                       isSelected ? "var(--color-brand-primary, #2563eb)" : "var(--color-border, #e2e8f0)"
                     }`,
@@ -202,16 +202,16 @@ export function EmailProviderSelector({
                   }}
                 >
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-1-5, 6px)" }}>
                       <span style={{ fontWeight: 700, fontSize: "var(--text-sm)", color: "var(--color-text-primary)" }}>
                         {ep.name}
                       </span>
-                      <div style={{ display: "flex", gap: "4px" }}>
-                        <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: "var(--color-bg-subtle, #f1f5f9)", color: "var(--color-text-secondary)" }}>
+                      <div style={{ display: "flex", gap: "var(--space-1, 4px)" }}>
+                        <span style={{ fontSize: "var(--text-xs, 10px)", padding: "var(--space-0-5, 2px) var(--space-1-5, 6px)", borderRadius: "var(--radius-sm, 4px)", background: "var(--color-bg-subtle, #f1f5f9)", color: "var(--color-text-secondary)" }}>
                           {ep.tag}
                         </span>
                         {ep.id !== "auto" && (
-                          <span style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", background: isConfigured ? "#dcfce7" : "#fee2e2", color: isConfigured ? "#15803d" : "#b91c1c" }}>
+                          <span style={{ fontSize: "var(--text-xs, 10px)", padding: "var(--space-0-5, 2px) var(--space-1-5, 6px)", borderRadius: "var(--radius-sm, 4px)", background: isConfigured ? "var(--color-success-bg, #dcfce7)" : "var(--color-danger-bg, #fee2e2)", color: isConfigured ? "var(--color-success, #15803d)" : "var(--color-danger, #b91c1c)" }}>
                             {isConfigured ? "Keys Set" : "Missing Keys"}
                           </span>
                         )}
@@ -222,11 +222,11 @@ export function EmailProviderSelector({
                     </p>
                   </div>
 
-                  <div style={{ marginTop: "var(--space-3)", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <div style={{ width: "16px", height: "16px", borderRadius: "50%", border: `2px solid ${isSelected ? "#2563eb" : "#cbd5e1"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {isSelected && <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#2563eb" }} />}
+                  <div style={{ marginTop: "var(--space-3)", display: "flex", alignItems: "center", gap: "var(--space-1-5, 6px)" }}>
+                    <div style={{ width: "var(--space-4, 16px)", height: "var(--space-4, 16px)", borderRadius: "50%", border: `2px solid ${isSelected ? "var(--color-brand-primary, #2563eb)" : "var(--color-border, #cbd5e1)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {isSelected && <div style={{ width: "var(--space-2, 8px)", height: "var(--space-2, 8px)", borderRadius: "50%", background: "var(--color-brand-primary, #2563eb)" }} />}
                     </div>
-                    <span style={{ fontSize: "var(--text-xs)", fontWeight: isSelected ? 600 : 400, color: isSelected ? "#2563eb" : "var(--color-text-secondary)" }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: isSelected ? 600 : 400, color: isSelected ? "var(--color-brand-primary, #2563eb)" : "var(--color-text-secondary)" }}>
                       {isSelected ? "Selected Provider" : "Click to Select"}
                     </span>
                   </div>
@@ -238,8 +238,8 @@ export function EmailProviderSelector({
 
         {/* Global From Address & Save Button */}
         <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-4)", flexWrap: "wrap", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border, #f1f5f9)" }}>
-          <div style={{ flex: "1 1 280px" }}>
-            <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-text-primary)", display: "block", marginBottom: "4px" }}>
+          <div style={{ flex: "1 1 18rem" }}>
+            <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-text-primary)", display: "block", marginBottom: "var(--space-1, 4px)" }}>
               Default "From" Address
             </label>
             <input
@@ -250,9 +250,9 @@ export function EmailProviderSelector({
               disabled={!canEdit}
               style={{
                 width: "100%",
-                padding: "8px 12px",
+                padding: "var(--space-2, 8px) var(--space-3, 12px)",
                 fontSize: "var(--text-sm)",
-                borderRadius: "6px",
+                borderRadius: "var(--radius-md, 6px)",
                 border: "1px solid var(--color-border, #cbd5e1)",
                 background: "var(--color-bg-surface, #ffffff)",
               }}
@@ -271,9 +271,9 @@ export function EmailProviderSelector({
         </div>
 
         {/* Send Test Email Console */}
-        <div style={{ background: "var(--color-bg-subtle, #f8fafc)", borderRadius: "8px", border: "1px solid var(--color-border, #e2e8f0)", padding: "var(--space-4)" }}>
+        <div style={{ background: "var(--color-bg-subtle, #f8fafc)", borderRadius: "var(--radius-md, 8px)", border: "1px solid var(--color-border, #e2e8f0)", padding: "var(--space-4)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
-            <Zap size={16} style={{ color: "#f59e0b" }} />
+            <Zap size={16} style={{ color: "var(--color-warning, #f59e0b)" }} />
             <h4 style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 700 }}>
               Live Delivery Test Console
             </h4>
@@ -289,19 +289,19 @@ export function EmailProviderSelector({
               onChange={(e) => setTestEmailTo(e.target.value)}
               placeholder="recipient@company.com"
               style={{
-                flex: "1 1 240px",
-                padding: "8px 12px",
+                flex: "1 1 15rem",
+                padding: "var(--space-2, 8px) var(--space-3, 12px)",
                 fontSize: "var(--text-sm)",
-                borderRadius: "6px",
+                borderRadius: "var(--radius-md, 6px)",
                 border: "1px solid var(--color-border, #cbd5e1)",
-                background: "#ffffff",
+                background: "var(--color-bg-surface, #ffffff)",
               }}
             />
             <Button
               variant="secondary"
               onClick={handleSendTestEmail}
               disabled={sendingTest || !testEmailTo}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1-5, 6px)" }}
             >
               {sendingTest ? <Spinner size="sm" /> : <Send size={14} />}
               <span>Send Test Email</span>
@@ -312,21 +312,21 @@ export function EmailProviderSelector({
             <div
               style={{
                 marginTop: "var(--space-3)",
-                padding: "10px 14px",
-                borderRadius: "6px",
+                padding: "var(--space-2-5, 10px) var(--space-3-5, 14px)",
+                borderRadius: "var(--radius-md, 6px)",
                 fontSize: "var(--text-xs)",
-                background: testResult.success ? "#ecfdf5" : "#fef2f2",
-                border: `1px solid ${testResult.success ? "#a7f3d0" : "#fecaca"}`,
-                color: testResult.success ? "#065f46" : "#991b1b",
+                background: testResult.success ? "var(--color-success-bg, #ecfdf5)" : "var(--color-danger-bg, #fef2f2)",
+                border: `1px solid ${testResult.success ? "var(--color-success-border, #a7f3d0)" : "var(--color-danger-border, #fecaca)"}`,
+                color: testResult.success ? "var(--color-success, #065f46)" : "var(--color-danger, #991b1b)",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                gap: "var(--space-2, 8px)",
               }}
             >
               {testResult.success ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
               <div>
                 <strong>{testResult.message}</strong>
-                {testResult.details && <span style={{ marginLeft: "8px" }}>({testResult.details})</span>}
+                {testResult.details && <span style={{ marginLeft: "var(--space-2, 8px)" }}>({testResult.details})</span>}
               </div>
             </div>
           )}

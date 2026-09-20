@@ -1,0 +1,33 @@
+.banner {
+  height: var(--banner-height, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-semibold, 600);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  z-index: var(--z-fixed, 800);
+  width: 100%;
+}
+
+.development {
+  background-color: var(--color-success-dark, #15803d);
+  color: var(--color-success-light, #f0fdf4);
+}
+
+.staging {
+  background-color: var(--color-warning-dark, #b45309);
+  color: var(--color-warning-light, #fffbeb);
+}
+
+.test {
+  background-color: var(--color-primary-dark, #4338ca);
+  color: var(--color-primary-light, #eef2ff);
+}
+
+.production {
+  background-color: var(--color-danger-dark, #b91c1c);
+  color: var(--color-danger-light, #fef2f2);
+}

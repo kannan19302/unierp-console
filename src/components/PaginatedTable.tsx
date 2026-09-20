@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { exportToCsv } from "../lib/export-csv";
 import styles from "./PaginatedTable.module.css";
 
 export interface ColumnDef<T = any> {
@@ -30,6 +31,9 @@ export interface PaginatedTableProps<T = any> {
   onSelectionChange?: (keys: (string | number)[]) => void;
   bulkActions?: React.ReactNode;
   emptyMessage?: string;
+  exportable?: boolean;
+  exportFilename?: string;
+  onExport?: () => void;
 }
 
 export function PaginatedTable<T extends Record<string, any>>({
@@ -50,6 +54,9 @@ export function PaginatedTable<T extends Record<string, any>>({
   onSelectionChange,
   bulkActions,
   emptyMessage = "No records found",
+  exportable = false,
+  exportFilename = "data-export.csv",
+  onExport,
 }: PaginatedTableProps<T>) {
   const effectiveTotal = total ?? data.length;
   const totalPages = Math.max(1, Math.ceil(effectiveTotal / pageSize));
@@ -232,6 +239,28 @@ export function PaginatedTable<T extends Record<string, any>>({
         </div>
 
         <div className={styles.paginationControls}>
+          {exportable && (
+            <button
+              type="button"
+              className={styles.pageButton}
+              title="Export CSV"
+              onClick={() => {
+                if (onExport) {
+                  onExport();
+                } else {
+                  exportToCsv(
+                    columns.map((c) => ({ key: c.key, label: c.label })),
+                    displayData,
+                    exportFilename
+                  );
+                }
+              }}
+              aria-label="Export CSV"
+            >
+              <Download size={14} />
+            </button>
+          )}
+
           {onPageSizeChange && (
             <select
               value={pageSize}
@@ -266,7 +295,7 @@ export function PaginatedTable<T extends Record<string, any>>({
               >
                 <ChevronLeft size={16} />
               </button>
-              <span style={{ margin: "0 8px" }}>
+              <span style={{ margin: "0 var(--space-2, 8px)" }}>
                 Page {page} of {totalPages}
               </span>
               <button

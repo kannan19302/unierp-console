@@ -8,7 +8,7 @@
 
 .card {
   text-align: center;
-  max-width: 480px;
+  max-width: var(--error-max-width, 480px);
   padding: var(--space-8);
   border-radius: var(--radius-xl);
   background: var(--color-bg-elevated);
@@ -16,8 +16,8 @@
 }
 
 .iconCircle {
-  width: 56px;
-  height: 56px;
+  width: var(--icon-circle-size, 56px);
+  height: var(--icon-circle-size, 56px);
   border-radius: 50%;
   background: rgba(239, 68, 68, 0.1);
   color: var(--color-danger);
@@ -50,7 +50,7 @@
   font-size: var(--text-xs);
   text-align: left;
   overflow: auto;
-  max-height: 120px;
+  max-height: var(--code-max-height, 120px);
   color: var(--color-danger);
   font-family: var(--font-mono, monospace);
 }

@@ -1,0 +1,46 @@
+.banner {
+  background-color: var(--color-warning-subtle, #fef3c7);
+  border-bottom: 1px solid var(--color-warning-border, #fde68a);
+  color: var(--color-warning-text, #92400e);
+  padding: var(--space-1-5, 6px) var(--space-4, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-medium, 500);
+  z-index: var(--z-fixed, 800);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.warningIcon {
+  color: var(--color-warning, #d97706);
+}
+
+.tenantName {
+  font-weight: var(--weight-bold, 700);
+  font-family: var(--font-mono, monospace);
+  background-color: var(--color-warning-border, #fde68a);
+  padding: 1px var(--space-1-5, 6px);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.endButton {
+  background-color: var(--color-warning-dark, #b45309);
+  color: var(--color-white, #ffffff);
+  border: none;
+  padding: var(--space-half, 3px) var(--space-2-5, 10px);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-semibold, 600);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.endButton:hover {
+  background-color: var(--color-warning-text, #92400e);
+}

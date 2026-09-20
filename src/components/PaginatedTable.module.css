@@ -14,10 +14,10 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-2, 8px) var(--space-4, 16px);
-  background-color: #eff6ff;
-  border-bottom: 1px solid #bfdbfe;
+  background-color: var(--color-primary-subtle, #eff6ff);
+  border-bottom: 1px solid var(--color-primary-border, #bfdbfe);
   font-size: var(--text-sm, 14px);
-  color: #1e40af;
+  color: var(--color-primary-text, #1e40af);
   animation: slideDown 150ms ease;
 }
 
@@ -90,19 +90,19 @@
 }
 
 .tr.selected {
-  background-color: #eff6ff;
+  background-color: var(--color-primary-subtle, #eff6ff);
 }
 
 .checkboxTh,
 .checkboxTd {
-  width: 40px;
+  width: var(--checkbox-col-width, 40px);
   padding: var(--space-3, 12px);
   text-align: center;
 }
 
 .checkbox {
-  width: 16px;
-  height: 16px;
+  width: var(--checkbox-size, 16px);
+  height: var(--checkbox-size, 16px);
   cursor: pointer;
   accent-color: var(--color-primary, #2563eb);
 }
@@ -125,7 +125,7 @@
 }
 
 .pageSizeSelect {
-  padding: 4px 8px;
+  padding: 2px var(--space-2, 8px);
   font-size: var(--text-xs, 12px);
   border: 1px solid var(--surface-1-border, #d1d5db);
   border-radius: var(--radius-sm, 4px);
@@ -138,8 +138,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: var(--page-btn-size, 32px);
+  height: var(--page-btn-size, 32px);
   padding: 0;
   border: 1px solid var(--surface-1-border, #d1d5db);
   border-radius: var(--radius-sm, 4px);
@@ -165,8 +165,8 @@
 }
 
 .skeletonRow {
-  height: 48px;
-  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  height: var(--skeleton-height, 48px);
+  background: linear-gradient(90deg, var(--surface-sunken-bg, #f3f4f6) 25%, var(--surface-1-border, #e5e7eb) 50%, var(--surface-sunken-bg, #f3f4f6) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm, 4px);

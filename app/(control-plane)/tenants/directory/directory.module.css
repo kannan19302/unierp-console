@@ -1,0 +1,71 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.actionsGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tenantCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.rowLink {
+  color: var(--color-brand-primary, #2563eb);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.rowLink:hover {
+  text-decoration: underline;
+}
+
+.slugText {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary, #64748b);
+  font-family: monospace;
+}
+
+.actionButton {
+  background: transparent;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 6px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  color: var(--color-text-secondary, #64748b);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  font-size: var(--text-xs);
+  transition: all 0.15s ease;
+}
+
+.actionButton:hover {
+  background: var(--color-bg-subtle, #f1f5f9);
+  color: var(--color-text-primary, #0f172a);
+}
+
+.actionButtonDanger {
+  color: var(--color-danger, #ef4444);
+  border-color: var(--color-danger-border, #fecaca);
+}
+
+.actionButtonDanger:hover {
+  background: var(--color-danger-bg, #fef2f2);
+  color: var(--color-danger, #b91c1c);
+}

@@ -116,7 +116,7 @@ export default function EmailTemplatesSettingsPage() {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "4px",
+              gap: "var(--space-1, 4px)",
               color: "var(--color-brand-primary, #2563eb)",
               fontSize: "var(--text-sm)",
               textDecoration: "none",
@@ -127,7 +127,7 @@ export default function EmailTemplatesSettingsPage() {
         </div>
 
         {error && (
-          <div style={{ padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#b91c1c", fontSize: "var(--text-sm)" }}>
+          <div style={{ padding: "var(--space-3, 12px) var(--space-4, 16px)", background: "var(--color-danger-bg, #fef2f2)", border: "1px solid var(--color-danger-border, #fecaca)", borderRadius: "var(--radius-md, 8px)", color: "var(--color-danger, #b91c1c)", fontSize: "var(--text-sm)" }}>
             {error}
           </div>
         )}
@@ -141,17 +141,17 @@ export default function EmailTemplatesSettingsPage() {
                 key={tpl.key}
                 onClick={() => handleSelectTemplate(tpl)}
                 style={{
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  border: isSelected ? "2px solid #2563eb" : "1px solid var(--color-border, #e2e8f0)",
-                  background: isSelected ? "#eff6ff" : "var(--color-bg-surface, #ffffff)",
-                  color: isSelected ? "#1d4ed8" : "var(--color-text-primary, #0f172a)",
+                  padding: "var(--space-2, 8px) var(--space-4, 16px)",
+                  borderRadius: "var(--radius-md, 8px)",
+                  border: isSelected ? "2px solid var(--color-brand-primary, #2563eb)" : "1px solid var(--color-border, #e2e8f0)",
+                  background: isSelected ? "var(--color-brand-surface, #eff6ff)" : "var(--color-bg-surface, #ffffff)",
+                  color: isSelected ? "var(--color-brand-emphasis, #1d4ed8)" : "var(--color-text-primary, #0f172a)",
                   fontWeight: isSelected ? 600 : 500,
                   fontSize: "var(--text-sm)",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  gap: "var(--space-2, 8px)",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -159,11 +159,11 @@ export default function EmailTemplatesSettingsPage() {
                 <span>{tpl.name}</span>
                 <span
                   style={{
-                    fontSize: "10px",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    background: isSelected ? "#dbeafe" : "#f1f5f9",
-                    color: isSelected ? "#1e40af" : "#64748b",
+                    fontSize: "var(--text-xs, 10px)",
+                    padding: "var(--space-0-5, 2px) var(--space-1-5, 6px)",
+                    borderRadius: "var(--radius-sm, 4px)",
+                    background: isSelected ? "var(--color-brand-subtle, #dbeafe)" : "var(--color-bg-subtle, #f1f5f9)",
+                    color: isSelected ? "var(--color-brand-text, #1e40af)" : "var(--color-text-secondary, #64748b)",
                     textTransform: "uppercase",
                   }}
                 >
@@ -183,16 +183,16 @@ export default function EmailTemplatesSettingsPage() {
                   <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700 }}>
                     {selectedTemplate.name}
                   </h3>
-                  <p style={{ margin: "4px 0 0", color: "var(--color-text-secondary)", fontSize: "var(--text-xs)" }}>
+                  <p style={{ margin: "var(--space-1, 4px) 0 0", color: "var(--color-text-secondary)", fontSize: "var(--text-xs)" }}>
                     {selectedTemplate.description}
                   </p>
                 </div>
 
-                <div style={{ padding: "10px 14px", background: "var(--color-bg-subtle, #f8fafc)", borderRadius: "6px", border: "1px solid var(--color-border, #e2e8f0)" }}>
-                  <span style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "#64748b" }}>
+                <div style={{ padding: "var(--space-2-5, 10px) var(--space-3-5, 14px)", background: "var(--color-bg-subtle, #f8fafc)", borderRadius: "var(--radius-md, 6px)", border: "1px solid var(--color-border, #e2e8f0)" }}>
+                  <span style={{ fontSize: "var(--text-xs, 11px)", fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-secondary, #64748b)" }}>
                     Subject Line
                   </span>
-                  <div style={{ fontWeight: 600, fontSize: "var(--text-sm)", color: "#0f172a", marginTop: "2px" }}>
+                  <div style={{ fontWeight: 600, fontSize: "var(--text-sm)", color: "var(--color-text-primary, #0f172a)", marginTop: "var(--space-0-5, 2px)" }}>
                     {renderedSubject}
                   </div>
                 </div>
@@ -204,8 +204,8 @@ export default function EmailTemplatesSettingsPage() {
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                     {Object.entries(activeVariables).map(([varKey, varVal]) => (
-                      <div key={varKey} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                        <label style={{ fontSize: "12px", fontFamily: "monospace", color: "#475569" }}>
+                      <div key={varKey} style={{ display: "flex", flexDirection: "column", gap: "var(--space-0-5, 3px)" }}>
+                        <label style={{ fontSize: "var(--text-xs, 12px)", fontFamily: "monospace", color: "var(--color-text-secondary, #475569)" }}>
                           {varKey}
                         </label>
                         <input
@@ -214,11 +214,11 @@ export default function EmailTemplatesSettingsPage() {
                           onChange={(e) => handleVariableChange(varKey, e.target.value)}
                           style={{
                             width: "100%",
-                            padding: "6px 10px",
+                            padding: "var(--space-1-5, 6px) var(--space-2-5, 10px)",
                             fontSize: "var(--text-xs)",
-                            borderRadius: "6px",
+                            borderRadius: "var(--radius-md, 6px)",
                             border: "1px solid var(--color-border, #cbd5e1)",
-                            background: "#ffffff",
+                            background: "var(--color-bg-surface, #ffffff)",
                           }}
                         />
                       </div>
@@ -244,17 +244,17 @@ export default function EmailTemplatesSettingsPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 {/* Viewport & View Mode Bar */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--color-border, #e2e8f0)", paddingBottom: "var(--space-2)" }}>
-                  <div style={{ display: "flex", gap: "4px" }}>
+                  <div style={{ display: "flex", gap: "var(--space-1, 4px)" }}>
                     <button
                       onClick={() => setPreviewTab("html")}
                       style={{
-                        padding: "4px 10px",
-                        fontSize: "12px",
+                        padding: "var(--space-1, 4px) var(--space-2-5, 10px)",
+                        fontSize: "var(--text-xs, 12px)",
                         fontWeight: previewTab === "html" ? 600 : 400,
                         border: "none",
-                        background: previewTab === "html" ? "#dbeafe" : "transparent",
-                        color: previewTab === "html" ? "#1d4ed8" : "#64748b",
-                        borderRadius: "4px",
+                        background: previewTab === "html" ? "var(--color-brand-subtle, #dbeafe)" : "transparent",
+                        color: previewTab === "html" ? "var(--color-brand-emphasis, #1d4ed8)" : "var(--color-text-secondary, #64748b)",
+                        borderRadius: "var(--radius-sm, 4px)",
                         cursor: "pointer",
                       }}
                     >
@@ -263,13 +263,13 @@ export default function EmailTemplatesSettingsPage() {
                     <button
                       onClick={() => setPreviewTab("text")}
                       style={{
-                        padding: "4px 10px",
-                        fontSize: "12px",
+                        padding: "var(--space-1, 4px) var(--space-2-5, 10px)",
+                        fontSize: "var(--text-xs, 12px)",
                         fontWeight: previewTab === "text" ? 600 : 400,
                         border: "none",
-                        background: previewTab === "text" ? "#dbeafe" : "transparent",
-                        color: previewTab === "text" ? "#1d4ed8" : "#64748b",
-                        borderRadius: "4px",
+                        background: previewTab === "text" ? "var(--color-brand-subtle, #dbeafe)" : "transparent",
+                        color: previewTab === "text" ? "var(--color-brand-emphasis, #1d4ed8)" : "var(--color-text-secondary, #64748b)",
+                        borderRadius: "var(--radius-sm, 4px)",
                         cursor: "pointer",
                       }}
                     >
@@ -277,16 +277,16 @@ export default function EmailTemplatesSettingsPage() {
                     </button>
                   </div>
 
-                  <div style={{ display: "flex", gap: "4px" }}>
+                  <div style={{ display: "flex", gap: "var(--space-1, 4px)" }}>
                     <button
                       onClick={() => setViewportMode("desktop")}
                       style={{
-                        padding: "4px",
+                        padding: "var(--space-1, 4px)",
                         border: "none",
-                        background: viewportMode === "desktop" ? "#e2e8f0" : "transparent",
-                        borderRadius: "4px",
+                        background: viewportMode === "desktop" ? "var(--color-bg-subtle, #e2e8f0)" : "transparent",
+                        borderRadius: "var(--radius-sm, 4px)",
                         cursor: "pointer",
-                        color: "#475569",
+                        color: "var(--color-text-secondary, #475569)",
                       }}
                       title="Desktop View (600px)"
                     >
@@ -295,12 +295,12 @@ export default function EmailTemplatesSettingsPage() {
                     <button
                       onClick={() => setViewportMode("mobile")}
                       style={{
-                        padding: "4px",
+                        padding: "var(--space-1, 4px)",
                         border: "none",
-                        background: viewportMode === "mobile" ? "#e2e8f0" : "transparent",
-                        borderRadius: "4px",
+                        background: viewportMode === "mobile" ? "var(--color-bg-subtle, #e2e8f0)" : "transparent",
+                        borderRadius: "var(--radius-sm, 4px)",
                         cursor: "pointer",
-                        color: "#475569",
+                        color: "var(--color-text-secondary, #475569)",
                       }}
                       title="Mobile View (360px)"
                     >
@@ -315,23 +315,23 @@ export default function EmailTemplatesSettingsPage() {
                     style={{
                       display: "flex",
                       justifyContent: "center",
-                      background: "#f1f5f9",
-                      padding: "16px",
-                      borderRadius: "8px",
-                      minHeight: "520px",
+                      background: "var(--color-bg-subtle, #f1f5f9)",
+                      padding: "var(--space-4, 16px)",
+                      borderRadius: "var(--radius-md, 8px)",
+                      minHeight: "32.5rem",
                     }}
                   >
                     <iframe
                       srcDoc={renderedHtml}
                       title="Email Preview"
                       style={{
-                        width: viewportMode === "desktop" ? "100%" : "360px",
-                        maxWidth: "600px",
-                        height: "580px",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: "8px",
-                        backgroundColor: "#ffffff",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        width: viewportMode === "desktop" ? "100%" : "var(--space-90, 360px)",
+                        maxWidth: "var(--space-150, 600px)",
+                        height: "36.25rem",
+                        border: "1px solid var(--color-border, #cbd5e1)",
+                        borderRadius: "var(--radius-md, 8px)",
+                        backgroundColor: "var(--color-bg-surface, #ffffff)",
+                        boxShadow: "var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1))",
                         transition: "width 0.2s ease",
                       }}
                     />
@@ -340,16 +340,16 @@ export default function EmailTemplatesSettingsPage() {
                   <pre
                     style={{
                       margin: 0,
-                      padding: "16px",
-                      background: "#0f172a",
-                      color: "#f8fafc",
-                      borderRadius: "8px",
-                      fontSize: "12px",
+                      padding: "var(--space-4, 16px)",
+                      background: "var(--color-bg-inverse, #0f172a)",
+                      color: "var(--color-text-inverse, #f8fafc)",
+                      borderRadius: "var(--radius-md, 8px)",
+                      fontSize: "var(--text-xs, 12px)",
                       lineHeight: 1.5,
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-all",
                       fontFamily: "monospace",
-                      minHeight: "400px",
+                      minHeight: "25rem",
                     }}
                   >
                     {renderedText || "Plain text view will generate upon preview update."}

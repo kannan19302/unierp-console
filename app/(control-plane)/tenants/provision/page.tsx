@@ -55,20 +55,49 @@ export default function ProvisionTenantPage() {
     );
   }
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (step === 0) {
+      if (!formData.name.trim() || formData.name.trim().length < 2) {
+        newErrors.name = "Tenant name must have at least 2 characters.";
+      }
+    } else if (step === 1) {
+      if (!formData.ownerEmail.trim() || !formData.ownerEmail.includes("@")) {
+        newErrors.ownerEmail = "Please enter a valid administrator email address.";
+      }
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleNext = () => {
-    setActiveStep((s) => Math.min(s + 1, 2));
+    if (validateStep(activeStep)) {
+      setActiveStep((s) => Math.min(s + 1, 2));
+    }
   };
 
   const handleBack = () => {
+    setErrors({});
     setActiveStep((s) => Math.max(s - 1, 0));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.justification.trim()) {
+      setErrors({ justification: "Compliance justification is mandatory." });
+      return;
+    }
     try {
       const res = await provision.run(formData);
+      const newId = (res as any)?.tenant?.id || (res as any)?.id;
       toast.success("Tenant Provisioned", `Tenant "${formData.name}" successfully created.`);
-      router.push("/tenants/directory");
+      if (newId) {
+        router.push(`/tenants/directory/${newId}`);
+      } else {
+        router.push("/tenants/directory");
+      }
     } catch (err: any) {
       toast.error("Provisioning Failed", err.message || "Failed to provision tenant.");
     }
@@ -104,11 +133,14 @@ export default function ProvisionTenantPage() {
                 {activeStep === 0 && (
                   <FormSection title="Tenant Basics" description="The core identity and location of the new environment." collapsible={false}>
                     <div className={styles.formGroup}>
-                      <FormField label="Tenant Name" htmlFor="tenantName" required>
+                      <FormField label="Tenant Name" htmlFor="tenantName" required error={errors.name}>
                         <Input 
                           id="tenantName" 
                           value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, name: e.target.value });
+                            if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+                          }}
                           placeholder="Acme Corp" 
                           required 
                         />
@@ -142,12 +174,15 @@ export default function ProvisionTenantPage() {
                           <option value="ENTERPRISE">Enterprise</option>
                         </Select>
                       </FormField>
-                      <FormField label="Initial Owner Email" htmlFor="ownerEmail" required hint="This user will receive an invite to complete setup.">
+                      <FormField label="Initial Owner Email" htmlFor="ownerEmail" required hint="This user will receive an invite to complete setup." error={errors.ownerEmail}>
                         <Input 
                           id="ownerEmail" 
                           type="email"
                           value={formData.ownerEmail}
-                          onChange={(e) => setFormData({ ...formData, ownerEmail: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, ownerEmail: e.target.value });
+                            if (errors.ownerEmail) setErrors((prev) => ({ ...prev, ownerEmail: "" }));
+                          }}
                           placeholder="admin@acme.com" 
                           required 
                         />
@@ -176,11 +211,14 @@ export default function ProvisionTenantPage() {
                         <span className={styles.reviewValue}>{formData.ownerEmail || "—"}</span>
                       </div>
                       
-                      <FormField label="Justification (Audit)" htmlFor="auditJustification" required hint="Required for compliance logging.">
+                      <FormField label="Justification (Audit)" htmlFor="auditJustification" required hint="Required for compliance logging." error={errors.justification}>
                         <Input 
                           id="auditJustification"
                           value={formData.justification}
-                          onChange={(e) => setFormData({ ...formData, justification: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, justification: e.target.value });
+                            if (errors.justification) setErrors((prev) => ({ ...prev, justification: "" }));
+                          }}
                           placeholder="JIRA-123: Customer requested via sales channel" 
                           required 
                         />

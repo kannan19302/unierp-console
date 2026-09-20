@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X } from "lucide-react";
 import { FormField } from "./FormField";
 import { validateForm, type FieldDef } from "../lib/form-validation";
+export type { FieldDef };
 import type { z } from "zod";
 import styles from "./CrudDrawer.module.css";
 
@@ -183,18 +184,7 @@ export function CrudDrawer({
 
         <form onSubmit={handleSubmit} noValidate className={styles.body}>
           {errors._root && (
-            <div
-              style={{
-                padding: "var(--space-3, 12px)",
-                marginBottom: "var(--space-4, 16px)",
-                backgroundColor: "#fef2f2",
-                border: "1px solid #fecaca",
-                color: "var(--color-danger, #dc2626)",
-                borderRadius: "var(--radius-md, 6px)",
-                fontSize: "var(--text-sm, 14px)",
-              }}
-              role="alert"
-            >
+            <div className={styles.rootError} role="alert">
               {errors._root}
             </div>
           )}

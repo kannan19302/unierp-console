@@ -18,7 +18,7 @@ export default function NotFound() {
           It may have been moved or the URL is incorrect.
         </p>
         <div className={styles.actions}>
-          <Link href="/" className={styles.homeLink} style={{ background: "var(--color-primary)", color: "#fff", border: "none" }}>
+          <Link href="/" className={styles.homeLink} style={{ background: "var(--color-primary)", color: "var(--color-white, #ffffff)", border: "none" }}>
             Go to Overview
           </Link>
         </div>

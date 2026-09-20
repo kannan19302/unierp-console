@@ -16,6 +16,8 @@ export interface FilterConfig {
   options: FilterOption[];
 }
 
+export type FilterDef = FilterConfig;
+
 export interface FilterBarProps {
   filters?: FilterConfig[];
   activeFilters?: Record<string, string>;

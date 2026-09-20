@@ -111,11 +111,11 @@ export function CredentialEditCard({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "4px",
+              gap: "var(--space-1, 4px)",
               background: "transparent",
               border: "1px solid var(--color-border, #e2e8f0)",
-              borderRadius: "6px",
-              padding: "4px 8px",
+              borderRadius: "var(--radius-md, 6px)",
+              padding: "var(--space-1, 4px) var(--space-2, 8px)",
               fontSize: "var(--text-xs)",
               color: "var(--color-text-secondary, #64748b)",
               cursor: "pointer",
@@ -129,13 +129,13 @@ export function CredentialEditCard({
       </div>
 
       {error && (
-        <div style={{ padding: "8px 12px", background: "var(--color-danger-bg, #fef2f2)", border: "1px solid var(--color-danger-border, #fecaca)", borderRadius: "6px", color: "var(--color-danger, #ef4444)", fontSize: "var(--text-xs)", marginBottom: "var(--space-3)" }}>
+        <div style={{ padding: "var(--space-2, 8px) var(--space-3, 12px)", background: "var(--color-danger-bg, #fef2f2)", border: "1px solid var(--color-danger-border, #fecaca)", borderRadius: "var(--radius-md, 6px)", color: "var(--color-danger, #ef4444)", fontSize: "var(--text-xs)", marginBottom: "var(--space-3)" }}>
           {error}
         </div>
       )}
 
       {success && (
-        <div style={{ padding: "8px 12px", background: "var(--color-success-bg, #ecfdf5)", border: "1px solid var(--color-success-border, #a7f3d0)", borderRadius: "6px", color: "var(--color-success, #10b981)", fontSize: "var(--text-xs)", marginBottom: "var(--space-3)", display: "flex", alignItems: "center", gap: "6px" }}>
+        <div style={{ padding: "var(--space-2, 8px) var(--space-3, 12px)", background: "var(--color-success-bg, #ecfdf5)", border: "1px solid var(--color-success-border, #a7f3d0)", borderRadius: "var(--radius-md, 6px)", color: "var(--color-success, #10b981)", fontSize: "var(--text-xs)", marginBottom: "var(--space-3)", display: "flex", alignItems: "center", gap: "var(--space-1-5, 6px)" }}>
           <Check size={14} /> Credentials saved securely.
         </div>
       )}
@@ -145,11 +145,11 @@ export function CredentialEditCard({
           {(provider.fields ?? []).map((f) => {
             const isVisible = showSensitive[f.key] || false;
             return (
-              <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: "var(--space-1, 4px)" }}>
                 <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-text-primary, #0f172a)" }}>
                   {f.label ?? f.key}
                   {f.sensitive && (
-                    <span style={{ marginLeft: "4px", color: "var(--color-text-muted, #94a3b8)", fontWeight: 400 }}>
+                    <span style={{ marginLeft: "var(--space-1, 4px)", color: "var(--color-text-muted, #94a3b8)", fontWeight: 400 }}>
                       (encrypted at rest)
                     </span>
                   )}
@@ -169,10 +169,10 @@ export function CredentialEditCard({
                     }
                     style={{
                       width: "100%",
-                      padding: "8px 12px",
-                      paddingRight: f.sensitive ? "36px" : "12px",
+                      padding: "var(--space-2, 8px) var(--space-3, 12px)",
+                      paddingRight: f.sensitive ? "var(--space-9, 36px)" : "var(--space-3, 12px)",
                       fontSize: "var(--text-sm)",
-                      borderRadius: "6px",
+                      borderRadius: "var(--radius-md, 6px)",
                       border: "1px solid var(--color-border, #cbd5e1)",
                       background: "var(--color-bg-surface, #ffffff)",
                       color: "var(--color-text-primary, #0f172a)",
@@ -187,12 +187,12 @@ export function CredentialEditCard({
                       }
                       style={{
                         position: "absolute",
-                        right: "8px",
+                        right: "var(--space-2, 8px)",
                         background: "none",
                         border: "none",
                         color: "var(--color-text-secondary, #64748b)",
                         cursor: "pointer",
-                        padding: "4px",
+                        padding: "var(--space-1, 4px)",
                       }}
                       aria-label={isVisible ? "Hide secret" : "Show secret"}
                     >

@@ -182,11 +182,34 @@ export function useCrud<T extends { id: string | number }>({
     },
     setSearchQuery,
     setFilters,
+    setFilter: (key: string, value: string) => {
+      setFilters((prev) => {
+        const next = { ...prev };
+        if (!value) delete next[key];
+        else next[key] = value;
+        return next;
+      });
+    },
     reload,
     openCreate,
     openEdit,
     closeDrawer,
     handleSave,
+    handleUpdate: async (id: string | number, data: Record<string, any>) => {
+      setIsMutating(true);
+      try {
+        const updated = await adapter.update(id, data as Partial<T>);
+        setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
+        toast.success(`${entityName} updated successfully`);
+        await reload();
+        return updated;
+      } catch (err: any) {
+        toast.error(err?.message || `Failed to update ${entityName}`, "Update Failed");
+        throw err;
+      } finally {
+        setIsMutating(false);
+      }
+    },
     handleDelete,
   };
 }

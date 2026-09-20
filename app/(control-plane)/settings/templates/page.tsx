@@ -70,17 +70,17 @@ export default function TemplatesSettingsPage() {
       description="Reporting templates available across the platform."
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-bg-subtle, #f8fafc)", padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--color-border, #e2e8f0)", flexWrap: "wrap", gap: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--color-bg-subtle, #f8fafc)", padding: "var(--space-3, 12px) var(--space-4, 16px)", borderRadius: "var(--radius-md, 8px)", border: "1px solid var(--color-border, #e2e8f0)", flexWrap: "wrap", gap: "var(--space-3, 12px)" }}>
           <div>
             <span style={{ fontWeight: 600, fontSize: "var(--text-sm)", color: "var(--color-text-primary)" }}>
               System Transactional Email Templates
             </span>
-            <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+            <p style={{ margin: "var(--space-0-5, 2px) 0 0", fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
               Preview and configure authentication, email verification, welcome, and security email templates.
             </p>
           </div>
           <Link href="/settings/templates/email" style={{ textDecoration: "none" }}>
-            <Button variant="outline" size="sm" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <Button variant="outline" size="sm" style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1-5, 6px)" }}>
               <Mail size={14} />
               <span>Manage Email Templates &rarr;</span>
             </Button>
