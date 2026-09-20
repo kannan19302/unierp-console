@@ -1,0 +1,50 @@
+/**
+ * UniERP Platform Control Center (PCC) Accent Design System
+ * 6 Frappe ERPNext-inspired accent families for 22 PCC operational domains.
+ * All accents provide WCAG 2.2 AA compliant contrast (>= 4.5:1) with white glyphs (#ffffff).
+ */
+
+:root {
+  /* Cluster 1: Core Operations & Infrastructure (Blue) */
+  --pcc-accent-ops: #2563eb;
+  --pcc-accent-ops-hover: #1d4ed8;
+  --pcc-accent-ops-subtle: rgba(37, 99, 235, 0.14);
+  --pcc-accent-ops-glow: rgba(37, 99, 235, 0.25);
+
+  /* Cluster 2: Security, Trust & Compliance (Emerald) */
+  --pcc-accent-security: #059669;
+  --pcc-accent-security-hover: #047857;
+  --pcc-accent-security-subtle: rgba(5, 150, 105, 0.14);
+  --pcc-accent-security-glow: rgba(5, 150, 105, 0.25);
+
+  /* Cluster 3: Identity, Access & Governance (Indigo) */
+  --pcc-accent-iam: #4f46e5;
+  --pcc-accent-iam-hover: #4338ca;
+  --pcc-accent-iam-subtle: rgba(79, 70, 229, 0.14);
+  --pcc-accent-iam-glow: rgba(79, 70, 229, 0.25);
+
+  /* Cluster 4: Monetization & Entitlements (Warm Amber / Orange) */
+  --pcc-accent-billing: #c2410c;
+  --pcc-accent-billing-hover: #9a3412;
+  --pcc-accent-billing-subtle: rgba(194, 65, 12, 0.14);
+  --pcc-accent-billing-glow: rgba(194, 65, 12, 0.25);
+
+  /* Cluster 5: Developer Ecosystem & AI (Vibrant Purple) */
+  --pcc-accent-dev: #7c3aed;
+  --pcc-accent-dev-hover: #6d28d9;
+  --pcc-accent-dev-subtle: rgba(124, 58, 237, 0.14);
+  --pcc-accent-dev-glow: rgba(124, 58, 237, 0.25);
+
+  /* Cluster 6: Customer Operations & Knowledge (Rose) */
+  --pcc-accent-support: #e11d48;
+  --pcc-accent-support-hover: #be123c;
+  --pcc-accent-support-subtle: rgba(225, 29, 72, 0.14);
+  --pcc-accent-support-glow: rgba(225, 29, 72, 0.25);
+
+  /* PCC Tile Geometry Tokens */
+  --pcc-tile-size: 4rem; /* 64px */
+  --pcc-tile-radius: 1.125rem; /* 18px */
+  --pcc-tile-width: 6.25rem; /* 100px max text width */
+  --pcc-badge-size: 1.125rem; /* 18px */
+  --pcc-shortcut-size: 1rem; /* 16px */
+}

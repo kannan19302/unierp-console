@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@kannan19302/ui/styles";
 import "@kannan19302/ui/styles.css";
+import "@/tokens/pcc-accents.css";
 import { ThemeProvider } from "@kannan19302/ui/theme";
 import { ToastProvider } from "@kannan19302/ui/notifications";
 import { ToastProvider as ProviderAdminToastProvider } from "@/components/ToastProvider";

@@ -285,6 +285,21 @@ export function SidebarNavigation({
           <div className={styles.sectionGroup}>
             <div className={styles.sectionHeader}>WORKSPACE</div>
 
+            {/* Home Launcher */}
+            <Link
+              href="/home"
+              aria-current={pathname === "/home" ? "page" : undefined}
+              className={`${styles.navItem} ${pathname === "/home" ? styles.navItemActive : ""}`}
+              onClick={() => {
+                if (isMobile) setSidebarOpen(false);
+              }}
+            >
+              <div className={styles.navItemLeft}>
+                <LayoutGrid size={15} className={styles.navItemIcon} />
+                <span>Home Launcher</span>
+              </div>
+            </Link>
+
             {/* Overview Root Item */}
             <Link
               href="/overview"

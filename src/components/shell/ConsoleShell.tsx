@@ -384,57 +384,59 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
         )}
 
         {/* Sidebar Container */}
-        <aside
-          id="provider-navigation"
-          inert={!isExpanded}
-          aria-hidden={!isExpanded}
-          className={`${styles.sidebar} ${!isExpanded ? styles.sidebarCollapsed : ""}`}
-        >
-          <div className={styles.sidebarInner}>
-            <SidebarHeader
-              onCollapse={() => {
-                handleSetCollapsed(true);
-                setSidebarOpen(false);
-              }}
-            />
+        {pathname !== "/home" && (
+          <aside
+            id="provider-navigation"
+            inert={!isExpanded}
+            aria-hidden={!isExpanded}
+            className={`${styles.sidebar} ${!isExpanded ? styles.sidebarCollapsed : ""}`}
+          >
+            <div className={styles.sidebarInner}>
+              <SidebarHeader
+                onCollapse={() => {
+                  handleSetCollapsed(true);
+                  setSidebarOpen(false);
+                }}
+              />
 
-            <SidebarSearch
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              searchInputRef={searchInputRef}
-            />
+              <SidebarSearch
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                searchInputRef={searchInputRef}
+              />
 
-            <SidebarNavigation
-              pathname={pathname}
-              cleanQuery={cleanQuery}
-              searchQuery={searchQuery}
-              filteredSearchResults={filteredSearchResults}
-              starredItems={starredItems}
-              domainApps={domainApps}
-              expandedApps={expandedApps}
-              isConnected={isConnected}
-              isMobile={isMobile}
-              hasActiveIncident={hasActiveIncident}
-              setSearchQuery={setSearchQuery}
-              setSidebarOpen={setSidebarOpen}
-              toggleAppExpanded={toggleAppExpanded}
-              openNavContextMenu={openNavContextMenu}
-              renderMoreButton={renderMoreButton}
-            />
+              <SidebarNavigation
+                pathname={pathname}
+                cleanQuery={cleanQuery}
+                searchQuery={searchQuery}
+                filteredSearchResults={filteredSearchResults}
+                starredItems={starredItems}
+                domainApps={domainApps}
+                expandedApps={expandedApps}
+                isConnected={isConnected}
+                isMobile={isMobile}
+                hasActiveIncident={hasActiveIncident}
+                setSearchQuery={setSearchQuery}
+                setSidebarOpen={setSidebarOpen}
+                toggleAppExpanded={toggleAppExpanded}
+                openNavContextMenu={openNavContextMenu}
+                renderMoreButton={renderMoreButton}
+              />
 
-            <SidebarFooter
-              displayName={displayName}
-              initial={initial}
-              onSignOut={() => {
-                void fetch("/api/session", { method: "DELETE", credentials: "include" });
-                signOut();
-              }}
-            />
-          </div>
-        </aside>
+              <SidebarFooter
+                displayName={displayName}
+                initial={initial}
+                onSignOut={() => {
+                  void fetch("/api/session", { method: "DELETE", credentials: "include" });
+                  signOut();
+                }}
+              />
+            </div>
+          </aside>
+        )}
 
         {/* Docked Edge Expand Button when collapsed */}
-        {!isExpanded && (
+        {pathname !== "/home" && !isExpanded && (
           <button
             type="button"
             onClick={() => {
@@ -460,7 +462,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             initial={initial}
           />
 
-          <Breadcrumbs crumbs={crumbs} scope="manage" />
+          {pathname !== "/home" && <Breadcrumbs crumbs={crumbs} scope="manage" />}
 
           {ticker && (
             <div className={styles.outageTicker}>

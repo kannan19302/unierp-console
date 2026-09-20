@@ -27,6 +27,7 @@ import {
   BookOpen,
   Brain,
   Layers,
+  LayoutGrid,
 } from "lucide-react";
 import type { AppManifest, AppClusterId } from "./types";
 

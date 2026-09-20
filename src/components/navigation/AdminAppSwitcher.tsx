@@ -15,6 +15,7 @@ import {
   type AppClusterId,
   type AppManifest,
 } from "@/lib/navigation";
+import { getPccDomain } from "@/lib/pcc-registry";
 import styles from "./AdminAppSwitcher.module.css";
 
 export interface AdminAppSwitcherProps {
@@ -165,6 +166,7 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                 filteredApps.map((app) => {
                   const Icon = app.icon;
                   const isActive = pathname === app.base || pathname.startsWith(`${app.base}/`);
+                  const pccEntry = getPccDomain(app.id) || getPccDomain(app.base);
                   return (
                     <button
                       key={app.id}
@@ -172,7 +174,10 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                       onClick={() => handleLaunchApp(app)}
                       className={`${styles.appCard} ${isActive ? styles.appCardActive : ""}`}
                     >
-                      <div className={styles.appIconContainer}>
+                      <div
+                        className={styles.appIconContainer}
+                        style={pccEntry ? { backgroundColor: pccEntry.accentVar, color: "var(--color-text-inverse, #ffffff)" } : undefined}
+                      >
                         <Icon size={18} />
                       </div>
                       <div className={styles.appContent}>
@@ -195,11 +200,11 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                 Zero-Trust Multi-Tenant Governance · PostgreSQL RLS Enforced
               </span>
               <Link
-                href="/apps"
+                href="/home"
                 onClick={() => setIsOpen(false)}
                 className={styles.launchpadLink}
               >
-                <span>Central Launchpad</span>
+                <span>Home Desk Launcher</span>
                 <ArrowUpRight size={13} />
               </Link>
             </footer>

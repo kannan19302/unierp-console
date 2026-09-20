@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronLeft } from "lucide-react";
 import styles from "./shell.module.css";
 
@@ -12,14 +13,15 @@ export function SidebarHeader({ onCollapse }: SidebarHeaderProps) {
   return (
     <div className={styles.header}>
       <div className={styles.titleRow}>
-        <button
-          type="button"
+        <Link
+          href="/home"
           className={styles.workspaceSwitcherTrigger}
-          title="Switch Console"
+          title="Go to Home Launcher"
+          style={{ textDecoration: "none" }}
         >
           <span className={styles.title}>uniERP Console</span>
           <ChevronDown size={16} className={styles.chevronIcon} />
-        </button>
+        </Link>
         <button
           type="button"
           className={styles.collapseButton}
