@@ -1,0 +1,100 @@
+.wizardContainer {
+  padding: var(--space-4);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 0.5rem);
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.fieldLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.fieldInput {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md, 0.375rem);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.fieldInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-subtle, rgba(37, 99, 235, 0.2));
+}
+
+.tierGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-3);
+}
+
+.tierCard {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-surface);
+  cursor: pointer;
+  text-align: start;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.tierCardSelected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle, rgba(37, 99, 235, 0.05));
+}
+
+.tierName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.tierDesc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+.reviewSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md, 0.375rem);
+  background: var(--color-bg-muted);
+  font-size: 0.8125rem;
+}
+
+.reviewRow {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-1);
+}
+
+.reviewLabel {
+  color: var(--color-text-muted);
+}
+
+.reviewValue {
+  font-weight: 600;
+  color: var(--color-text);
+}

@@ -1,0 +1,12 @@
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.compositeWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
