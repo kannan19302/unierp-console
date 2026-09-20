@@ -1,3 +1,4 @@
+"use client";
 /**
  * Route transition loading state for the control-plane.
  * Shows a consistent skeleton while page components resolve.

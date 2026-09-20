@@ -5,32 +5,43 @@ import { X } from "lucide-react";
 import { FormField } from "./FormField";
 import { validateForm, type FieldDef } from "../lib/form-validation";
 export type { FieldDef };
+export type FormFieldDef = FieldDef;
 import type { z } from "zod";
 import styles from "./CrudDrawer.module.css";
 
 export interface CrudDrawerProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   title: string;
-  mode: "create" | "edit";
+  description?: string;
+  mode?: "create" | "edit" | "view";
   schema?: z.ZodType<any>;
-  fields: FieldDef[];
+  fields?: FieldDef[];
   initialValues?: Record<string, any>;
-  onSubmit: (values: Record<string, any>) => Promise<void> | void;
+  initialData?: Record<string, any>;
+  onSubmit?: (values: Record<string, any>) => Promise<void> | void;
   onClose: () => void;
   submitLabel?: string;
+  children?: React.ReactNode;
 }
 
 export function CrudDrawer({
   open,
+  isOpen,
   title,
-  mode,
+  description,
+  mode = "create",
   schema,
-  fields,
-  initialValues = {},
+  fields = [],
+  initialValues,
+  initialData,
   onSubmit,
   onClose,
   submitLabel,
+  children,
 }: CrudDrawerProps) {
+  const actualOpen = open ?? isOpen ?? false;
+  const effectiveInitial = initialValues ?? initialData ?? {};
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,11 +52,11 @@ export function CrudDrawer({
 
   // Initialize form data only when drawer opens
   useEffect(() => {
-    if (open && !prevOpenRef.current) {
+    if (actualOpen && !prevOpenRef.current) {
       const initial: Record<string, any> = {};
-      fields.forEach((field) => {
+      (fields || []).forEach((field) => {
         initial[field.name] =
-          initialValues?.[field.name] ??
+          effectiveInitial?.[field.name] ??
           field.defaultValue ??
           (field.type === "checkbox" ? false : "");
       });
@@ -55,15 +66,15 @@ export function CrudDrawer({
 
       // Save previously focused element
       previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
-    } else if (!open && prevOpenRef.current && previouslyFocusedRef.current) {
+    } else if (!actualOpen && prevOpenRef.current && previouslyFocusedRef.current) {
       previouslyFocusedRef.current.focus();
     }
-    prevOpenRef.current = open;
-  }, [open, initialValues, fields]);
+    prevOpenRef.current = actualOpen;
+  }, [actualOpen, fields, initialValues]);
 
   // Escape key and focus trap handler
   useEffect(() => {
-    if (!open) return;
+    if (!actualOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -109,7 +120,7 @@ export function CrudDrawer({
       window.removeEventListener("keydown", handleKeyDown);
       clearTimeout(timer);
     };
-  }, [open, isSubmitting, onClose]);
+  }, [actualOpen, isSubmitting, onClose]);
 
   const handleChange = useCallback((fieldName: string, value: any) => {
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
@@ -123,7 +134,7 @@ export function CrudDrawer({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || !onSubmit) return;
 
     // Validation
     if (schema) {
@@ -153,13 +164,13 @@ export function CrudDrawer({
   return (
     <>
       <div
-        className={`${styles.backdrop} ${open ? styles.open : ""}`}
+        className={`${styles.backdrop} ${actualOpen ? styles.open : ""}`}
         onClick={() => !isSubmitting && onClose()}
         aria-hidden="true"
       />
       <div
         ref={drawerRef}
-        className={`${styles.drawer} ${open ? styles.open : ""}`}
+        className={`${styles.drawer} ${actualOpen ? styles.open : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="crud-drawer-title"
@@ -182,59 +193,63 @@ export function CrudDrawer({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate className={styles.body}>
-          {errors._root && (
-            <div className={styles.rootError} role="alert">
-              {errors._root}
+        {children ? (
+          <div className={styles.body}>{children}</div>
+        ) : (
+          <form onSubmit={handleSubmit} noValidate className={styles.body}>
+            {errors._root && (
+              <div className={styles.rootError} role="alert">
+                {errors._root}
+              </div>
+            )}
+
+            {(fields || []).map((field) => (
+              <FormField
+                key={field.name}
+                label={field.label}
+                type={field.type || "text"}
+                name={field.name}
+                value={formData[field.name]}
+                onChange={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  const val = field.type === "checkbox" ? target.checked : target.value;
+                  handleChange(field.name, val);
+                }}
+                options={field.options}
+                placeholder={field.placeholder}
+                required={field.required}
+                disabled={isSubmitting || field.readOnly}
+                error={errors[field.name]}
+                helpText={field.helpText}
+              />
+            ))}
+
+            <div className={styles.footer}>
+              <button
+                type="button"
+                className={styles.cancelButton}
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className={styles.spinner} aria-hidden="true" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  submitLabel || defaultSubmitLabel
+                )}
+              </button>
             </div>
-          )}
-
-          {fields.map((field) => (
-            <FormField
-              key={field.name}
-              label={field.label}
-              type={field.type || "text"}
-              name={field.name}
-              value={formData[field.name]}
-              onChange={(e) => {
-                const target = e.target as HTMLInputElement;
-                const val = field.type === "checkbox" ? target.checked : target.value;
-                handleChange(field.name, val);
-              }}
-              options={field.options}
-              placeholder={field.placeholder}
-              required={field.required}
-              disabled={isSubmitting || field.readOnly}
-              error={errors[field.name]}
-              helpText={field.helpText}
-            />
-          ))}
-
-          <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.cancelButton}
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className={styles.spinner} aria-hidden="true" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                submitLabel || defaultSubmitLabel
-              )}
-            </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
     </>
   );

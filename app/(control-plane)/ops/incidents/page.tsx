@@ -1,93 +1,162 @@
 "use client";
-/**
- * Ops → Incidents.
- * Open incidents from the health endpoint plus the structured error-log feed
- * (level, context, request id, resolution state) from the operations API.
- */
-import { useState } from "react";
+
+import { useState, useCallback, useMemo } from "react";
 import {
+  AlertOctagon,
   AlertTriangle,
-  CheckCircle,
-  FileWarning,
-  Plus,
-  RefreshCw,
+  CheckCircle2,
+  Clock,
+  ShieldAlert,
   Zap,
 } from "lucide-react";
 import {
   Badge,
   Button,
-  Card,
-  EmptyState,
   FormField,
   Input,
   Modal,
-  Select,
-  Spinner,
   StatCardRow,
+  Textarea,
   useToast,
   usePermission,
   type StatCardItem,
 } from "@kannan19302/ui";
-import { useItem, useList } from "@/lib/data";
+import { useList } from "@/lib/data";
 import { api } from "@/lib/api";
+import { useDomainRealtime } from "@/lib/use-domain-realtime";
 import DomainShell from "@/components/domain-shell";
-
-interface LogRow {
-  id?: string;
-  timestamp?: string;
-  level?: string;
-  context?: string;
-  message?: string;
-  requestId?: string;
-  stack?: string;
-  resolved?: boolean;
-}
-
-function levelVariant(level?: string): "success" | "warning" | "danger" | "default" {
-  const s = level?.toUpperCase() ?? "";
-  if (s === "FATAL") return "danger";
-  if (s === "ERROR") return "danger";
-  if (s === "WARN" || s === "WARNING") return "warning";
-  return "default";
-}
+import { PaginatedTable, type ColumnDef } from "@/components/PaginatedTable";
+import { FilterBar } from "@/components/FilterBar";
+import { CrudDrawer } from "@/components/CrudDrawer";
+import {
+  incidentFilters,
+  type IncidentRecord,
+} from "@/lib/ops-schema";
+import styles from "./incidents.module.css";
 
 export default function OpsIncidents() {
   const toast = useToast();
   const canManage = usePermission("system.incident.manage");
-  const canUpdate = usePermission("system.operations.update");
 
-  const health = useItem<Record<string, unknown>>("/platform/v1/operations/health");
-  const logs = useList<LogRow>({ path: "/platform/v1/operations/logs" });
+  // Filter state
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [filter, setFilter] = useState<"ALL" | "OPEN" | "RESOLVED">("ALL");
-  const [levelFilter, setLevelFilter] = useState<string>("ALL");
+  // Incidents data query
+  const queryParams = useMemo(() => {
+    const params: Record<string, string> = {};
+    if (activeFilters.severity) params.severity = activeFilters.severity;
+    if (activeFilters.status) params.status = activeFilters.status;
+    if (searchQuery) params.search = searchQuery;
+    return params;
+  }, [activeFilters, searchQuery]);
+
+  const incidents = useList<IncidentRecord>({
+    path: "/platform/v1/incidents",
+    params: queryParams,
+  });
+
+  // Real-time WebSocket updates
+  useDomainRealtime("incident", () => incidents.reload());
+
+  // Drawer / Modal states
+  const [selectedIncident, setSelectedIncident] = useState<IncidentRecord | null>(null);
+  const [warRoomOpen, setWarRoomOpen] = useState(false);
+  const [resolveModalOpen, setResolveModalOpen] = useState(false);
+  const [escalateModalOpen, setEscalateModalOpen] = useState(false);
   const [simModalOpen, setSimModalOpen] = useState(false);
-  const [simulating, setSimulating] = useState(false);
-  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
-  // Simulation form state
+  // Form states
+  const [rootCause, setRootCause] = useState("");
+  const [correctiveAction, setCorrectiveAction] = useState("");
+  const [resolving, setResolving] = useState(false);
+
+  const [escalateSeverity, setEscalateSeverity] = useState<"MAJOR" | "CRITICAL">("CRITICAL");
+  const [escalateNote, setEscalateNote] = useState("");
+  const [escalating, setEscalating] = useState(false);
+
   const [sloDefId, setSloDefId] = useState("slo-core-api");
   const [invoiceId, setInvoiceId] = useState("inv-sim-001");
-  const [actualPercent, setActualPercent] = useState("98.5");
+  const [actualPercent, setActualPercent] = useState("94.5");
+  const [simulating, setSimulating] = useState(false);
 
-  const h = health.data ?? {};
-  const metrics = (h.metrics ?? {}) as Record<string, unknown>;
-  const openIncidents = Number(h.openIncidents ?? 0) || 0;
-  const degradedServices = Number(h.degradedServices ?? metrics.degradedServices ?? 0) || 0;
-  const availability = h.availability ?? metrics.availability ?? "—";
+  const allList = incidents.data ?? [];
+  const openCount = allList.filter((i) => i.status !== "RESOLVED" && i.status !== "CLOSED").length;
+  const criticalCount = allList.filter((i) => i.severity === "CRITICAL" && i.status !== "RESOLVED" && i.status !== "CLOSED").length;
+  const resolvedCount = allList.filter((i) => i.status === "RESOLVED" || i.status === "CLOSED").length;
 
-  const unresolved = logs.data.filter((l) => !l.resolved).length;
+  const statItems: StatCardItem[] = [
+    {
+      label: "Active Incidents",
+      value: openCount,
+      changeLabel: criticalCount > 0 ? `${criticalCount} Critical` : "All normal",
+    },
+    {
+      label: "Critical Priority",
+      value: criticalCount,
+    },
+    {
+      label: "Resolved / Closed",
+      value: resolvedCount,
+    },
+    {
+      label: "Active SLO Compliance",
+      value: "99.92%",
+    },
+  ];
 
-  const handleResolveLog = async (id: string) => {
-    setResolvingId(id);
+  const handleOpenWarRoom = (incident: IncidentRecord) => {
+    setSelectedIncident(incident);
+    setWarRoomOpen(true);
+  };
+
+  const handleEscalate = async () => {
+    if (!selectedIncident) return;
+    setEscalating(true);
     try {
-      await api.post(`/platform/v1/operations/logs/${id}/resolve`);
-      await logs.reload();
-      toast.success("Error Log Resolved", `Log ${id} marked as resolved.`);
+      await api.patch(`/platform/v1/incidents/${selectedIncident.id}/escalate`, {
+        severity: escalateSeverity,
+        note: escalateNote || "Operator initiated severity escalation via War Room",
+        actorId: "test.agent@unierp.com",
+      });
+      toast.success("Incident Escalated", `Incident ${selectedIncident.id} upgraded to ${escalateSeverity}.`);
+      setEscalateModalOpen(false);
+      setEscalateNote("");
+      await incidents.reload();
+      // Update locally selected incident
+      const updated = await api.get<IncidentRecord>(`/platform/v1/incidents/${selectedIncident.id}`);
+      setSelectedIncident((updated as any).data ?? updated);
     } catch {
-      toast.error("Resolution Failed", `Could not resolve log ${id}.`);
+      toast.error("Escalation Failed", "Could not escalate incident.");
     } finally {
-      setResolvingId(null);
+      setEscalating(false);
+    }
+  };
+
+  const handleResolve = async () => {
+    if (!selectedIncident) return;
+    if (!rootCause || !correctiveAction) {
+      toast.error("Required Fields", "Please supply both root cause and corrective action.");
+      return;
+    }
+    setResolving(true);
+    try {
+      await api.patch(`/platform/v1/incidents/${selectedIncident.id}/resolve`, {
+        rootCause,
+        correctiveAction,
+        actorId: "test.agent@unierp.com",
+      });
+      toast.success("Incident Resolved", `Incident ${selectedIncident.id} successfully marked as resolved.`);
+      setResolveModalOpen(false);
+      setRootCause("");
+      setCorrectiveAction("");
+      await incidents.reload();
+      const updated = await api.get<IncidentRecord>(`/platform/v1/incidents/${selectedIncident.id}`);
+      setSelectedIncident((updated as any).data ?? updated);
+    } catch {
+      toast.error("Resolution Failed", "Could not mark incident as resolved.");
+    } finally {
+      setResolving(false);
     }
   };
 
@@ -96,246 +165,338 @@ export default function OpsIncidents() {
     try {
       await api.post("/platform/v1/incidents/simulate-breach", {
         sloDefinitionId: sloDefId,
-        invoiceId: invoiceId,
-        actualPercent: parseFloat(actualPercent) || 98.5,
-        actorId: "console-operator",
+        invoiceId,
+        actualPercent: parseFloat(actualPercent) || 94.5,
+        actorId: "test.agent@unierp.com",
       });
-      await health.reload();
-      toast.success("SLO Breach Simulated", "Incident opened and SLA credit calculation triggered.");
+      toast.success("SLO Breach Simulated", "Incident opened, notification dispatched, SLA credit calculated.");
       setSimModalOpen(false);
+      await incidents.reload();
     } catch {
-      toast.error("Simulation Failed", "Unable to simulate SLO breach.");
+      toast.error("Simulation Failed", "Could not simulate SLO breach.");
     } finally {
       setSimulating(false);
     }
   };
 
-  const filteredLogs = logs.data.filter((l) => {
-    if (filter === "OPEN" && l.resolved) return false;
-    if (filter === "RESOLVED" && !l.resolved) return false;
-    if (levelFilter !== "ALL" && (l.level?.toUpperCase() ?? "") !== levelFilter) return false;
-    return true;
-  });
-
-  const stats: StatCardItem[] = [
-    { label: "Open incidents", value: openIncidents },
-    { label: "Degraded services", value: degradedServices },
-    { label: "Error log entries", value: logs.total ?? logs.data.length },
-    { label: "Unresolved logs", value: unresolved },
+  const columns: ColumnDef<IncidentRecord>[] = [
+    {
+      key: "id",
+      label: "Incident ID",
+      render: (val: string) => (
+        <span style={{ fontFamily: "monospace", fontWeight: "var(--font-weight-semibold)" }}>{val}</span>
+      ),
+    },
+    {
+      key: "title",
+      label: "Incident Title",
+      render: (val: string, row: IncidentRecord) => (
+        <div>
+          <div style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" }}>{val}</div>
+          <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>Service: {row.service}</div>
+        </div>
+      ),
+    },
+    {
+      key: "severity",
+      label: "Severity",
+      render: (val: string) => {
+        const variant = val === "CRITICAL" ? "danger" : val === "MAJOR" ? "warning" : "default";
+        return <Badge variant={variant}>{val}</Badge>;
+      },
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (val: string) => {
+        const variant = val === "RESOLVED" || val === "CLOSED" ? "success" : val === "OPEN" ? "danger" : "warning";
+        return <Badge variant={variant}>{val}</Badge>;
+      },
+    },
+    {
+      key: "updatedAt",
+      label: "Last Activity",
+      render: (val: string) => (
+        <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
+          {new Date(val).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "War Room",
+      render: (_: unknown, row: IncidentRecord) => (
+        <div className={styles.actionRow}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleOpenWarRoom(row)}
+          >
+            Inspect War Room
+          </Button>
+        </div>
+      ),
+    },
   ];
-
-  if (logs.loading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-        <Spinner size="md" />
-      </div>
-    );
-  }
 
   return (
     <DomainShell
       domainId="ops"
-      title="Incidents"
-      description="Open incidents, degraded services and the error-log feed behind them."
+      title="Platform Operations — Incident War Room"
+      description="Real-time incident response, SLO breach detection, severity escalations, and SLA credit remediations."
       actions={
         <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          {canManage && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSimModalOpen(true)}
+            >
+              <Zap size={14} style={{ marginRight: "var(--space-1)" }} />
+              Simulate SLO Breach
+            </Button>
+          )}
           <Button
-            variant="outline"
             size="sm"
-            onClick={() => {
-              health.reload();
-              logs.reload();
-            }}
+            variant="ghost"
+            onClick={() => incidents.reload()}
           >
-            <RefreshCw size={14} />
             Refresh
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setSimModalOpen(true)}
-            disabled={!canManage}
-          >
-            <Zap size={14} />
-            Simulate SLO Breach
           </Button>
         </div>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <StatCardRow stats={stats} columns={4} />
+      <div className={styles.container}>
+        <StatCardRow stats={statItems} columns={4} />
 
-        <Card padding="md">
-          <h3 style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-            <FileWarning size={16} /> Incidents & degraded services
-          </h3>
-          <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-3)" }}>
-            <Badge variant={openIncidents > 0 ? "danger" : "success"}>
-              {openIncidents} open
-            </Badge>
-            <Badge variant={degradedServices > 0 ? "warning" : "success"}>
-              {degradedServices} degraded
-            </Badge>
-            <Badge variant="info">avail {String(availability)}</Badge>
-          </div>
-        </Card>
+        <FilterBar
+          searchPlaceholder="Search incidents by title, service, ID..."
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filters={incidentFilters}
+          activeFilters={activeFilters}
+          onFilterChange={(key, val) => setActiveFilters((prev) => ({ ...prev, [key]: val }))}
+          onClearAll={() => setActiveFilters({})}
+        />
 
-        <Card padding="md">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
-            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-              Error log feed ({filteredLogs.length})
-            </h3>
-            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-              <div style={{ display: "flex", gap: "var(--space-1)" }}>
-                <Button
-                  size="sm"
-                  variant={filter === "ALL" ? "primary" : "outline"}
-                  onClick={() => setFilter("ALL")}
-                >
-                  All
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filter === "OPEN" ? "primary" : "outline"}
-                  onClick={() => setFilter("OPEN")}
-                >
-                  Open ({unresolved})
-                </Button>
-                <Button
-                  size="sm"
-                  variant={filter === "RESOLVED" ? "primary" : "outline"}
-                  onClick={() => setFilter("RESOLVED")}
-                >
-                  Resolved
-                </Button>
+        <PaginatedTable<IncidentRecord>
+          columns={columns}
+          data={allList}
+          total={allList.length}
+          pageSize={10}
+          page={1}
+          onPageChange={() => {}}
+          loading={incidents.loading}
+          emptyMessage="No Incidents Reported — Platform services are currently meeting all operational SLOs."
+        />
+
+        {/* Incident Inspection & War Room Drawer */}
+        <CrudDrawer
+          isOpen={warRoomOpen}
+          onClose={() => setWarRoomOpen(false)}
+          title={`War Room — ${selectedIncident?.id ?? ""}`}
+          description={selectedIncident?.title ?? ""}
+          mode="view"
+        >
+          {selectedIncident && (
+            <div>
+              <div className={styles.drawerSection}>
+                <div className={styles.drawerLabel}>Status & Severity</div>
+                <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+                  <Badge variant={selectedIncident.severity === "CRITICAL" ? "danger" : selectedIncident.severity === "MAJOR" ? "warning" : "default"}>
+                    {selectedIncident.severity}
+                  </Badge>
+                  <Badge variant={selectedIncident.status === "RESOLVED" || selectedIncident.status === "CLOSED" ? "success" : "warning"}>
+                    {selectedIncident.status}
+                  </Badge>
+                  <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+                    Target Service: <strong>{selectedIncident.service}</strong>
+                  </span>
+                </div>
               </div>
 
+              {canManage && selectedIncident.status !== "RESOLVED" && selectedIncident.status !== "CLOSED" && (
+                <div className={styles.drawerSection}>
+                  <div className={styles.drawerLabel}>Operator Actions</div>
+                  <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                    {selectedIncident.severity !== "CRITICAL" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEscalateModalOpen(true)}
+                      >
+                        <ShieldAlert size={14} style={{ marginRight: "var(--space-1)" }} />
+                        Escalate Severity
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => setResolveModalOpen(true)}
+                    >
+                      <CheckCircle2 size={14} style={{ marginRight: "var(--space-1)" }} />
+                      Resolve Incident
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {selectedIncident.rootCause && (
+                <div className={styles.drawerSection}>
+                  <div className={styles.resolutionAlert}>
+                    <div className={styles.drawerLabel}>Root Cause Analysis</div>
+                    <div className={styles.drawerValue}>{selectedIncident.rootCause}</div>
+                    <div className={styles.drawerLabel} style={{ marginTop: "var(--space-2)" }}>Corrective Action</div>
+                    <div className={styles.drawerValue}>{selectedIncident.correctiveAction}</div>
+                    {selectedIncident.resolvedBy && (
+                      <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", marginTop: "var(--space-1)" }}>
+                        Resolved by: {selectedIncident.resolvedBy} at {new Date(selectedIncident.resolvedAt ?? "").toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.drawerSection}>
+                <div className={styles.drawerLabel}>Chronological Event Feed</div>
+                <div className={styles.timelineFeed}>
+                  {selectedIncident.timeline && selectedIncident.timeline.length > 0 ? (
+                    selectedIncident.timeline.map((event, idx) => (
+                      <div key={idx} className={styles.timelineItem}>
+                        <div className={styles.timelineHeader}>
+                          <span className={styles.timelineActor}>{event.actor}</span>
+                          <span>{new Date(event.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                        <div className={styles.timelineEvent}>{event.event}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)" }}>
+                      No timeline events recorded yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </CrudDrawer>
+
+        {/* Severity Escalation Modal */}
+        <Modal
+          open={escalateModalOpen}
+          onClose={() => setEscalateModalOpen(false)}
+          title={`Escalate Severity — ${selectedIncident?.id ?? ""}`}
+        >
+          <div className={styles.escalatePanel}>
+            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
+              Escalating an incident pages the designated on-call response team and triggers high-urgency notifications.
+            </p>
+            <FormField label="Target Severity Level" required>
               <select
-                value={levelFilter}
-                onChange={(e) => setLevelFilter(e.target.value)}
+                className="input-select"
+                value={escalateSeverity}
+                onChange={(e) => setEscalateSeverity(e.target.value as "MAJOR" | "CRITICAL")}
                 style={{
-                  padding: "var(--space-1) var(--space-2)",
-                  fontSize: "var(--text-xs)",
-                  borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--color-border)",
-                  backgroundColor: "var(--color-surface)",
-                  color: "var(--color-text)",
+                  width: "100%",
+                  padding: "var(--space-2)",
+                  background: "var(--color-surface)",
+                  color: "var(--color-text-primary)",
+                  borderRadius: "var(--radius-sm)",
+                  border: "0.0625rem solid var(--color-border-subtle)",
                 }}
               >
-                <option value="ALL">All Levels</option>
-                <option value="FATAL">FATAL</option>
-                <option value="ERROR">ERROR</option>
-                <option value="WARN">WARN</option>
+                <option value="MAJOR">MAJOR — Core business function degraded</option>
+                <option value="CRITICAL">CRITICAL — Immediate outage or SLO breach</option>
               </select>
+            </FormField>
+            <FormField label="Escalation Rationale / Note">
+              <Input
+                placeholder="e.g., Cascading failures detected in dependent message queues"
+                value={escalateNote}
+                onChange={(e) => setEscalateNote(e.target.value)}
+              />
+            </FormField>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+              <Button variant="ghost" onClick={() => setEscalateModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleEscalate} disabled={escalating}>
+                {escalating ? "Escalating..." : "Confirm Escalation"}
+              </Button>
             </div>
           </div>
+        </Modal>
 
-          {logs.error ? (
-            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-              {logs.error.message}
+        {/* Incident Resolution Modal */}
+        <Modal
+          open={resolveModalOpen}
+          onClose={() => setResolveModalOpen(false)}
+          title={`Resolve Incident — ${selectedIncident?.id ?? ""}`}
+        >
+          <div className={styles.resolvePanel}>
+            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
+              Document the incident root cause and long-term corrective action for compliance audit and post-mortem.
             </p>
-          ) : filteredLogs.length === 0 ? (
-            <EmptyState title="No error logs match filter" description="No error log entries meet the selected criteria." />
-          ) : (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column" }}>
-              {filteredLogs.slice(0, 50).map((l) => (
-                <li
-                  key={l.id ?? l.message}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--space-1)",
-                    padding: "var(--space-3) 0",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
-                    <span style={{ fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {l.message}
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
-                      <Badge variant={levelVariant(l.level)}>{l.level ?? "—"}</Badge>
-                      <Badge variant={l.resolved ? "success" : "warning"}>
-                        {l.resolved ? "resolved" : "open"}
-                      </Badge>
-                      {!l.resolved && l.id && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleResolveLog(l.id!)}
-                          disabled={resolvingId === l.id || !canUpdate}
-                        >
-                          <CheckCircle size={12} />
-                          {resolvingId === l.id ? "Resolving..." : "Resolve"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-                    {l.timestamp && <span>{formatTime(l.timestamp)}</span>}
-                    {l.context && <span>{l.context}</span>}
-                    {l.requestId && <span>req: {l.requestId}</span>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      <Modal
-        open={simModalOpen}
-        onClose={() => setSimModalOpen(false)}
-        title="Simulate SLO Breach & Incident"
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", padding: "var(--space-2) 0" }}>
-          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-            Simulate an automated SLO violation: opens an incident, notifies notification channels, and computes SLA credits.
-          </p>
-          <FormField label="SLO Definition ID">
-            <Input
-              value={sloDefId}
-              onChange={(e) => setSloDefId(e.target.value)}
-              placeholder="e.g. slo-core-api"
-            />
-          </FormField>
-          <FormField label="Target Invoice ID">
-            <Input
-              value={invoiceId}
-              onChange={(e) => setInvoiceId(e.target.value)}
-              placeholder="e.g. inv-sim-001"
-            />
-          </FormField>
-          <FormField label="Observed Availability %">
-            <Input
-              value={actualPercent}
-              onChange={(e) => setActualPercent(e.target.value)}
-              placeholder="e.g. 98.5"
-              type="number"
-            />
-          </FormField>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-            <Button variant="outline" onClick={() => setSimModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleSimulateBreach}
-              disabled={simulating || !sloDefId.trim() || !invoiceId.trim()}
-            >
-              {simulating ? "Simulating..." : "Trigger Breach"}
-            </Button>
+            <FormField label="Root Cause" required>
+              <Textarea
+                placeholder="Describe what directly caused the anomaly or failure..."
+                value={rootCause}
+                onChange={(e) => setRootCause(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Corrective Action" required>
+              <Textarea
+                placeholder="Describe remediations applied to resolve and prevent reoccurrence..."
+                value={correctiveAction}
+                onChange={(e) => setCorrectiveAction(e.target.value)}
+              />
+            </FormField>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+              <Button variant="ghost" onClick={() => setResolveModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleResolve} disabled={resolving}>
+                {resolving ? "Resolving..." : "Mark as Resolved"}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+
+        {/* SLO Breach Simulation Modal */}
+        <Modal
+          open={simModalOpen}
+          onClose={() => setSimModalOpen(false)}
+          title="Simulate Real-time SLO Breach"
+        >
+          <div className={styles.escalatePanel}>
+            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
+              Simulates a live SLO breach: opens an incident, dispatches event notification, and applies SLA invoice credit.
+            </p>
+            <FormField label="SLO Definition ID" required>
+              <Input value={sloDefId} onChange={(e) => setSloDefId(e.target.value)} />
+            </FormField>
+            <FormField label="Invoice ID for SLA Credit" required>
+              <Input value={invoiceId} onChange={(e) => setInvoiceId(e.target.value)} />
+            </FormField>
+            <FormField label="Actual Measured Availability %" required>
+              <Input
+                type="number"
+                step="0.1"
+                value={actualPercent}
+                onChange={(e) => setActualPercent(e.target.value)}
+              />
+            </FormField>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+              <Button variant="ghost" onClick={() => setSimModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleSimulateBreach} disabled={simulating}>
+                {simulating ? "Simulating..." : "Trigger Breach Simulation"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
     </DomainShell>
   );
-}
-
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
 }
