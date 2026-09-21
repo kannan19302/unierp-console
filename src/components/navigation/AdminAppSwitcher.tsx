@@ -81,7 +81,7 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        aria-label="Admin OS App Switcher: Open 22 Platform Applications"
+        aria-label={`Admin OS App Switcher: Open ${NAV_ITEMS.length} Platform Applications`}
         title="Admin OS App Switcher"
       >
         <div className={styles.waffleGridIcon} aria-hidden="true">
@@ -104,7 +104,7 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
               <div className={styles.headerTop}>
                 <div className={styles.titleArea}>
                   <h2 className={styles.title}>Admin OS Applications</h2>
-                  <span className={styles.badge}>22 Applications</span>
+                  <span className={styles.badge}>{NAV_ITEMS.length} Applications</span>
                 </div>
                 <button
                   type="button"
@@ -122,7 +122,7 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                   ref={searchInputRef}
                   id={searchInputId}
                   type="text"
-                  placeholder="Search 22 platform applications (e.g. Subscriptions, KMS, AI, K8s)..."
+                  placeholder={`Search ${NAV_ITEMS.length} platform applications (e.g. Subscriptions, KMS, AI, K8s)...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={styles.searchInput}
