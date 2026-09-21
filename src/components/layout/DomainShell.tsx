@@ -65,11 +65,7 @@ export default function DomainShell({
       <PageHeader
         title={displayTitle}
         description={description ?? `${item.label} — platform administration`}
-        actions={
-          item.label !== "Overview" && (
-            <div className={styles.actions}>{actions}</div>
-          )
-        }
+        actions={actions ? <div className={styles.actions}>{actions}</div> : undefined}
       />
 
       {/* Visual tabs removed from body as requested; preserved hidden for contract parity */}
