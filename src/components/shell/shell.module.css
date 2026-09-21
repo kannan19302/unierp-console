@@ -3,8 +3,8 @@
    ========================================================================== */
 
 .sidebar {
-  width: 14.5rem; /* 232px */
-  min-width: 14.5rem;
+  width: 16rem;
+  min-width: 16rem;
   height: 100vh;
   background: var(--color-bg-elevated);
   border-right: 1px solid var(--color-border);
@@ -14,11 +14,9 @@
   position: relative;
   user-select: none;
   flex-shrink: 0;
-  transition: width var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)),
-    min-width var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)),
-    opacity var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)),
-    border-color var(--duration-normal, 200ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1));
-  will-change: width, min-width, opacity;
+  transition: width var(--duration-normal, 200ms) ease,
+    min-width var(--duration-normal, 200ms) ease,
+    opacity var(--duration-normal, 200ms) ease;
 }
 
 .sidebarCollapsed {
@@ -30,8 +28,8 @@
 }
 
 .sidebarInner {
-  width: 14.5rem;
-  min-width: 14.5rem;
+  width: 16rem;
+  min-width: 16rem;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -47,7 +45,7 @@
 
 /* ─── Header ─── */
 .header {
-  padding: var(--space-3) var(--space-3) var(--space-2) var(--space-3);
+  padding: var(--space-4);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -72,10 +70,11 @@
   padding: 0;
   font-family: var(--font-sans);
   text-align: left;
+  text-decoration: none;
 }
 
 .title {
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   font-weight: var(--weight-semibold, 600);
   color: var(--color-text);
   line-height: var(--leading-tight, 1.25);
@@ -131,7 +130,7 @@
 }
 
 .scopeSubtitle {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   margin-top: calc(-1 * var(--space-0-5, 2px));
   padding-left: var(--space-half, 2px);
@@ -188,11 +187,9 @@
 }
 
 .sectionHeader {
-  font-size: var(--text-2xs, 0.625rem);
+  font-size: var(--text-xs);
   font-weight: var(--weight-semibold, 600);
   color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   padding: var(--space-1) var(--space-2);
 }
 
@@ -203,7 +200,7 @@
   justify-content: space-between;
   padding: var(--space-1-5) var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   text-decoration: none;
   cursor: pointer;
@@ -409,7 +406,7 @@
   justify-content: space-between;
   padding: 0;
   border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium, 500);
   color: var(--color-text);
   width: 100%;
@@ -429,7 +426,7 @@
   padding: var(--space-1-5) var(--space-2);
   color: var(--color-text);
   text-decoration: none;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium, 500);
   min-width: 0;
   overflow: hidden;
@@ -509,12 +506,26 @@
   gap: var(--space-1-5);
 }
 
-.greenDot {
+.statusDot {
   width: var(--status-dot-size, 0.375rem);
   height: var(--status-dot-size, 0.375rem);
   border-radius: var(--radius-full);
-  background: var(--color-success);
+  background: var(--color-text-tertiary);
   flex-shrink: 0;
+}
+
+.statusDotConnected {
+  background: var(--color-success);
+}
+
+.statusDotDanger {
+  background: var(--color-danger);
+}
+
+.footerBtnLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .footerBtn {
@@ -625,7 +636,7 @@
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: 0 var(--space-4);
   flex-shrink: 0;
 }
@@ -643,6 +654,35 @@
 .menuToggle:hover {
   background: var(--color-bg-hover);
   color: var(--color-text);
+}
+
+.menuToggle:focus-visible,
+.searchButton:focus-visible,
+.iconButton:focus-visible,
+.notificationButton:focus-visible,
+.collapseButton:focus-visible,
+.periodTrigger:focus-visible,
+.signOutIconBtn:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-primary));
+  outline-offset: 2px;
+}
+
+.topbarIdentity {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.topbarProduct {
+  font-size: var(--text-sm);
+  font-weight: 650;
+}
+
+.topbarScope {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
 }
 
 .spacer {
@@ -671,17 +711,32 @@
 }
 
 .searchShortcut {
-  opacity: 0.6;
+  padding: var(--space-0-5) var(--space-1);
+  border: 1px solid var(--color-border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-tertiary);
+  font: inherit;
+  font-size: var(--text-xs);
 }
 
 .iconButton {
-  background: none;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-subtle);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-2);
   color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+  font-weight: 650;
+  text-decoration: none;
 }
 
 .notificationButton {
@@ -734,21 +789,6 @@
   padding: var(--space-6);
 }
 
-.socketIndicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2);
-}
-
-.socketDot {
-  width: var(--space-2);
-  height: var(--space-2);
-  border-radius: 50%;
-  background-color: var(--color-success);
-  box-shadow: 0 0 var(--space-1) var(--color-success);
-}
-
 .skipLink {
   position: fixed;
   top: var(--space-2);
@@ -774,23 +814,11 @@
   font: inherit;
 }
 
-.realTimeDot {
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: 50%;
-  background: var(--color-success);
-  box-shadow: 0 0 0.25rem var(--color-success);
-  margin-left: var(--space-2);
-  display: inline-block;
-  flex-shrink: 0;
-}
-
 @media (max-width: 48rem) {
   .backdrop {
     position: fixed;
     inset: 0;
     background-color: var(--color-backdrop, rgba(0, 0, 0, 0.5));
-    backdrop-filter: blur(2px);
     z-index: calc(var(--z-dropdown, 100) - 1);
     animation: fadeIn 150ms ease;
   }
@@ -801,8 +829,8 @@
     left: 0;
     bottom: 0;
     z-index: var(--z-dropdown, 100);
-    width: 14.5rem;
-    min-width: 14.5rem;
+    width: min(18rem, calc(100vw - 2.5rem));
+    min-width: min(18rem, calc(100vw - 2.5rem));
     box-shadow: var(--shadow-xl);
     transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
       opacity 200ms ease;
@@ -810,10 +838,42 @@
 
   .sidebarCollapsed {
     transform: translateX(-100%) !important;
-    width: 14.5rem !important;
-    min-width: 14.5rem !important;
+    width: min(18rem, calc(100vw - 2.5rem)) !important;
+    min-width: min(18rem, calc(100vw - 2.5rem)) !important;
     opacity: 0 !important;
     pointer-events: none !important;
   }
+
+  .sidebarInner {
+    width: min(18rem, calc(100vw - 2.5rem));
+    min-width: min(18rem, calc(100vw - 2.5rem));
+  }
+
+  .topbar {
+    padding: 0 var(--space-2);
+  }
+
+  .topbarScope,
+  .searchLabel,
+  .searchShortcut {
+    display: none;
+  }
+
+  .searchButton {
+    padding: var(--space-2);
+  }
+
+  .themeSelect {
+    max-width: 5.75rem;
+  }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebarInner,
+  .edgeExpandBtn,
+  .contextMenu {
+    transition: none;
+    animation: none;
+  }
+}

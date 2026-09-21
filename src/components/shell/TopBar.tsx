@@ -1,33 +1,11 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { Menu, Search, Bell } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 import AdminAppSwitcher from "@/components/AdminAppSwitcher";
 import { ProviderThemeControl } from "@/components/provider-theme";
-import { useConsoleSocket } from "@/lib/use-console-socket";
 import styles from "./shell.module.css";
-
-function ConsoleSocketListener() {
-  const { socket, isConnected } = useConsoleSocket();
-
-  useEffect(() => {
-    if (!socket) return;
-    const onTenantUpdate = (data: { action: string; tenantId: string }) => {
-      console.log("Real-time tenant update received:", data);
-    };
-    socket.on("tenant.update", onTenantUpdate);
-    return () => {
-      socket.off("tenant.update", onTenantUpdate);
-    };
-  }, [socket]);
-
-  return isConnected ? (
-    <div className={styles.socketIndicator} title="Connected to real-time events">
-      <span className={styles.socketDot} />
-    </div>
-  ) : null;
-}
 
 interface TopBarProps {
   isExpanded: boolean;
@@ -57,18 +35,21 @@ export function TopBar({
         aria-controls="provider-navigation"
         className={styles.menuToggle}
       >
-        <Menu size={20} />
+        <Menu size={18} aria-hidden="true" />
       </button>
-      <ConsoleSocketListener />
+      <Link href="/home" className={styles.topbarIdentity}>
+        <span className={styles.topbarProduct}>UniERP</span>
+        <span className={styles.topbarScope}>Provider control center</span>
+      </Link>
       <div className={styles.spacer} />
       <button
         onClick={onOpenCommandPalette}
         aria-label="Search provider applications and pages"
         className={styles.searchButton}
       >
-        <Search size={16} />
-        <span className={styles.searchLabel}>Search…</span>
-        <span className={styles.searchShortcut}>⌘K</span>
+        <Search size={15} aria-hidden="true" />
+        <span className={styles.searchLabel}>Search</span>
+        <kbd className={styles.searchShortcut}>Ctrl K</kbd>
       </button>
       <ProviderThemeControl className={styles.themeSelect} />
       <Link
@@ -77,14 +58,14 @@ export function TopBar({
         title="Review operational incidents"
         className={styles.notificationButton}
       >
-        <Bell size={16} />
+        <Bell size={16} aria-hidden="true" />
         {hasActiveIncident && <span className={styles.notificationBadge} />}
       </Link>
       <Link
         href="/profile"
         className={styles.iconButton}
         aria-label="Open Account Profile"
-        title="Account Profile"
+        title={accountEmail ? `Account profile: ${accountEmail}` : "Account profile"}
       >
         {initial}
       </Link>

@@ -65,7 +65,7 @@ describe("EC-8.2 & EC-8.5: Provider Sidebar Permission Enforcement and Real-time
     expect(screen.queryByRole("link", { name: /Platform Security/i })).not.toBeInTheDocument();
   });
 
-  it("renders real-time indicator dot when console socket is connected (EC-8.2)", () => {
+  it("renders a single truthful live-update status when the console socket is connected (EC-8.2)", () => {
     vi.stubGlobal("matchMedia", () => ({ matches: false }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
 
@@ -79,8 +79,7 @@ describe("EC-8.2 & EC-8.5: Provider Sidebar Permission Enforcement and Real-time
       </ControlPlaneShell>
     );
 
-    // When connected, real-time indicators should be present
-    const realtimeDots = screen.getAllByLabelText(/real-time active/i);
-    expect(realtimeDots.length).toBeGreaterThan(0);
+    expect(screen.getByText("Live updates connected")).toBeInTheDocument();
+    expect(screen.queryByText(/Nominal/i)).not.toBeInTheDocument();
   });
 });

@@ -68,7 +68,7 @@ describe("Enterprise Searchable, Collapsible Provider Sidebar", () => {
 
     // Type query matching Incidents tab
     fireEvent.change(searchInput, { target: { value: "Incidents" } });
-    expect(screen.getByText(/Matching Results/)).toBeInTheDocument();
+    expect(screen.getByText(/Matching results/)).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Incidents (Platform Operations)" })
     ).toHaveAttribute("href", "/ops/incidents");

@@ -442,7 +442,6 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
                 starredItems={starredItems}
                 domainApps={domainApps}
                 expandedApps={expandedApps}
-                isConnected={isConnected}
                 isMobile={isMobile}
                 hasActiveIncident={hasActiveIncident}
                 setSearchQuery={setSearchQuery}
@@ -455,6 +454,8 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
               <SidebarFooter
                 displayName={displayName}
                 initial={initial}
+                hasActiveIncident={hasActiveIncident}
+                isConnected={isConnected}
                 onSignOut={() => {
                   void fetch("/api/session", { method: "DELETE", credentials: "include" });
                   signOut();

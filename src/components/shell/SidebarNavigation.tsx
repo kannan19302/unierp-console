@@ -71,7 +71,6 @@ interface SidebarAppGroupProps {
   app: NavItem;
   pathname: string;
   isOpen: boolean;
-  isConnected: boolean;
   isMobile: boolean;
   cleanQuery: string;
   hasActiveIncident: boolean;
@@ -86,7 +85,6 @@ export function SidebarAppGroup({
   app,
   pathname,
   isOpen,
-  isConnected,
   isMobile,
   cleanQuery,
   hasActiveIncident,
@@ -118,13 +116,6 @@ export function SidebarAppGroup({
         >
           <Icon size={15} className={styles.navItemIcon} />
           <span>{app.label}</span>
-          {isConnected && (
-            <span
-              className={styles.realTimeDot}
-              title={`WebSocket real-time active for ${app.label}`}
-              aria-label={`${app.label} real-time active`}
-            />
-          )}
         </Link>
 
         <div className={styles.navItemRight}>
@@ -174,7 +165,6 @@ interface SidebarNavigationProps {
   starredItems: FlattenedNavigationItem[];
   domainApps: NavItem[];
   expandedApps: Record<string, boolean>;
-  isConnected: boolean;
   isMobile: boolean;
   hasActiveIncident: boolean;
   setSearchQuery: (q: string) => void;
@@ -192,7 +182,6 @@ export function SidebarNavigation({
   starredItems,
   domainApps,
   expandedApps,
-  isConnected,
   isMobile,
   hasActiveIncident,
   setSearchQuery,
@@ -217,7 +206,7 @@ export function SidebarNavigation({
         /* Search Results Mode */
         <div className={styles.sectionGroup} aria-label="Console search results">
           <div className={styles.sectionHeader}>
-            Matching Results ({filteredSearchResults.length})
+            Matching results ({filteredSearchResults.length})
           </div>
           {filteredSearchResults.map((res) => {
             const active = pathname === res.href;
@@ -283,7 +272,7 @@ export function SidebarNavigation({
 
           {/* WORKSPACE Section */}
           <div className={styles.sectionGroup}>
-            <div className={styles.sectionHeader}>WORKSPACE</div>
+            <div className={styles.sectionHeader}>Workspace</div>
 
             {/* Home Launcher */}
             <Link
@@ -296,7 +285,7 @@ export function SidebarNavigation({
             >
               <div className={styles.navItemLeft}>
                 <LayoutGrid size={15} className={styles.navItemIcon} />
-                <span>Home Launcher</span>
+                <span>Control center</span>
               </div>
             </Link>
 
@@ -334,7 +323,6 @@ export function SidebarNavigation({
                 app={app}
                 pathname={pathname}
                 isOpen={Boolean(expandedApps[app.id])}
-                isConnected={isConnected}
                 isMobile={isMobile}
                 cleanQuery={cleanQuery}
                 hasActiveIncident={hasActiveIncident}

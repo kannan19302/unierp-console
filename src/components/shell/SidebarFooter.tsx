@@ -9,26 +9,39 @@ import styles from "./shell.module.css";
 interface SidebarFooterProps {
   displayName: string;
   initial: string;
+  hasActiveIncident: boolean;
+  isConnected: boolean;
   onSignOut: () => void;
 }
 
 export function SidebarFooter({
   displayName,
   initial,
+  hasActiveIncident,
+  isConnected,
   onSignOut,
 }: SidebarFooterProps) {
+  const statusLabel = hasActiveIncident
+    ? "Active incident"
+    : isConnected
+      ? "Live updates connected"
+      : "Live updates unavailable";
+
   return (
     <div className={styles.footer}>
       <Link href="/ops/incidents" className={styles.periodTrigger}>
         <div className={styles.periodLeft}>
-          <span className={styles.greenDot} />
-          <span>Operations • Nominal</span>
+          <span
+            className={`${styles.statusDot} ${hasActiveIncident ? styles.statusDotDanger : isConnected ? styles.statusDotConnected : ""}`}
+            aria-hidden="true"
+          />
+          <span>{statusLabel}</span>
         </div>
         <ChevronRight size={14} />
       </Link>
 
       <Link href="/governance-compliance" className={styles.footerBtn}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        <div className={styles.footerBtnLabel}>
           <Settings size={15} />
           <span>Settings</span>
         </div>

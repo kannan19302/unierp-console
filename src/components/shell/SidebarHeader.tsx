@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import styles from "./shell.module.css";
 
 interface SidebarHeaderProps {
@@ -16,11 +16,9 @@ export function SidebarHeader({ onCollapse }: SidebarHeaderProps) {
         <Link
           href="/home"
           className={styles.workspaceSwitcherTrigger}
-          title="Go to Home Launcher"
-          style={{ textDecoration: "none" }}
+          title="Open control center home"
         >
-          <span className={styles.title}>uniERP Console</span>
-          <ChevronDown size={16} className={styles.chevronIcon} />
+          <span className={styles.title}>UniERP</span>
         </Link>
         <button
           type="button"
@@ -32,7 +30,7 @@ export function SidebarHeader({ onCollapse }: SidebarHeaderProps) {
           <ChevronLeft size={16} />
         </button>
       </div>
-      <div className={styles.scopeSubtitle}>Provider Control Plane</div>
+      <div className={styles.scopeSubtitle}>Provider control center</div>
     </div>
   );
 }

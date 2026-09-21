@@ -30,10 +30,10 @@ describe("AdminAppSwitcher component", () => {
     const dialog = screen.getByRole("dialog", { name: /UniERP Admin OS Applications Suite/i });
     expect(dialog).toBeInTheDocument();
 
-    expect(screen.getByText("Admin OS Applications")).toBeInTheDocument();
-    expect(screen.getByText(`${NAV_ITEMS.length} Applications`)).toBeInTheDocument();
+    expect(screen.getByText("Switch workspace")).toBeInTheDocument();
+    expect(screen.getByText(`${NAV_ITEMS.length} available`)).toBeInTheDocument();
 
-    const searchInput = screen.getByPlaceholderText(new RegExp(`Search ${NAV_ITEMS.length} platform applications`, "i"));
+    const searchInput = screen.getByRole("textbox", { name: "Search provider workspaces" });
     expect(searchInput).toBeInTheDocument();
 
     // Default renders all apps
@@ -45,7 +45,7 @@ describe("AdminAppSwitcher component", () => {
     render(<AdminAppSwitcher />);
     fireEvent.click(screen.getByRole("button", { name: /Admin OS App Switcher/i }));
 
-    const searchInput = screen.getByPlaceholderText(new RegExp(`Search ${NAV_ITEMS.length} platform applications`, "i"));
+    const searchInput = screen.getByRole("textbox", { name: "Search provider workspaces" });
     fireEvent.change(searchInput, { target: { value: "threat" } });
 
     // Should match Platform Security or Security Intelligence SOC

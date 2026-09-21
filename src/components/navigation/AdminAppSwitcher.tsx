@@ -7,7 +7,6 @@ import {
   Search,
   X,
   ArrowUpRight,
-  Sparkles,
 } from "lucide-react";
 import {
   NAV_ITEMS,
@@ -15,7 +14,6 @@ import {
   type AppClusterId,
   type AppManifest,
 } from "@/lib/navigation";
-import { getPccDomain } from "@/lib/pcc-registry";
 import styles from "./AdminAppSwitcher.module.css";
 
 export interface AdminAppSwitcherProps {
@@ -103,8 +101,8 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
             <header className={styles.header}>
               <div className={styles.headerTop}>
                 <div className={styles.titleArea}>
-                  <h2 className={styles.title}>Admin OS Applications</h2>
-                  <span className={styles.badge}>{NAV_ITEMS.length} Applications</span>
+                  <h2 className={styles.title}>Switch workspace</h2>
+                  <span className={styles.badge}>{NAV_ITEMS.length} available</span>
                 </div>
                 <button
                   type="button"
@@ -122,18 +120,18 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                   ref={searchInputRef}
                   id={searchInputId}
                   type="text"
-                  placeholder={`Search ${NAV_ITEMS.length} platform applications (e.g. Subscriptions, KMS, AI, K8s)...`}
+                  placeholder="Search workspaces and responsibilities"
+                  aria-label="Search provider workspaces"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={styles.searchInput}
                 />
               </div>
 
-              <div className={styles.filterPills} role="tablist" aria-label="Application clusters">
+              <div className={styles.filterPills} aria-label="Filter workspaces by responsibility">
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={activeCluster === "all"}
+                  aria-pressed={activeCluster === "all"}
                   onClick={() => setActiveCluster("all")}
                   className={`${styles.filterPill} ${activeCluster === "all" ? styles.filterPillActive : ""}`}
                 >
@@ -145,8 +143,7 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                     <button
                       key={cluster.id}
                       type="button"
-                      role="tab"
-                      aria-selected={activeCluster === cluster.id}
+                      aria-pressed={activeCluster === cluster.id}
                       onClick={() => setActiveCluster(cluster.id)}
                       className={`${styles.filterPill} ${activeCluster === cluster.id ? styles.filterPillActive : ""}`}
                     >
@@ -157,7 +154,7 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
               </div>
             </header>
 
-            <div className={styles.appsList} role="grid">
+            <div className={styles.appsList}>
               {filteredApps.length === 0 ? (
                 <div className={styles.emptyState}>
                   No applications match &quot;{searchQuery}&quot;
@@ -166,18 +163,15 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
                 filteredApps.map((app) => {
                   const Icon = app.icon;
                   const isActive = pathname === app.base || pathname.startsWith(`${app.base}/`);
-                  const pccEntry = getPccDomain(app.id) || getPccDomain(app.base);
                   return (
                     <button
                       key={app.id}
                       type="button"
                       onClick={() => handleLaunchApp(app)}
                       className={`${styles.appCard} ${isActive ? styles.appCardActive : ""}`}
+                      data-cluster={app.clusterId}
                     >
-                      <div
-                        className={styles.appIconContainer}
-                        style={pccEntry ? { backgroundColor: pccEntry.accentVar, color: "var(--color-text-inverse, #ffffff)" } : undefined}
-                      >
+                      <div className={styles.appIconContainer}>
                         <Icon size={18} />
                       </div>
                       <div className={styles.appContent}>
@@ -197,14 +191,14 @@ export default function AdminAppSwitcher({ className }: AdminAppSwitcherProps) {
 
             <footer className={styles.footer}>
               <span className={styles.footerNote}>
-                Zero-Trust Multi-Tenant Governance · PostgreSQL RLS Enforced
+                Provider estate workspaces
               </span>
               <Link
                 href="/home"
                 onClick={() => setIsOpen(false)}
                 className={styles.launchpadLink}
               >
-                <span>Home Desk Launcher</span>
+                <span>Control center home</span>
                 <ArrowUpRight size={13} />
               </Link>
             </footer>
