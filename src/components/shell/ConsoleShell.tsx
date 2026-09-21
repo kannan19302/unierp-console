@@ -29,6 +29,7 @@ import { SidebarNavigation } from "./SidebarNavigation";
 import { SidebarFooter } from "./SidebarFooter";
 import { TopBar } from "./TopBar";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { SessionExpiredOverlay } from "@/components/feedback/SessionExpiredOverlay";
 import styles from "./shell.module.css";
 
 const nameFromEmail = (email: string): string => {
@@ -54,6 +55,15 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
 
   // Full hide/show for mobile drawer & test contracts
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Session expired overlay state (triggered on 401 unierp:session-expired event)
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  useEffect(() => {
+    const handleExpired = () => setSessionExpired(true);
+    window.addEventListener("unierp:session-expired", handleExpired);
+    return () => window.removeEventListener("unierp:session-expired", handleExpired);
+  }, []);
 
   // Rail collapse: mini icon-rail mode (persisted)
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -573,6 +583,7 @@ export function ConsoleShell({ children }: { children: ReactNode }) {
             </button>
           </div>
         )}
+        <SessionExpiredOverlay open={sessionExpired} />
       </div>
     </ControlPlaneGate>
   );

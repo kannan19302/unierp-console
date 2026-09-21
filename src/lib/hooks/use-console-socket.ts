@@ -24,8 +24,8 @@ export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
       return;
     }
 
-    // Determine the API base URL. Fallback to localhost if not set.
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    // Determine the API base URL. Fallback to API port 3001 if not set.
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
     const namespaceUrl = `${baseUrl}${options.namespace || "/console"}`;
 
     const newSocket = io(namespaceUrl, {
@@ -53,7 +53,7 @@ export function useConsoleSocket(options: ConsoleSocketOptions = {}) {
       newSocket.disconnect();
       socketRef.current = null;
     };
-  }, [claims?.sid, options.namespace]);
+  }, [claims?.sid, accessToken, options.namespace]);
 
   return { socket, isConnected };
 }

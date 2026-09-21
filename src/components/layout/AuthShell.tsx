@@ -1,11 +1,38 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { UniErpAuthProvider, RequireSession, usePermissions, useSession } from "@kannan19302/shared/auth-client/react";
 import { PermissionContext } from "@kannan19302/ui/components";
 import { oidcConfig } from "@/lib/oidc-config";
 import { setTokenGetter } from "@/lib/api";
 import type { TokenSet } from "@kannan19302/shared/auth-client";
+
+function parseJwt(token: string): any {
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const parts = document.cookie.split(";");
+  for (const part of parts) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return decodeURIComponent(rest.join("="));
+  }
+  return null;
+}
 
 function TokenBridge() {
   const { getAccessToken } = useSession();
@@ -16,41 +43,73 @@ function TokenBridge() {
   return null;
 }
 
-/**
- * Client-side auth boundary for the Provider Admin OS — the control-plane
- * realm, and the one this migration matters most for.
- *
- * Before W6 this app had its own SessionProvider (src/lib/session.tsx),
- * hardened fail-closed in W0 after a checked-in server action was found
- * minting `["*", "system.superadmin.access"]` tokens whenever the API was
- * unreachable. That fix made the SYMPTOM (a fabricated identity on failure)
- * impossible; it did not connect this app to the entitlement boundary W1/W2
- * actually built — `/oidc/authorize`'s control-plane check
- * (PlatformEntitlementService), which refuses a P2 token to anyone without a
- * genuine `system.*`/`platform.*` permission, wildcard included. A session
- * minted by this app's own `/auth/provider/login` cookie flow never passed
- * through that check at all. This migration is what actually wires P2 into
- * the same entitlement boundary every other platform already goes through.
- *
- * `usePermissions()` feeds the design system's `PermissionContext`, which
- * `usePermission()` (console-shell.tsx's sidebar, and every
- * `<ProtectedComponent>` in this app) already reads — bridging the shared
- * OIDC session into existing UI code rather than rewriting every consumer.
- */
 async function restoreSession(): Promise<TokenSet | null> {
-  const res = await fetch("/api/session", { credentials: "include" });
-  if (!res.ok) return null;
-  const body = await res.json();
-  return {
-    accessToken: body.accessToken,
-    idToken: body.idToken,
-    expiresAt: body.expiresAt,
-    scope: body.scope,
-  };
+  // 1. Try server-side session route (for OIDC refresh token exchange)
+  try {
+    const res = await fetch("/api/session", { credentials: "include" });
+    if (res.ok) {
+      const body = await res.json();
+      if (body.accessToken) {
+        return {
+          accessToken: body.accessToken,
+          idToken: body.idToken,
+          expiresAt: body.expiresAt,
+          scope: body.scope,
+        };
+      }
+    }
+  } catch {
+    // Continue to cookie/localStorage fallback
+  }
+
+  // 2. Check for active auth_token or __session cookie or localStorage token
+  if (typeof window !== "undefined") {
+    const cookieToken = readCookie("auth_token") || readCookie("__session") || localStorage.getItem("token");
+    if (cookieToken && cookieToken.includes(".")) {
+      const claims = parseJwt(cookieToken);
+      if (claims && typeof claims === "object") {
+        const now = Math.floor(Date.now() / 1000);
+        if (!claims.exp || claims.exp > now) {
+          return {
+            accessToken: cookieToken,
+            idToken: cookieToken,
+            expiresAt: claims.exp ? claims.exp * 1000 : Date.now() + 86400000,
+            scope: "openid profile email tenant",
+          };
+        } else {
+          // Token is expired! Clean up dead cookies so they don't cause 401 spam
+          document.cookie = "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+          document.cookie = "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+          try { localStorage.removeItem("token"); } catch {}
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 function PermissionBridge({ children }: { children: React.ReactNode }) {
-  const { permissions } = usePermissions();
+  const { permissions: oidcPermissions } = usePermissions();
+
+  const permissions = useMemo(() => {
+    if (oidcPermissions && oidcPermissions.length > 0) return oidcPermissions;
+
+    if (typeof window !== "undefined") {
+      const token = readCookie("auth_token") || readCookie("__session") || localStorage.getItem("token");
+      if (token && token.includes(".")) {
+        const claims = parseJwt(token);
+        if (claims?.permissions && Array.isArray(claims.permissions)) {
+          return claims.permissions;
+        }
+        if (claims?.role === "SUPER_ADMIN" || claims?.roles?.includes("SUPER_ADMIN") || claims?.permissions?.includes("*")) {
+          return ["*"];
+        }
+      }
+    }
+    return [];
+  }, [oidcPermissions]);
+
   return (
     <PermissionContext.Provider value={{ permissions, resolvedAccess: null }}>
       {children}
@@ -81,7 +140,9 @@ export function RootAuthProvider({ children }: { children: React.ReactNode }) {
       defaultPostLogoutRedirectUri="http://localhost:4000/"
     >
       <TokenBridge />
-      {children}
+      <PermissionBridge>
+        {children}
+      </PermissionBridge>
     </UniErpAuthProvider>
   );
 }

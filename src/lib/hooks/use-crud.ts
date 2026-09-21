@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useToast } from "./use-toast";
 
 export interface CrudAdapter<T extends { id: string | number }> {
@@ -28,6 +28,10 @@ export function useCrud<T extends { id: string | number }>({
   autoLoad = true,
 }: UseCrudOptions<T>) {
   const toast = useToast();
+  const adapterRef = useRef(adapter);
+  useEffect(() => {
+    adapterRef.current = adapter;
+  }, [adapter]);
 
   const [items, setItems] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
@@ -51,7 +55,7 @@ export function useCrud<T extends { id: string | number }>({
     setLoading(true);
     setError(null);
     try {
-      const res = await adapter.list({
+      const res = await adapterRef.current.list({
         page,
         pageSize,
         sort: sortColumn,
@@ -68,7 +72,7 @@ export function useCrud<T extends { id: string | number }>({
     } finally {
       setLoading(false);
     }
-  }, [adapter, page, pageSize, sortColumn, sortDirection, filters, searchQuery, entityName, toast]);
+  }, [page, pageSize, sortColumn, sortDirection, filters, searchQuery, entityName, toast]);
 
   useEffect(() => {
     if (autoLoad) {
@@ -107,14 +111,14 @@ export function useCrud<T extends { id: string | number }>({
       try {
         if (drawerMode === "create") {
           // Perform create
-          const created = await adapter.create(formData as Partial<T>);
+          const created = await adapterRef.current.create(formData as Partial<T>);
           // Optimistic / immediate prepend
           setItems((prev) => [created, ...prev]);
           setTotal((prev) => prev + 1);
           toast.success(`${entityName} created successfully`);
         } else if (drawerMode === "edit" && activeItem) {
           // Perform update
-          const updated = await adapter.update(activeItem.id, formData as Partial<T>);
+          const updated = await adapterRef.current.update(activeItem.id, formData as Partial<T>);
           // In-place update
           setItems((prev) => prev.map((item) => (item.id === activeItem.id ? updated : item)));
           toast.success(`${entityName} updated successfully`);
@@ -132,7 +136,7 @@ export function useCrud<T extends { id: string | number }>({
         setIsMutating(false);
       }
     },
-    [drawerMode, activeItem, items, adapter, entityName, toast, reload]
+    [drawerMode, activeItem, items, entityName, toast, reload]
   );
 
   // Handle delete
@@ -144,7 +148,7 @@ export function useCrud<T extends { id: string | number }>({
       setTotal((prev) => Math.max(0, prev - 1));
 
       try {
-        await adapter.delete(id);
+        await adapterRef.current.delete(id);
         toast.success(`${entityName} deleted successfully`);
         await reload();
       } catch (err: any) {
@@ -156,7 +160,7 @@ export function useCrud<T extends { id: string | number }>({
         throw err;
       }
     },
-    [items, adapter, entityName, toast, reload]
+    [items, entityName, toast, reload]
   );
 
   return {

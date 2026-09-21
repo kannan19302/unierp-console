@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useState, useRef, ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useState, useRef, useMemo, ReactNode } from "react";
 import { CheckCircle2, AlertCircle, Info, XCircle, X } from "lucide-react";
 import styles from "./ToastProvider.module.css";
 
@@ -104,8 +104,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [showToast]
   );
 
+  const value = useMemo(
+    () => ({ showToast, dismissToast, success, error, warning, info }),
+    [showToast, dismissToast, success, error, warning, info]
+  );
+
   return (
-    <ToastContext.Provider value={{ showToast, dismissToast, success, error, warning, info }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div className={styles.toastContainer} aria-live="polite" aria-label="Notifications">
         {toasts.map((toast) => {

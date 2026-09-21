@@ -120,6 +120,12 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      document.cookie = "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      document.cookie = "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      try { localStorage.removeItem("token"); } catch {}
+      window.dispatchEvent(new CustomEvent("unierp:session-expired"));
+    }
     const err = new Error(messageForStatus(res.status)) as ApiError;
     err.status = res.status;
     err.statusText = res.statusText;

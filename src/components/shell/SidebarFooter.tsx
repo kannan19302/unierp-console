@@ -37,14 +37,14 @@ export function SidebarFooter({
       <LocaleSwitcher />
 
       <div className={styles.userFooterRow}>
-        <a
-          href="http://localhost:3005/oidc/account"
+        <Link
+          href="/profile"
           className={styles.userFooterLeft}
           title="Account Profile"
         >
           <div className={styles.userAvatarMini}>{initial}</div>
           <span className={styles.userNameMini}>{displayName}</span>
-        </a>
+        </Link>
         <button
           type="button"
           onClick={onSignOut}

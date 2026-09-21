@@ -86,8 +86,9 @@ export default function SecurityThreatsPage() {
   }, [search, filters, toast]);
 
   useEffect(() => {
+    if (!canAccess) return;
     fetchThreats();
-  }, [fetchThreats]);
+  }, [canAccess, fetchThreats]);
 
   useDomainRealtime("security", fetchThreats);
 

@@ -83,8 +83,9 @@ export default function SecurityPoliciesPage() {
   }, [page, pageSize, search, filters, toast]);
 
   useEffect(() => {
+    if (!canAccess) return;
     fetchPolicies();
-  }, [fetchPolicies]);
+  }, [canAccess, fetchPolicies]);
 
   useDomainRealtime("security", fetchPolicies);
 

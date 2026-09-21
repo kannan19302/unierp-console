@@ -80,14 +80,14 @@ export function TopBar({
         <Bell size={16} />
         {hasActiveIncident && <span className={styles.notificationBadge} />}
       </Link>
-      <a
-        href="http://localhost:3005/oidc/account"
+      <Link
+        href="/profile"
         className={styles.iconButton}
-        aria-label="Open Account Center"
-        title="Account Center"
+        aria-label="Open Account Profile"
+        title="Account Profile"
       >
         {initial}
-      </a>
+      </Link>
     </header>
   );
 }
