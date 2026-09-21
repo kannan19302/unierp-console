@@ -6,5 +6,17 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+@media (max-width: 48rem) {
+  .container :global(.ui-page-header-topRow) {
+    flex-direction: column;
+  }
+
+  .container :global(.ui-page-header-actions),
+  .actions {
+    width: 100%;
+  }
 }

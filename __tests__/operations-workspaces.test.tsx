@@ -19,9 +19,40 @@ describe("Strata operations workspaces", () => {
     expect(screen.queryByText("All Subsystems Nominal")).not.toBeInTheDocument();
     expect(screen.queryByText("Active (3 Rules)")).not.toBeInTheDocument();
     expect(screen.queryByText("38% Mem")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Probe Health" }));
-    expect(await screen.findByText("Some telemetry requests failed. Review the errors and retry.")).toBeInTheDocument();
-    expect(screen.queryByText("Measured telemetry refreshed.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh telemetry" }));
+    expect(await screen.findByText("Some telemetry requests failed. Review the source errors and retry.")).toBeInTheDocument();
+    expect(screen.queryByText("Telemetry sources refreshed.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unknown%")).not.toBeInTheDocument();
+    expect(screen.getByText("Cluster overview not configured")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Grafana/i })).not.toBeInTheDocument();
+  });
+
+  it("uses measured health and incident records for the estate ledger", async () => {
+    vi.spyOn(api, "get").mockImplementation(async (path: string) => {
+      if (path.includes("health/services")) {
+        return { status: 200, data: [{ service: "database", name: "Application database", status: "HEALTHY", latencyMs: 4 }] };
+      }
+      if (path.endsWith("/health")) {
+        return { status: 200, data: { status: "OK", timestamp: "2026-09-21T10:00:00.000Z", metrics: { cpuUsage: 28 } } };
+      }
+      if (path.endsWith("/dashboard")) {
+        return { status: 200, data: { status: "HEALTHY", metrics: { queueDepth: 12 } } };
+      }
+      if (path.endsWith("/incidents")) {
+        return { status: 200, data: [
+          { id: "incident-open", status: "INVESTIGATING" },
+          { id: "incident-closed", status: "RESOLVED" },
+        ] };
+      }
+      return { status: 200, data: [] };
+    });
+
+    render(<OpsOverview />);
+    await screen.findByText("Application database");
+    expect(screen.getByText("Measured sources agree")).toBeInTheDocument();
+    expect(screen.getByText("28%")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("Active incidents").nextElementSibling).toHaveTextContent("1");
   });
   it("renders measured service rows, searches them and keeps only Services active", async () => {
     vi.spyOn(api, "get").mockResolvedValue({ status: 200, data: [
