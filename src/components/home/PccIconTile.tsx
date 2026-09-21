@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import type { PccDomainEntry } from "@/lib/pcc-registry";
 import styles from "./PccIconTile.module.css";
@@ -13,52 +12,20 @@ export interface PccIconTileProps {
   className?: string;
 }
 
-export function PccIconTile({
-  entry,
-  badgeCount,
-  showShortcut = true,
-  onClick,
-  className = "",
-}: PccIconTileProps) {
-  const IconComponent = entry.icon;
+export function PccIconTile({ entry, badgeCount, showShortcut = true, onClick, className = "" }: PccIconTileProps) {
+  const Icon = entry.icon;
   const count = badgeCount ?? entry.badge;
-
   return (
-    <Link
-      href={entry.href}
-      className={`${styles.tileWrapper} ${className}`}
-      onClick={onClick}
+    <Link href={entry.href} className={`${styles.domainLink} ${className}`} onClick={onClick}
       aria-label={`${entry.pccCode}: ${entry.title} (${entry.clusterName})`}
-      title={`${entry.pccCode}: ${entry.title}\n${entry.description}`}
-      tabIndex={0}
-      data-testid={`pcc-tile-${entry.id}`}
-      style={{
-        ["--tile-glow" as any]: entry.accentGlowVar,
-      }}
-    >
-      <div
-        className={styles.iconBox}
-        style={{
-          backgroundColor: entry.accentVar,
-        }}
-      >
-        <IconComponent size={30} color="#ffffff" />
-
-        {count !== undefined && count !== null && count !== 0 && (
-          <span className={styles.badge} aria-label={`${count} items`}>
-            {count}
-          </span>
-        )}
-
-        {showShortcut && entry.shortcut && (
-          <span className={styles.shortcut} aria-hidden="true">
-            {entry.shortcut}
-          </span>
-        )}
-      </div>
-
-      <span className={styles.title}>{entry.shortTitle}</span>
-      <span className={styles.pccCode}>{entry.pccCode}</span>
+      data-cluster={entry.cluster} data-testid={`pcc-tile-${entry.id}`}>
+      <span className={styles.iconBox} aria-hidden="true"><Icon size={20} /></span>
+      <span className={styles.content}>
+        <span className={styles.headingRow}><span className={styles.title}>{entry.shortTitle}</span><span className={styles.code}>{entry.pccCode}</span></span>
+        <span className={styles.description}>{entry.description}</span>
+        <span className={styles.meta}><span>{entry.clusterName}</span>{count !== undefined && count !== null && count !== 0 && <span>{count} open</span>}</span>
+      </span>
+      {showShortcut && entry.shortcut && <kbd className={styles.shortcut} aria-label={`Keyboard shortcut ${entry.shortcut}`}>{entry.shortcut}</kbd>}
     </Link>
   );
 }

@@ -1,6 +1,5 @@
 /**
- * Unit & Integration Tests for Frappe ERPNext-Inspired Home Desk Launcher
- * Workstream 2 (WS2): 22 PCC Domain Tiles, Real-time Search, Cluster Filter, Keyboard Shortcuts
+ * Unit and integration tests for the provider control-center directory.
  */
 
 import React from "react";
@@ -20,20 +19,18 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-describe("Frappe ERPNext-Inspired Home Desk Launcher (WS2)", () => {
+describe("Provider control-center directory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders the hero header, status telemetry, and all 22 PCC domain tiles", () => {
+  it("renders provider scope, honest telemetry guidance, and every PCC domain", () => {
     render(<HomeLauncherPage />);
 
-    // Header & Telemetry
-    expect(screen.getByText("Platform Control Center")).toBeDefined();
-    expect(screen.getByText("ALL SYSTEMS NOMINAL")).toBeDefined();
-    expect(screen.getByText("99.99% Uptime")).toBeDefined();
-    expect(screen.getByText("RLS ENFORCED")).toBeDefined();
-    expect(screen.getByText("142")).toBeDefined();
+    expect(screen.getByText("Provider estate")).toBeDefined();
+    expect(screen.getByText("Control center")).toBeDefined();
+    expect(screen.getByText(/Live service health and incidents remain inside Operations/i)).toBeDefined();
+    expect(screen.queryByText("ALL SYSTEMS NOMINAL")).toBeNull();
 
     // All 22 PCC tiles rendered in the grid
     const grid = screen.getByTestId("pcc-icon-grid");
@@ -45,8 +42,8 @@ describe("Frappe ERPNext-Inspired Home Desk Launcher (WS2)", () => {
     });
 
     // Check specific critical domain tiles
-    expect(screen.getByText("Operations")).toBeDefined();
-    expect(screen.getByText("Security")).toBeDefined();
+    expect(screen.getAllByText("Operations").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Security").length).toBeGreaterThan(0);
     expect(screen.getByText("Developers")).toBeDefined();
     expect(screen.getByText("AI Governance")).toBeDefined();
     expect(screen.getByText("Analytics")).toBeDefined();
@@ -79,7 +76,7 @@ describe("Frappe ERPNext-Inspired Home Desk Launcher (WS2)", () => {
 
     // Non-existent search query
     fireEvent.change(searchInput, { target: { value: "xyznonexistent999" } });
-    expect(screen.getByText(/No platform domains match/i)).toBeDefined();
+    expect(screen.getByText(/No domains match/i)).toBeDefined();
 
     // Click "Reset Filters"
     const resetBtn = screen.getByRole("button", { name: /Reset Filters/i });

@@ -1,26 +1,18 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  Search,
-  X,
-  Layers,
-  Activity,
-  Shield,
-  Building,
-  Sparkles,
-} from "lucide-react";
-import {
-  PCC_REGISTRY,
-  PCC_CLUSTERS,
-  type PccDomainCluster,
-  type PccDomainEntry,
-} from "@/lib/pcc-registry";
-import { PccIconTile } from "@/components/home";
-import { SetupChecklist, SpotlightTour } from "@/components/onboarding";
 import { EmptyStateIllustration } from "@/components/feedback";
+import { PccIconTile } from "@/components/home";
+import { SetupChecklist } from "@/components/onboarding";
+import { PCC_CLUSTERS, PCC_REGISTRY, type PccDomainCluster } from "@/lib/pcc-registry";
 import styles from "./home.module.css";
+
+const SHORT_CLUSTER_NAMES: Record<PccDomainCluster, string> = {
+  ops: "Operations", security: "Security", iam: "Identity & tenants",
+  billing: "Billing", dev: "Developer ecosystem", support: "Support & analytics",
+};
 
 export default function HomeLauncherPage() {
   const router = useRouter();
@@ -28,202 +20,119 @@ export default function HomeLauncherPage() {
   const [selectedCluster, setSelectedCluster] = useState<PccDomainCluster | "all">("all");
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Keyboard shortcut listener: '/' focuses search; Esc clears/blurs
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeElement = document.activeElement;
-      const isInputFocused =
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement;
-
-      // Press '/' to search
-      if (e.key === "/" && !isInputFocused) {
-        e.preventDefault();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const active = document.activeElement;
+      const isInput = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+      if (event.key === "/" && !isInput) {
+        event.preventDefault();
         searchInputRef.current?.focus();
         return;
       }
-
-      // Escape to clear search or blur
-      if (e.key === "Escape") {
-        if (searchQuery) {
-          setSearchQuery("");
-        } else if (isInputFocused) {
-          searchInputRef.current?.blur();
-        }
+      if (event.key === "Escape") {
+        if (searchQuery) setSearchQuery("");
+        else if (isInput) searchInputRef.current?.blur();
         return;
       }
-
-      // Single-letter shortcut navigation when not typing in an input
-      if (!isInputFocused && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1) {
-        const key = e.key.toUpperCase();
-        const match = PCC_REGISTRY.find((d) => d.shortcut === key);
+      if (!isInput && !event.metaKey && !event.ctrlKey && !event.altKey && event.key.length === 1) {
+        const match = PCC_REGISTRY.find((domain) => domain.shortcut === event.key.toUpperCase());
         if (match) {
-          e.preventDefault();
+          event.preventDefault();
           router.push(match.href);
         }
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [searchQuery, router]);
+  }, [router, searchQuery]);
 
-  // Filter PCC domains by search query and active cluster
   const filteredDomains = useMemo(() => {
-    return PCC_REGISTRY.filter((d) => {
-      // Cluster filter
-      if (selectedCluster !== "all" && d.cluster !== selectedCluster) {
-        return false;
-      }
-
-      // Search query filter
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.trim().toLowerCase();
-      return (
-        d.title.toLowerCase().includes(q) ||
-        d.shortTitle.toLowerCase().includes(q) ||
-        d.pccCode.toLowerCase().includes(q) ||
-        d.description.toLowerCase().includes(q) ||
-        d.clusterName.toLowerCase().includes(q)
-      );
+    const query = searchQuery.trim().toLowerCase();
+    return PCC_REGISTRY.filter((domain) => {
+      if (selectedCluster !== "all" && domain.cluster !== selectedCluster) return false;
+      if (!query) return true;
+      return [domain.title, domain.shortTitle, domain.pccCode, domain.description, domain.clusterName]
+        .some((value) => value.toLowerCase().includes(query));
     });
   }, [searchQuery, selectedCluster]);
 
-  return (
-    <main className={styles.container} id="provider-main" tabIndex={-1}>
-      {/* Top Status & Telemetry Bar */}
-      <section className={styles.statsTicker} aria-label="System status telemetry">
-        <div className={styles.statsItems}>
-          <div className={styles.statItem}>
-            <span className={styles.liveDot} />
-            <span>Control Plane Status:</span>
-            <span className={styles.statValue}>ALL SYSTEMS NOMINAL</span>
-          </div>
-          <div className={styles.statItem}>
-            <Activity size={14} />
-            <span>Telemetry:</span>
-            <span className={styles.statValue}>99.99% Uptime</span>
-          </div>
-        </div>
-        <div className={styles.statsItems}>
-          <div className={styles.statItem}>
-            <Shield size={14} />
-            <span>Tenant Isolation:</span>
-            <span className={styles.statValue}>RLS ENFORCED</span>
-          </div>
-          <div className={styles.statItem}>
-            <Building size={14} />
-            <span>Active Tenants:</span>
-            <span className={styles.statValue}>142</span>
-          </div>
-        </div>
-      </section>
+  const clusterDescription = selectedCluster === "all"
+    ? "Provider-wide applications and operational workspaces."
+    : PCC_CLUSTERS[selectedCluster].description;
 
-      {/* Hero Header */}
-      <header className={styles.heroHeader}>
-        <div className={styles.heroBadge}>
-          <Sparkles size={13} color="var(--color-primary)" />
-          <span>FRAPPE ERPNEXT-INSPIRED DESK LAUNCHER</span>
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedCluster("all");
+    searchInputRef.current?.focus();
+  };
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.pageHeader}>
+        <div>
+          <p className={styles.scope}>Provider estate</p>
+          <h1 className={styles.title}>Control center</h1>
+          <p className={styles.introduction}>
+            Choose an operational workspace. Live service health and incidents remain inside Operations,
+            where source status and refresh time are visible.
+          </p>
         </div>
-        <h1 className={styles.heroTitle}>Platform Control Center</h1>
-        <p className={styles.heroSubtitle}>
-          Central enterprise administrative console covering all 22 Platform Control Center (PCC) domains, multi-tenant isolation, and developer services.
-        </p>
+        <div className={styles.directorySummary} aria-label={`${PCC_REGISTRY.length} control center domains`}>
+          <strong>{PCC_REGISTRY.length}</strong><span>operational domains</span>
+        </div>
       </header>
 
-      {/* Platform Onboarding Setup Checklist */}
-      <SetupChecklist />
-
-      {/* Guided Tour Modal */}
-      <SpotlightTour />
-
-      {/* Search & Cluster Filter Bar */}
-      <section className={styles.searchSection} aria-label="Filter applications">
-        <div className={styles.searchWrapper}>
-          <Search size={18} className={styles.searchIcon} aria-hidden="true" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            className={styles.searchInput}
-            placeholder="Search 22 control-plane domains (e.g. Subscriptions, Secrets, AI, K8s)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search applications"
-            data-testid="pcc-search-input"
-          />
-          {searchQuery ? (
-            <button
-              type="button"
-              className={styles.searchClearButton}
-              onClick={() => setSearchQuery("")}
-              aria-label="Clear search"
-            >
-              <X size={16} />
-            </button>
-          ) : (
-            <span className={styles.searchKeyHint}>/</span>
-          )}
+      <section className={styles.directory} aria-labelledby="domain-directory-title">
+        <div className={styles.directoryHeader}>
+          <div><h2 id="domain-directory-title">Domain directory</h2><p>{clusterDescription}</p></div>
+          <p className={styles.resultCount} aria-live="polite">
+            {filteredDomains.length} {filteredDomains.length === 1 ? "result" : "results"}
+          </p>
         </div>
 
-        {/* Cluster Filter Pills */}
-        <div className={styles.clusterFilterBar} role="tablist" aria-label="Filter by cluster">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedCluster === "all"}
-            className={`${styles.filterPill} ${selectedCluster === "all" ? styles.filterPillActive : ""}`}
-            onClick={() => setSelectedCluster("all")}
-            data-testid="filter-all"
-          >
-            All Domains ({PCC_REGISTRY.length})
+        <div className={styles.searchRow}>
+          <div className={styles.searchWrapper}>
+            <Search size={17} className={styles.searchIcon} aria-hidden="true" />
+            <input ref={searchInputRef} type="search" className={styles.searchInput}
+              placeholder="Search domains, responsibilities, or PCC code" value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              aria-label="Search control center domains" data-testid="pcc-search-input" />
+            {searchQuery ? (
+              <button type="button" className={styles.searchClearButton} onClick={() => setSearchQuery("")} aria-label="Clear search">
+                <X size={15} aria-hidden="true" />
+              </button>
+            ) : <kbd className={styles.searchKeyHint} aria-hidden="true">/</kbd>}
+          </div>
+        </div>
+
+        <div className={styles.clusterFilterBar} aria-label="Filter domains by responsibility">
+          <button type="button" aria-pressed={selectedCluster === "all"} className={styles.filterButton}
+            onClick={() => setSelectedCluster("all")} data-testid="filter-all">
+            All <span>{PCC_REGISTRY.length}</span>
           </button>
           {(Object.keys(PCC_CLUSTERS) as PccDomainCluster[]).map((clusterKey) => {
-            const cluster = PCC_CLUSTERS[clusterKey];
-            const count = PCC_REGISTRY.filter((d) => d.cluster === clusterKey).length;
-            const isSelected = selectedCluster === clusterKey;
+            const count = PCC_REGISTRY.filter((domain) => domain.cluster === clusterKey).length;
             return (
-              <button
-                key={clusterKey}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                className={`${styles.filterPill} ${isSelected ? styles.filterPillActive : ""}`}
-                onClick={() => setSelectedCluster(clusterKey)}
-                data-testid={`filter-${clusterKey}`}
-              >
-                {cluster.name.replace(/ & Fleet| & Secrets| & Config| & Licenses| & Developer Tools| & Analytics/g, "")} ({count})
+              <button key={clusterKey} type="button" aria-pressed={selectedCluster === clusterKey}
+                className={styles.filterButton} onClick={() => setSelectedCluster(clusterKey)} data-testid={`filter-${clusterKey}`}>
+                {SHORT_CLUSTER_NAMES[clusterKey]} <span>{count}</span>
               </button>
             );
           })}
         </div>
-      </section>
 
-      {/* 6-Column Icon Grid (Frappe ERPNext style) */}
-      <section aria-label="Application launcher grid">
         {filteredDomains.length === 0 ? (
-          <EmptyStateIllustration
-            type="no-search-results"
-            title={`No platform domains match "${searchQuery}"`}
-            description="Try searching for another keyword, checking the code shortcut, or resetting the cluster filter."
-            action={{
-              label: "Reset Filters",
-              onClick: () => {
-                setSearchQuery("");
-                setSelectedCluster("all");
-              },
-            }}
-          />
+          <EmptyStateIllustration type="no-search-results" title={`No domains match “${searchQuery}”`}
+            description="Try a responsibility, PCC code, or a broader cluster."
+            action={{ label: "Reset filters", onClick: resetFilters }} />
         ) : (
-          <div className={styles.iconGrid} role="grid" data-testid="pcc-icon-grid">
-            {filteredDomains.map((entry) => (
-              <PccIconTile
-                key={entry.id}
-                entry={entry}
-              />
-            ))}
+          <div className={styles.domainGrid} data-testid="pcc-icon-grid">
+            {filteredDomains.map((entry) => <PccIconTile key={entry.id} entry={entry} />)}
           </div>
         )}
       </section>
-    </main>
+
+      <SetupChecklist />
+    </div>
   );
 }

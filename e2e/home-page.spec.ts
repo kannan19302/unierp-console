@@ -1,20 +1,16 @@
 import { test, expect } from "@playwright/test";
 import { TEST_AGENT_COOKIE } from "./auth.setup";
 
-test.describe("Home Page & Desk Launcher (WS6.1)", () => {
+test.describe("Provider control-center directory", () => {
   test.beforeEach(async ({ context }) => {
     await context.addCookies([TEST_AGENT_COOKIE]);
   });
 
-  test("root / redirects to /home and renders Desk Launcher", async ({ page }) => {
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/home/);
-
-    // Verify Frappe-style Desk Launcher hero
-    await expect(page.locator("h1")).toContainText("Platform Control Center");
-    await expect(
-      page.getByText("FRAPPE ERPNEXT-INSPIRED DESK LAUNCHER")
-    ).toBeVisible();
+  test("renders the domain directory", async ({ page }) => {
+    await page.goto("/home");
+    await expect(page.locator("h1")).toContainText("Control center");
+    await expect(page.getByText("Provider estate")).toBeVisible();
+    await expect(page.getByText("ALL SYSTEMS NOMINAL")).toHaveCount(0);
 
     // Verify 6-column icon grid renders
     const iconGrid = page.getByTestId("pcc-icon-grid");
@@ -31,8 +27,8 @@ test.describe("Home Page & Desk Launcher (WS6.1)", () => {
     const searchInput = page.getByTestId("pcc-search-input");
     await expect(searchInput).toBeVisible();
 
-    // Filter by 'Secrets'
-    await searchInput.fill("Secrets");
+    // Filter by the unique PCC code for Keys & Secrets.
+    await searchInput.fill("PCC-07");
     const iconGrid = page.getByTestId("pcc-icon-grid");
     const matchingTiles = iconGrid.locator("a");
     await expect(matchingTiles).toHaveCount(1);
@@ -66,8 +62,8 @@ test.describe("Home Page & Desk Launcher (WS6.1)", () => {
   test("pressing '/' key focuses search bar", async ({ page }) => {
     await page.goto("/home");
 
-    // Click outside input
-    await page.locator("body").click();
+    // Move focus to a stable control outside the search field.
+    await page.getByTestId("filter-all").focus();
 
     // Press '/'
     await page.keyboard.press("/");
