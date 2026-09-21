@@ -50,6 +50,8 @@ async function restoreSession(): Promise<TokenSet | null> {
     if (res.ok) {
       const body = await res.json();
       if (body.accessToken) {
+        document.cookie = `auth_token=${encodeURIComponent(body.accessToken)}; Path=/; SameSite=Lax`;
+        try { localStorage.setItem("token", body.accessToken); } catch {}
         return {
           accessToken: body.accessToken,
           idToken: body.idToken,
@@ -70,6 +72,8 @@ async function restoreSession(): Promise<TokenSet | null> {
       if (claims && typeof claims === "object") {
         const now = Math.floor(Date.now() / 1000);
         if (!claims.exp || claims.exp > now) {
+          document.cookie = `auth_token=${encodeURIComponent(cookieToken)}; Path=/; SameSite=Lax`;
+          try { localStorage.setItem("token", cookieToken); } catch {}
           return {
             accessToken: cookieToken,
             idToken: cookieToken,
@@ -148,15 +152,30 @@ export function RootAuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function ControlPlaneGate({ children }: { children: React.ReactNode }) {
-  return (
-    <RequireSession fallback={
-      <main aria-label="Provider sign-in" style={{ padding: "var(--space-6)" }}>
-        <h1>Opening the provider console</h1>
-        <p role="status">Checking your session and connecting to sign-in…</p>
-        <a href="/login">Continue to sign-in</a>
+  const { status } = useSession();
+
+  useEffect(() => {
+    if (status === "unauthenticated" && typeof window !== "undefined") {
+      const current = window.location.pathname + window.location.search;
+      if (current !== "/login" && !current.startsWith("/login?")) {
+        window.location.href = `/login?returnTo=${encodeURIComponent(current)}`;
+      }
+    }
+  }, [status]);
+
+  if (status !== "authenticated") {
+    return (
+      <main aria-label="Provider sign-in" style={{ padding: "var(--space-6)", color: "var(--color-text)" }}>
+        <h1 style={{ fontSize: "var(--text-lg)", marginBottom: "var(--space-2)" }}>Opening the provider console</h1>
+        <p role="status" style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-4)" }}>
+          Checking your session and connecting to sign-in…
+        </p>
+        <a href="/login" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600 }}>
+          Continue to sign-in
+        </a>
       </main>
-    }>
-      <PermissionBridge>{children}</PermissionBridge>
-    </RequireSession>
-  );
+    );
+  }
+
+  return <PermissionBridge>{children}</PermissionBridge>;
 }

@@ -34,6 +34,12 @@ export function setTokenGetter(getter: (() => string | null) | null): void {
   inMemoryTokenGetter = getter;
 }
 
+let sessionExpiredDispatched = false;
+
+export function resetSessionExpiredFlag(): void {
+  sessionExpiredDispatched = false;
+}
+
 function getSessionToken(): string {
   if (inMemoryTokenGetter) {
     try {
@@ -121,10 +127,17 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined") {
-      document.cookie = "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      document.cookie = "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      try { localStorage.removeItem("token"); } catch {}
-      window.dispatchEvent(new CustomEvent("unierp:session-expired"));
+      // ONLY trigger session-expired overlay if a token was actually presented and rejected
+      // (prevents premature unauthenticated reads on initial render from throwing false alarms)
+      if (token) {
+        document.cookie = "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        document.cookie = "__session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+        try { localStorage.removeItem("token"); } catch {}
+        if (!sessionExpiredDispatched) {
+          sessionExpiredDispatched = true;
+          window.dispatchEvent(new CustomEvent("unierp:session-expired"));
+        }
+      }
     }
     const err = new Error(messageForStatus(res.status)) as ApiError;
     err.status = res.status;

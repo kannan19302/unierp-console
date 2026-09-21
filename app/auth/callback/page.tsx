@@ -21,6 +21,11 @@ export default function CallbackPage() {
         const client = createOidcClient();
         const { tokens, returnTo } = await client.handleCallback(window.location.href);
 
+        if (tokens.accessToken) {
+          document.cookie = `auth_token=${encodeURIComponent(tokens.accessToken)}; Path=/; SameSite=Lax`;
+          try { localStorage.setItem("token", tokens.accessToken); } catch {}
+        }
+
         if (tokens.refreshToken) {
           await fetch("/api/session", {
             method: "POST",

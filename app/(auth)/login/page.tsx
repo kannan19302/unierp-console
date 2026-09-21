@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@kannan19302/shared/auth-client/react";
 import { Shield, Lock, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
+import { resetSessionExpiredFlag } from "@/lib/api";
 import styles from "./login.module.css";
 
 function getCookie(name: string): string | null {
@@ -29,10 +30,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If already authenticated, redirect straight to target page
+  // If already authenticated AND a non-expired token is present in storage, redirect straight to target page.
+  // Never redirect if token is absent to prevent redirect loops.
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace(returnTo);
+      const token = getCookie("auth_token") || getCookie("__session") || (typeof localStorage !== "undefined" ? localStorage.getItem("token") : null);
+      if (token && token.includes(".")) {
+        router.replace(returnTo);
+      }
     }
   }, [status, returnTo, router]);
 
@@ -76,6 +81,8 @@ export default function LoginPage() {
           localStorage.setItem("token", data.token);
         } catch {}
       }
+
+      resetSessionExpiredFlag();
 
       // Hard navigation to re-initialize React auth shell cleanly
       window.location.assign(returnTo);
