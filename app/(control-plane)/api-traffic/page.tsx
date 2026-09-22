@@ -207,7 +207,7 @@ export default function ApiTrafficPage() {
       );
       showToast({
         title: "Sunset Notice Dispatched",
-        message: res.data?.message || `Notified ${res.data?.recipientsCount || 24} active consumer applications.`,
+        message: res.data?.message || (typeof res.data?.recipientsCount === "number" ? `Notified ${res.data.recipientsCount} active consumer applications.` : "Sunset notice dispatched."),
         variant: "success",
       });
       setNotifyTarget(null);
@@ -247,22 +247,22 @@ export default function ApiTrafficPage() {
   const kpis: StatCardItem[] = [
     {
       label: "Gateway Routes",
-      value: stats?.gatewayRoutes ?? 28,
+      value: statsItem.loading ? "—" : stats?.gatewayRoutes ?? "Unknown",
       icon: <Network size={18} />,
     },
     {
       label: "Global P99 Latency",
-      value: stats?.p99LatencyMs ? `${stats.p99LatencyMs}ms` : "48ms",
+      value: statsItem.loading ? "—" : stats?.p99LatencyMs ? `${stats.p99LatencyMs}ms` : "Unknown",
       icon: <Activity size={18} />,
     },
     {
       label: "WAF Filter Rate",
-      value: stats?.wafFilterRate ?? "99.99%",
+      value: statsItem.loading ? "—" : stats?.wafFilterRate ?? "Unknown",
       icon: <ShieldCheck size={18} />,
     },
     {
       label: "Rate Limit Breaches",
-      value: stats?.rateLimitBreaches ?? 3,
+      value: statsItem.loading ? "—" : stats?.rateLimitBreaches ?? "Unknown",
       icon: <AlertTriangle size={18} />,
     },
   ];
