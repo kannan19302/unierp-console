@@ -29,15 +29,16 @@ export default function OverviewOperations() {
   const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
 
   const s = summary.data ?? {};
-  const queueDepth = Number(s.queueDepth) || 0;
-  const outboxLag = Number(s.outboxLag) || 0;
-  const degradedTenants = Number(s.degradedTenants) || 0;
+  const queueDepth = s.queueDepth != null && Number.isFinite(Number(s.queueDepth)) ? Number(s.queueDepth) : null;
+  const outboxLag = s.outboxLag != null && Number.isFinite(Number(s.outboxLag)) ? Number(s.outboxLag) : null;
+  const degradedTenants = s.degradedTenants != null && Number.isFinite(Number(s.degradedTenants)) ? Number(s.degradedTenants) : null;
+  const summaryUnavailable = summary.loading || Boolean(summary.error);
 
   const stats: StatCardItem[] = [
-    { label: "Jobs", value: jobs.data.length },
-    { label: "Queue depth", value: queueDepth },
-    { label: "Outbox lag", value: outboxLag },
-    { label: "Degraded tenants", value: degradedTenants },
+    { label: "Jobs", value: jobs.loading || jobs.error ? "Unknown" : jobs.data.length },
+    { label: "Queue depth", value: summaryUnavailable || queueDepth == null ? "Unknown" : queueDepth },
+    { label: "Outbox lag", value: summaryUnavailable || outboxLag == null ? "Unknown" : outboxLag },
+    { label: "Degraded tenants", value: summaryUnavailable || degradedTenants == null ? "Unknown" : degradedTenants },
   ];
 
   if (jobs.loading || logs.loading) {
