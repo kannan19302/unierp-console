@@ -34,14 +34,16 @@ export default function OverviewUsage() {
   const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
 
   const s = summary.data ?? {};
-  const totalTenants = Number(s.totalTenants) || 0;
-  const activeTenants = Number(s.activeTenants) || 0;
+  const totalTenants = Number.isFinite(Number(s.totalTenants)) && s.totalTenants != null ? Number(s.totalTenants) : null;
+  const activeTenants = Number.isFinite(Number(s.activeTenants)) && s.activeTenants != null ? Number(s.activeTenants) : null;
+  const overQuota = Number.isFinite(Number(s.overQuotaTenants)) && s.overQuotaTenants != null ? Number(s.overQuotaTenants) : null;
+  const summaryUnknown = summary.loading || Boolean(summary.error);
 
   const stats: StatCardItem[] = [
-    { label: "Tenants metered", value: totalTenants },
-    { label: "Active tenants", value: activeTenants },
-    { label: "Quota rules", value: rules.data.length },
-    { label: "Over quota", value: Number(s.overQuotaTenants) || 0 },
+    { label: "Tenants metered", value: summaryUnknown || totalTenants == null ? "Unknown" : totalTenants },
+    { label: "Active tenants", value: summaryUnknown || activeTenants == null ? "Unknown" : activeTenants },
+    { label: "Quota rules", value: rules.loading ? "—" : rules.error ? "Unknown" : rules.data.length },
+    { label: "Over quota", value: summaryUnknown || overQuota == null ? "Unknown" : overQuota },
   ];
 
   if (usage.loading || rules.loading) {
