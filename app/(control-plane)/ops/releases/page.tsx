@@ -1,33 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  ArrowLeftRight,
-  GitBranch,
-  Layers,
-  Percent,
-  RefreshCw,
-  Rocket,
-  RotateCcw,
-  ShieldCheck,
-} from "lucide-react";
-import {
-  Badge,
-  Button,
-  Card,
-  FormField,
-  Input,
-  Modal,
-  StatCardRow,
-  useToast,
-  usePermission,
-  type StatCardItem,
-} from "@kannan19302/ui";
-import { useItem } from "@/lib/data";
-import { api } from "@/lib/api";
-import { useDomainRealtime } from "@/lib/use-domain-realtime";
+import { useEffect, useState } from "react";
+import { Badge, Button, FormField, Input, Modal, usePermission, useToast } from "@kannan19302/ui";
+import { DataWorkspace } from "@kannan19302/ui/shell";
+import { RefreshCw, Rocket, RotateCcw } from "lucide-react";
 import DomainShell from "@/components/domain-shell";
-import type { PipelineResponse } from "@/lib/ops-schema";
+import { api } from "@/lib/api";
+import { useItem } from "@/lib/data";
+import { useDomainRealtime } from "@/lib/use-domain-realtime";
+import type { PipelineResponse, PipelineStage } from "@/lib/ops-schema";
 import styles from "./releases.module.css";
 
 interface ReleaseManifest {
@@ -40,116 +21,121 @@ interface ReleaseManifest {
   previousManifestVersion?: string;
 }
 
+interface ServicePin {
+  name: string;
+  version: string;
+}
+
+interface MigrationRecord {
+  name: string;
+}
+
+const statusVariant = (status?: string): "success" | "warning" | "danger" | "default" => {
+  if (status === "HEALTHY") return "success";
+  if (status === "ROLLING_OUT" || status === "DEGRADED") return "warning";
+  return "default";
+};
+
+const formatTimestamp = (value: unknown): string => {
+  if (typeof value !== "string" || !value) return "Not reported";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Invalid timestamp" : date.toLocaleString();
+};
+
 export default function OpsReleases() {
   const toast = useToast();
   const canRollback = usePermission("system.release.rollback");
   const canPromote = usePermission("system.release.promote");
-
   const manifest = useItem<ReleaseManifest>("/platform/v1/releases/manifest");
   const pipeline = useItem<PipelineResponse>("/platform/v1/releases/pipeline");
 
-  // Real-time updates
   useDomainRealtime("release", () => {
-    pipeline.reload();
-    manifest.reload();
+    void Promise.all([pipeline.reload(), manifest.reload()]);
   });
 
-  const m = manifest.data ?? {};
-  const p = pipeline.data ?? { stages: [], activeCanaryPercent: 10 };
-
-  // Canary Traffic Slider State
-  const [canaryWeight, setCanaryWeight] = useState(p.activeCanaryPercent || 10);
+  const [canaryWeight, setCanaryWeight] = useState<number | null>(null);
+  const [canaryConfirmOpen, setCanaryConfirmOpen] = useState(false);
   const [updatingCanary, setUpdatingCanary] = useState(false);
-
-  useEffect(() => {
-    if (p.activeCanaryPercent != null) {
-      setCanaryWeight(p.activeCanaryPercent);
-    }
-  }, [p.activeCanaryPercent]);
-
-  // Rollback Modal State
   const [rollbackOpen, setRollbackOpen] = useState(false);
-  const [targetVersion, setTargetVersion] = useState(m.previousManifestVersion ?? "2026.07.4");
   const [rollbackReason, setRollbackReason] = useState("");
   const [rollingBack, setRollingBack] = useState(false);
-
-  // Promote Modal State
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [promoteEnv, setPromoteEnv] = useState("canary");
-  const [promoteVersion, setPromoteVersion] = useState(m.version ?? "2026.08.1");
+  const [promoteVersion, setPromoteVersion] = useState("");
+  const [promotionHealthConfirmed, setPromotionHealthConfirmed] = useState(false);
   const [promoting, setPromoting] = useState(false);
 
-  const activeVersion = m.version ?? m.releaseTrain ?? "2026.08.0";
-  const prevVersion = m.previousManifestVersion ?? "2026.07.4";
+  useEffect(() => {
+    if (typeof pipeline.data?.activeCanaryPercent === "number") {
+      setCanaryWeight(pipeline.data.activeCanaryPercent);
+    }
+  }, [pipeline.data?.activeCanaryPercent]);
 
-  const statItems: StatCardItem[] = [
-    {
-      label: "Current Active Version",
-      value: activeVersion,
-    },
-    {
-      label: "Canary Traffic Split",
-      value: `${p.activeCanaryPercent ?? canaryWeight}%`,
-    },
-    {
-      label: "Rollback Invariant Target",
-      value: prevVersion,
-    },
-    {
-      label: "Active Pipeline Stages",
-      value: String(p.stages.length || 4),
-    },
-  ];
+  useEffect(() => {
+    const currentVersion = manifest.data?.version ?? manifest.data?.releaseTrain ?? manifest.data?.train;
+    if (currentVersion) setPromoteVersion(currentVersion);
+  }, [manifest.data?.releaseTrain, manifest.data?.train, manifest.data?.version]);
+
+  const currentVersion = manifest.data?.version ?? manifest.data?.releaseTrain ?? manifest.data?.train;
+  const previousVersion = manifest.data?.previousManifestVersion;
+  const stages = pipeline.data?.stages ?? [];
+  const servicePins: ServicePin[] = Object.entries(manifest.data?.services ?? {}).map(([name, version]) => ({ name, version }));
+  const migrations: MigrationRecord[] = (manifest.data?.migrations ?? []).map((name) => ({ name }));
+  const canaryChanged = canaryWeight !== null && canaryWeight !== pipeline.data?.activeCanaryPercent;
+  const rollbackReady = Boolean(previousVersion && rollbackReason.trim().length >= 10);
+  const promotionReady = Boolean(promoteEnv && promoteVersion.trim() && promotionHealthConfirmed);
+
+  const reloadAll = () => void Promise.all([manifest.reload(), pipeline.reload()]);
 
   const handleApplyCanary = async () => {
+    if (canaryWeight === null) return;
     setUpdatingCanary(true);
     try {
-      await api.post("/platform/v1/releases/pipeline/canary-traffic", {
-        percentage: Number(canaryWeight),
-        actorId: "test.agent@unierp.com",
-      });
-      toast.success("Canary Traffic Updated", `Global edge traffic routed to ${canaryWeight}% canary.`);
+      await api.post("/platform/v1/releases/pipeline/canary-traffic", { percentage: canaryWeight });
+      toast.success("Canary allocation updated", `${canaryWeight}% of ingress traffic is assigned to the canary ring.`);
+      setCanaryConfirmOpen(false);
       await pipeline.reload();
     } catch {
-      toast.error("Update Failed", "Could not adjust canary traffic weight.");
+      toast.error("Canary update failed", "The traffic-allocation command was not accepted.");
     } finally {
       setUpdatingCanary(false);
     }
   };
 
   const handleRollback = async () => {
+    if (!previousVersion || !rollbackReady) return;
     setRollingBack(true);
     try {
       await api.post("/platform/v1/releases/rollback", {
-        targetManifestVersion: targetVersion,
-        reason: rollbackReason || "Operator initiated rollback via Release Control",
-        actorId: "test.agent@unierp.com",
+        targetManifestVersion: previousVersion,
+        reason: rollbackReason.trim(),
       });
-      toast.success("Rollback Initiated", `Platform reversion to manifest ${targetVersion} dispatched.`);
+      toast.success("Rollback completed", `The platform manifest was reverted to ${previousVersion}.`);
       setRollbackOpen(false);
-      await manifest.reload();
-      await pipeline.reload();
+      setRollbackReason("");
+      await Promise.all([manifest.reload(), pipeline.reload()]);
     } catch {
-      toast.error("Rollback Failed", "Failed to trigger release rollback.");
+      toast.error("Rollback failed", "The platform rollback command did not complete.");
     } finally {
       setRollingBack(false);
     }
   };
 
   const handlePromote = async () => {
+    if (!promotionReady) return;
     setPromoting(true);
     try {
       await api.post("/platform/v1/releases/promote", {
         environmentName: promoteEnv,
-        targetManifestVersion: promoteVersion,
+        targetManifestVersion: promoteVersion.trim(),
         healthy: true,
       });
-      toast.success("Release Promoted", `Version ${promoteVersion} promoted to ${promoteEnv}.`);
+      toast.success("Promotion completed", `${promoteVersion.trim()} was promoted to ${promoteEnv}.`);
       setPromoteOpen(false);
-      await manifest.reload();
-      await pipeline.reload();
+      setPromotionHealthConfirmed(false);
+      await Promise.all([manifest.reload(), pipeline.reload()]);
     } catch {
-      toast.error("Promotion Failed", "Failed to promote release.");
+      toast.error("Promotion failed", "The release promotion command did not complete.");
     } finally {
       setPromoting(false);
     }
@@ -158,239 +144,123 @@ export default function OpsReleases() {
   return (
     <DomainShell
       domainId="ops"
-      title="Platform Operations — Release Pipeline"
-      description="Visual release promotion stages, edge canary traffic weighting, and zero-downtime rollback controls."
+      title="Releases"
+      description="Manifest evidence, pipeline state and guarded controls for the provider release train."
       actions={
-        <div style={{ display: "flex", gap: "var(--space-2)" }}>
-          {canPromote && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => setPromoteOpen(true)}
-            >
-              <Rocket size={14} style={{ marginRight: "var(--space-1)" }} />
-              Promote Release
-            </Button>
-          )}
-          {canRollback && (
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() => setRollbackOpen(true)}
-            >
-              <RotateCcw size={14} style={{ marginRight: "var(--space-1)" }} />
-              Rollback Platform
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              manifest.reload();
-              pipeline.reload();
-            }}
-          >
-            Refresh
+        <div className={styles.headerActions}>
+          <Button size="sm" variant="outline" disabled={manifest.loading || pipeline.loading} onClick={reloadAll}>
+            <RefreshCw size={14} aria-hidden="true" />Refresh releases
           </Button>
+          {canPromote && <Button size="sm" variant="primary" disabled={!currentVersion} onClick={() => setPromoteOpen(true)}><Rocket size={14} aria-hidden="true" />Promote release</Button>}
+          {canRollback && <Button size="sm" variant="danger" disabled={!previousVersion} onClick={() => setRollbackOpen(true)}><RotateCcw size={14} aria-hidden="true" />Rollback platform</Button>}
         </div>
       }
     >
       <div className={styles.container}>
-        <StatCardRow stats={statItems} columns={4} />
-
-        {/* Visual Pipeline Grid */}
-        <div>
-          <h3 style={{ fontSize: "var(--font-size-md)", fontWeight: "var(--font-weight-semibold)", marginBottom: "var(--space-2)", color: "var(--color-text-primary)" }}>
-            Deployment Pipeline Stages
-          </h3>
-          <div className={styles.pipelineGrid}>
-            {p.stages.map((stage) => (
-              <div
-                key={stage.stage}
-                className={`${styles.stageCard} ${stage.stage === "canary" ? styles.stageCardActive : ""}`}
-              >
-                <div className={styles.stageHeader}>
-                  <span className={styles.stageTitle}>{stage.label}</span>
-                  <Badge variant={stage.status === "HEALTHY" ? "success" : stage.status === "ROLLING_OUT" ? "warning" : "default"}>
-                    {stage.status}
-                  </Badge>
-                </div>
-                <div className={styles.stageVersion}>{stage.version}</div>
-                <div className={styles.stageMeta}>
-                  {stage.trafficWeightPercent != null && (
-                    <div>Traffic Weight: <strong>{stage.trafficWeightPercent}%</strong></div>
-                  )}
-                  {stage.commitHash && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-                      <GitBranch size={12} /> Commit: <code>{stage.commitHash}</code>
-                    </div>
-                  )}
-                  <div>Last Deploy: {new Date(stage.lastDeployedAt).toLocaleTimeString()}</div>
-                </div>
-              </div>
-            ))}
+        {(manifest.error || pipeline.error) && (
+          <div className={styles.sourceErrors} role="alert">
+            {manifest.error && <span>Manifest unavailable: {manifest.error.message}</span>}
+            {pipeline.error && <span>Pipeline unavailable: {pipeline.error.message}</span>}
           </div>
-        </div>
+        )}
 
-        {/* Canary Traffic Routing Slider */}
-        <div className={styles.canaryPanel}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <h4 style={{ fontSize: "var(--font-size-sm)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" }}>
-                Edge Canary Traffic Weight Control
-              </h4>
-              <p style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)", marginTop: "var(--space-1)" }}>
-                Adjust percentage of ingress production traffic routed to the canary ring before full fleet promotion.
-              </p>
-            </div>
-            {canPromote && (
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={handleApplyCanary}
-                disabled={updatingCanary || canaryWeight === p.activeCanaryPercent}
-              >
-                {updatingCanary ? "Applying..." : "Apply Canary Split"}
-              </Button>
-            )}
+        <section className={styles.releaseLedger} aria-label="Release evidence">
+          <div><span>Current manifest</span><strong>{manifest.loading || manifest.error ? "Unknown" : currentVersion ?? "Not reported"}</strong></div>
+          <div><span>Canary allocation</span><strong>{pipeline.loading || pipeline.error || pipeline.data?.activeCanaryPercent === undefined ? "Unknown" : `${pipeline.data.activeCanaryPercent}%`}</strong></div>
+          <div><span>Rollback target</span><strong>{manifest.loading || manifest.error ? "Unknown" : previousVersion ?? "Not reported"}</strong></div>
+          <div><span>Stages reported</span><strong>{pipeline.loading || pipeline.error ? "Unknown" : stages.length.toLocaleString()}</strong></div>
+        </section>
+
+        <section className={styles.pipelinePanel} aria-labelledby="pipeline-heading">
+          <div className={styles.panelHeader}><div><h2 id="pipeline-heading">Pipeline stages</h2><p>Versions and state reported by the release pipeline.</p></div></div>
+          <DataWorkspace<PipelineStage>
+            data={stages} loading={pipeline.loading} searchable={false} getRowId={(row) => row.stage}
+            error={pipeline.error ? <p role="alert" className={styles.inlineError}>{pipeline.error.message}</p> : undefined}
+            emptyTitle={pipeline.error ? "Pipeline unavailable" : "No pipeline stages reported"}
+            emptyDescription="The release pipeline returned no stage records."
+            columns={[
+              { key: "label", header: "Stage", render: (_value, row) => <><span className={styles.recordTitle}>{row.label || row.stage}</span><span className={styles.recordDetail}>{row.stage}</span></> },
+              { key: "status", header: "Status", render: (value) => <Badge variant={statusVariant(typeof value === "string" ? value : undefined)}>{String(value ?? "UNKNOWN")}</Badge> },
+              { key: "version", header: "Version", render: (value) => String(value ?? "Unknown") },
+              { key: "trafficWeightPercent", header: "Traffic", align: "right", render: (value) => typeof value === "number" ? `${value}%` : "Not reported" },
+              { key: "commitHash", header: "Revision", render: (value) => typeof value === "string" && value ? value.slice(0, 12) : "Not reported" },
+              { key: "lastDeployedAt", header: "Last deployed", render: formatTimestamp },
+            ]}
+          />
+        </section>
+
+        <section className={styles.canaryPanel} aria-labelledby="canary-heading">
+          <div className={styles.panelHeader}>
+            <div><h2 id="canary-heading">Canary traffic allocation</h2><p>Change the provider-estate ingress percentage assigned to the canary ring.</p></div>
+            {canPromote && <Button size="sm" variant="outline" disabled={!canaryChanged || updatingCanary} onClick={() => setCanaryConfirmOpen(true)}>Review change</Button>}
           </div>
-          <div className={styles.sliderRow}>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              value={canaryWeight}
-              onChange={(e) => setCanaryWeight(Number(e.target.value))}
-              className={styles.sliderInput}
-              disabled={!canPromote}
+          <div className={styles.canaryControl}>
+            <input type="range" min="0" max="100" step="5" value={canaryWeight ?? 0} onChange={(event) => setCanaryWeight(Number(event.target.value))} disabled={!canPromote || canaryWeight === null} aria-label="Canary traffic percentage" />
+            <output>{canaryWeight === null ? "Unknown" : `${canaryWeight}%`}</output>
+          </div>
+        </section>
+
+        <div className={styles.manifestGrid}>
+          <section className={styles.manifestPanel} aria-labelledby="services-heading">
+            <div className={styles.panelHeader}><div><h2 id="services-heading">Service pins</h2><p>Versions declared by the current manifest.</p></div></div>
+            <DataWorkspace<ServicePin>
+              data={servicePins} loading={manifest.loading} searchable={false} getRowId={(row) => row.name}
+              error={manifest.error ? <p role="alert" className={styles.inlineError}>{manifest.error.message}</p> : undefined}
+              emptyTitle={manifest.error ? "Manifest unavailable" : "No service pins reported"}
+              emptyDescription="The current manifest contains no service version pins."
+              columns={[{ key: "name", header: "Service" }, { key: "version", header: "Version" }]}
             />
-            <div className={styles.sliderValue}>{canaryWeight}%</div>
-          </div>
+          </section>
+
+          <section className={styles.manifestPanel} aria-labelledby="migrations-heading">
+            <div className={styles.panelHeader}><div><h2 id="migrations-heading">Manifest migrations</h2><p>Migration identifiers declared by the current manifest.</p></div></div>
+            <DataWorkspace<MigrationRecord>
+              data={migrations} loading={manifest.loading} searchable={false} getRowId={(row) => row.name}
+              error={manifest.error ? <p role="alert" className={styles.inlineError}>{manifest.error.message}</p> : undefined}
+              emptyTitle={manifest.error ? "Manifest unavailable" : "No migrations declared"}
+              emptyDescription="The current manifest contains no migration identifiers."
+              columns={[{ key: "name", header: "Migration" }, { key: "state", header: "Evidence", render: () => "Declared in manifest" }]}
+            />
+          </section>
         </div>
 
-        {/* Manifest Details */}
-        <div className={styles.manifestSection}>
-          <div className={styles.manifestCard}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <Layers size={18} color="var(--color-primary-500)" />
-              <h4 style={{ fontSize: "var(--font-size-sm)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" }}>
-                Pinned Services
-              </h4>
-            </div>
-            <div className={styles.serviceList}>
-              {m.services ? (
-                Object.entries(m.services).map(([name, ver]) => (
-                  <div key={name} className={styles.serviceRow}>
-                    <span className={styles.serviceName}>{name}</span>
-                    <span className={styles.serviceVersion}>{ver}</span>
-                  </div>
-                ))
-              ) : (
-                <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>Loading services...</span>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.manifestCard}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <ShieldCheck size={18} color="var(--color-success-500)" />
-              <h4 style={{ fontSize: "var(--font-size-sm)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" }}>
-                Database Migrations
-              </h4>
-            </div>
-            <div className={styles.serviceList}>
-              {m.migrations && m.migrations.length > 0 ? (
-                m.migrations.map((mig) => (
-                  <div key={mig} className={styles.serviceRow}>
-                    <span className={styles.serviceName}>{mig}</span>
-                    <Badge variant="success">Applied</Badge>
-                  </div>
-                ))
-              ) : (
-                <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>No pending migrations</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Rollback Modal */}
-        <Modal
-          open={rollbackOpen}
-          onClose={() => setRollbackOpen(false)}
-          title="Rollback Entire Platform Fleet"
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-2)" }}>
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
-              Platform invariant: &ldquo;A rollback is the previous manifest&rdquo;. This operation switches all service pins to the target manifest across all tenants.
-            </p>
-            <FormField label="Target Manifest Version" required>
-              <Input
-                value={targetVersion}
-                onChange={(e) => setTargetVersion(e.target.value)}
-              />
-            </FormField>
-            <FormField label="Rollback Justification" required>
-              <Input
-                placeholder="e.g., P99 latency SLA degradation in EU region post v2.4.0 rollout"
-                value={rollbackReason}
-                onChange={(e) => setRollbackReason(e.target.value)}
-              />
-            </FormField>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-              <Button variant="ghost" onClick={() => setRollbackOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="danger" onClick={handleRollback} disabled={rollingBack}>
-                {rollingBack ? "Rolling back..." : "Confirm Rollback"}
-              </Button>
-            </div>
+        <Modal className={styles.commandModal} open={canaryConfirmOpen} onClose={() => !updatingCanary && setCanaryConfirmOpen(false)} title="Confirm canary allocation">
+          <div className={styles.commandDialog}>
+            <p>Change provider-estate ingress traffic assigned to the canary ring.</p>
+            <dl>
+              <div><dt>Current</dt><dd>{pipeline.data?.activeCanaryPercent === undefined ? "Unknown" : `${pipeline.data.activeCanaryPercent}%`}</dd></div>
+              <div><dt>Requested</dt><dd>{canaryWeight === null ? "Unknown" : `${canaryWeight}%`}</dd></div>
+              <div><dt>Scope</dt><dd>Global provider ingress</dd></div>
+            </dl>
+            <div className={styles.dialogActions}><Button variant="ghost" onClick={() => setCanaryConfirmOpen(false)} disabled={updatingCanary}>Cancel</Button><Button variant="primary" onClick={() => void handleApplyCanary()} disabled={updatingCanary || canaryWeight === null}>{updatingCanary ? "Updating…" : "Apply allocation"}</Button></div>
           </div>
         </Modal>
 
-        {/* Promotion Modal */}
-        <Modal
-          open={promoteOpen}
-          onClose={() => setPromoteOpen(false)}
-          title="Promote Release to Next Ring"
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-2)" }}>
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
-              Promoting advances the verified release manifest to the selected target environment after automated health verification.
-            </p>
-            <FormField label="Target Environment" required>
-              <select
-                className="input-select"
-                value={promoteEnv}
-                onChange={(e) => setPromoteEnv(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "var(--space-2)",
-                  background: "var(--color-surface)",
-                  color: "var(--color-text-primary)",
-                  borderRadius: "var(--radius-sm)",
-                  border: "0.0625rem solid var(--color-border-subtle)",
-                }}
-              >
-                <option value="staging">Pre-Production Staging</option>
-                <option value="canary">Global Edge Canary Ring</option>
-                <option value="production">Primary Production Fleet</option>
+        <Modal className={styles.commandModal} open={rollbackOpen} onClose={() => !rollingBack && setRollbackOpen(false)} title="Rollback platform manifest">
+          <div className={styles.commandDialog}>
+            <p>Revert every provider service pin to the previous manifest. This affects all tenants and requires server-side dual control.</p>
+            <dl>
+              <div><dt>Current</dt><dd>{currentVersion ?? "Unknown"}</dd></div>
+              <div><dt>Target</dt><dd>{previousVersion ?? "Unavailable"}</dd></div>
+              <div><dt>Recovery</dt><dd>Forward promotion after the failure is understood</dd></div>
+            </dl>
+            <FormField label="Rollback reason" required><Input value={rollbackReason} onChange={(event) => setRollbackReason(event.target.value)} placeholder="Describe the measured failure requiring rollback" /></FormField>
+            <p className={styles.fieldHint}>Enter at least 10 characters. The reason is included in the platform audit record.</p>
+            <div className={styles.dialogActions}><Button variant="ghost" onClick={() => setRollbackOpen(false)} disabled={rollingBack}>Cancel</Button><Button variant="danger" onClick={() => void handleRollback()} disabled={!rollbackReady || rollingBack}>{rollingBack ? "Rolling back…" : "Rollback platform"}</Button></div>
+          </div>
+        </Modal>
+
+        <Modal className={styles.commandModal} open={promoteOpen} onClose={() => !promoting && setPromoteOpen(false)} title="Promote release manifest">
+          <div className={styles.commandDialog}>
+            <p>Promote a manifest to the selected environment. The current API requires the caller to supply the external health-gate result.</p>
+            <FormField label="Target environment" required>
+              <select className={styles.select} value={promoteEnv} onChange={(event) => setPromoteEnv(event.target.value)}>
+                <option value="staging">Staging</option><option value="canary">Canary ring</option><option value="production">Production fleet</option>
               </select>
             </FormField>
-            <FormField label="Manifest Version" required>
-              <Input
-                value={promoteVersion}
-                onChange={(e) => setPromoteVersion(e.target.value)}
-              />
-            </FormField>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-              <Button variant="ghost" onClick={() => setPromoteOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handlePromote} disabled={promoting}>
-                {promoting ? "Promoting..." : "Verify & Promote"}
-              </Button>
-            </div>
+            <FormField label="Manifest version" required><Input value={promoteVersion} onChange={(event) => setPromoteVersion(event.target.value)} /></FormField>
+            <label className={styles.confirmCheck}><input type="checkbox" checked={promotionHealthConfirmed} onChange={(event) => setPromotionHealthConfirmed(event.target.checked)} /><span>I verified the external health gate for this manifest and target.</span></label>
+            <div className={styles.dialogActions}><Button variant="ghost" onClick={() => setPromoteOpen(false)} disabled={promoting}>Cancel</Button><Button variant="primary" onClick={() => void handlePromote()} disabled={!promotionReady || promoting}>{promoting ? "Promoting…" : "Promote release"}</Button></div>
           </div>
         </Modal>
       </div>
