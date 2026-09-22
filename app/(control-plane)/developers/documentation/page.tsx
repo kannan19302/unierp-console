@@ -38,8 +38,8 @@ export default function DevelopersDocumentation() {
   }, {});
 
   const stats: StatCardItem[] = [
-    { label: "Documented endpoints", value: catalog.total ?? catalog.data.length, icon: <Braces size={18} /> },
-    { label: "Sections", value: Object.keys(sections).length, icon: <BookOpen size={18} /> },
+    { label: "Documented endpoints", value: catalog.error ? "Unknown" : catalog.total ?? catalog.data.length, icon: <Braces size={18} /> },
+    { label: "Sections", value: catalog.error ? "Unknown" : Object.keys(sections).length, icon: <BookOpen size={18} /> },
   ];
 
   if (catalog.loading) {
