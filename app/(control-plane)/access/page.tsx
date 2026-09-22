@@ -69,13 +69,17 @@ export default function AccessLanding() {
   const dashUsers = num("totalUsers") ?? num("usersTotal");
   const dashActive = num("activeUsers") ?? num("usersActive");
   const activeCount = users.data.filter((u) => statusVariant(u.status) === "success").length;
+  const usersUnknown = users.loading || Boolean(users.error || summary.error);
+  const rolesUnknown = roles.loading || Boolean(roles.error);
+  const groupsUnknown = groups.loading || Boolean(groups.error);
+  const auditUnknown = audit.loading || Boolean(audit.error);
 
   const stats: StatCardItem[] = [
-    { label: "Users", value: dashUsers ?? users.data.length, icon: <Users size={18} /> },
-    { label: "Active users", value: dashActive ?? activeCount, icon: <UserCheck size={18} /> },
-    { label: "Roles", value: roles.data.length, icon: <ShieldCheck size={18} /> },
-    { label: "Groups", value: groups.data.length, icon: <Users size={18} /> },
-    { label: "Security events", value: audit.data.length, icon: <ShieldAlert size={18} /> },
+    { label: "Users", value: usersUnknown ? "Unknown" : dashUsers ?? users.data.length, icon: <Users size={18} /> },
+    { label: "Active users", value: usersUnknown ? "Unknown" : dashActive ?? activeCount, icon: <UserCheck size={18} /> },
+    { label: "Roles", value: rolesUnknown ? "Unknown" : roles.data.length, icon: <ShieldCheck size={18} /> },
+    { label: "Groups", value: groupsUnknown ? "Unknown" : groups.data.length, icon: <Users size={18} /> },
+    { label: "Security events", value: auditUnknown ? "Unknown" : audit.data.length, icon: <ShieldAlert size={18} /> },
   ];
 
   if (users.loading || roles.loading || groups.loading || audit.loading) {
