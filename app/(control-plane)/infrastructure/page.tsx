@@ -37,18 +37,20 @@ export default function InfrastructureOverview() {
   const clusters = useList<ClusterRow>({ path: "/platform/v1/cluster-routing-deep/clusters" });
 
   const s = summary.data ?? {};
-  const clustersTotal = Number(s.clustersTotal ?? s.totalClusters ?? clusters.data.length) || 0;
-  const clustersHealthy = Number(s.clustersHealthy ?? s.healthyClusters) || 0;
-  const backupTotal = Number(s.totalBackups) || (backups.total ?? backups.data.length);
+  const clustersTotal = s.clustersTotal != null || s.totalClusters != null ? Number(s.clustersTotal ?? s.totalClusters) : clusters.data.length;
+  const clustersHealthy = s.clustersHealthy != null || s.healthyClusters != null ? Number(s.clustersHealthy ?? s.healthyClusters) : null;
+  const backupTotal = s.totalBackups != null ? Number(s.totalBackups) : typeof backups.total === "number" ? backups.total : backups.data.length;
   const regionCount = new Set(clusters.data.map((c) => c.region).filter(Boolean)).size;
   const availability =
-    s.availability != null ? String(s.availability) : s.availabilityPct != null ? String(s.availabilityPct) : "—";
+    s.availability != null ? String(s.availability) : s.availabilityPct != null ? String(s.availabilityPct) : null;
+  const clustersUnknown = clusters.loading || Boolean(clusters.error || summary.error);
+  const backupsUnknown = backups.loading || Boolean(backups.error);
 
   const stats: StatCardItem[] = [
-    { label: "Clusters", value: clustersTotal ? `${clustersHealthy}/${clustersTotal}` : "—", icon: <Server size={18} /> },
-    { label: "Backups", value: backupTotal, icon: <Archive size={18} /> },
-    { label: "Regions", value: regionCount || "—", icon: <MapPin size={18} /> },
-    { label: "Availability", value: availability, icon: <ShieldCheck size={18} /> },
+    { label: "Clusters", value: clustersUnknown || clustersHealthy == null ? "Unknown" : `${clustersHealthy}/${clustersTotal}`, icon: <Server size={18} /> },
+    { label: "Backups", value: backupsUnknown ? "Unknown" : backupTotal, icon: <Archive size={18} /> },
+    { label: "Regions", value: clustersUnknown ? "Unknown" : regionCount, icon: <MapPin size={18} /> },
+    { label: "Availability", value: summary.loading || summary.error || availability == null ? "Unknown" : availability, icon: <ShieldCheck size={18} /> },
   ];
 
   if (backups.loading || clusters.loading) {
