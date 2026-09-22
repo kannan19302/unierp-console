@@ -67,10 +67,10 @@ export default function IntegrationsEvents() {
   };
 
   const kpis: StatCardItem[] = [
-    { label: "Webhook configs", value: stats.data?.totalConfigs ?? webhooks.data.length, icon: <Zap size={18} /> },
-    { label: "Deliveries", value: stats.data?.totalDeliveries ?? "14,290", icon: <Send size={18} /> },
-    { label: "Failed (DLQ)", value: stats.data?.failed ?? "0", icon: <Zap size={18} /> },
-    { label: "SaaS webhooks", value: compliance.data.length || 8, icon: <Zap size={18} /> },
+    { label: "Webhook configs", value: stats.error || webhooks.error ? "Unknown" : stats.data?.totalConfigs ?? webhooks.data.length, icon: <Zap size={18} /> },
+    { label: "Deliveries", value: stats.error || stats.data?.totalDeliveries == null ? "Unknown" : stats.data.totalDeliveries, icon: <Send size={18} /> },
+    { label: "Failed (DLQ)", value: stats.error || stats.data?.failed == null ? "Unknown" : stats.data.failed, icon: <Zap size={18} /> },
+    { label: "SaaS webhooks", value: compliance.error ? "Unknown" : compliance.data.length, icon: <Zap size={18} /> },
   ];
 
   if (webhooks.loading || stats.loading || compliance.loading) {

@@ -65,7 +65,7 @@ export default function DevelopersOverview() {
     { label: "Sandboxes", value: sandboxes.filter(Boolean).length, icon: <Server size={18} /> },
     { label: "SDK Downloads", value: sdks.reduce((acc, s) => acc + (s?.downloadCount || 0), 0).toLocaleString(), icon: <Download size={18} /> },
     { label: "Registered Scopes", value: AVAILABLE_SCOPES.length, icon: <Shield size={18} /> },
-    { label: "API Endpoints", value: endpoints.data.length || 38, icon: <Braces size={18} /> },
+    { label: "API Endpoints", value: endpoints.loading || endpoints.error ? "Unknown" : endpoints.data.length, icon: <Braces size={18} /> },
   ];
 
   return (
