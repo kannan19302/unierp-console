@@ -65,7 +65,7 @@ export default function SupportKnowledge() {
     { label: "Articles", value: articles.total ?? articles.data.length, icon: <FileText size={18} />, loading: articles.loading },
     { label: "Published", value: published, icon: <BookOpen size={18} />, loading: articles.loading },
     { label: "Total views", value: totalViews, icon: <Eye size={18} />, loading: articles.loading },
-    { label: "Categories", value: categories ?? 0, icon: <Tag size={18} />, loading: articles.loading },
+    { label: "Categories", value: categories ?? "Unknown", icon: <Tag size={18} />, loading: articles.loading },
   ];
 
   return (

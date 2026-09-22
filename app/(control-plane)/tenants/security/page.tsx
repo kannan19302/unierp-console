@@ -38,11 +38,11 @@ export default function TenantsSecurity() {
   const security: Record<string, unknown> = (detail?.security ?? {}) as Record<string, unknown>;
   const entries = Object.entries(security);
 
-  const threats = Number(security.threats ?? security.openIncidents ?? 0) || 0;
+  const threats = security.threats != null || security.openIncidents != null ? Number(security.threats ?? security.openIncidents) : null;
 
   const stats: StatCardItem[] = [
     { label: "Policy keys", value: entries.length || "—", icon: <ShieldCheck size={18} /> },
-    { label: "Open threats", value: threats || "—", icon: <ShieldCheck size={18} /> },
+    { label: "Open threats", value: threats == null ? "Unknown" : threats, icon: <ShieldCheck size={18} /> },
     { label: "Status", value: detail?.status ?? "—" },
   ];
 

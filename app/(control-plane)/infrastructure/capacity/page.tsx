@@ -34,7 +34,7 @@ export default function InfrastructureCapacity() {
   const s = summary.data ?? {};
 
   const clustersTotal = Number(s.clustersTotal ?? s.totalClusters ?? clusters.data.length) || 0;
-  const clustersHealthy = Number(s.clustersHealthy ?? s.healthyClusters) || 0;
+  const clustersHealthy = s.clustersHealthy != null || s.healthyClusters != null ? Number(s.clustersHealthy ?? s.healthyClusters) : null;
   const vertices = clusters.data.reduce((acc, c) => acc + Number(c.nodeCount ?? c.nodes ?? 0), 0);
 
   const stats: StatCardItem[] = [
@@ -80,10 +80,10 @@ export default function InfrastructureCapacity() {
               }}
             >
               {[
-                { label: "Open incidents", value: Number(h.openIncidents) || 0 },
-                { label: "Degraded services", value: Number(h.degradedServices) || 0 },
-                { label: "Queue depth", value: Number(s.queueDepth) || 0 },
-                { label: "Degraded tenants", value: Number(s.degradedTenants) || 0 },
+                { label: "Open incidents", value: h.openIncidents == null ? "Unknown" : Number(h.openIncidents) },
+                { label: "Degraded services", value: h.degradedServices == null ? "Unknown" : Number(h.degradedServices) },
+                { label: "Queue depth", value: s.queueDepth == null ? "Unknown" : Number(s.queueDepth) },
+                { label: "Degraded tenants", value: s.degradedTenants == null ? "Unknown" : Number(s.degradedTenants) },
               ].map((row) => (
                 <li
                   key={row.label}

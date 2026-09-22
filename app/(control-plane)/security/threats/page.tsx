@@ -77,7 +77,7 @@ export default function SecurityThreatsPage() {
       }>(`/platform/v1/soc/threats?${params.toString()}`);
 
       setThreats(res.data.data || []);
-      setTotal(res.data.total || 0);
+      setTotal(res.data.total ?? 0);
     } catch (err: any) {
       toast.error("Failed to load security threats", err.message || "Network error");
     } finally {

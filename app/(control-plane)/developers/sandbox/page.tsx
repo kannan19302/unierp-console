@@ -38,9 +38,9 @@ export default function DevelopersSandbox() {
 
   const statsCards: StatCardItem[] = [
     { label: "Sandbox endpoints", value: sandboxed.length || sandbox.total || sandbox.data.length, icon: <FlaskConical size={18} /> },
-    { label: "Runs", value: numValue(s.sandboxRuns, s.runs) ?? 0, icon: <Terminal size={18} /> },
-    { label: "Environments", value: numValue(s.sandboxEnvs, s.environments) ?? 0, icon: <Server size={18} /> },
-    { label: "Tool versions", value: numValue(s.sandboxTools, s.toolVersions) ?? 0, icon: <TestTubes size={18} /> },
+    { label: "Runs", value: numValue(s.sandboxRuns, s.runs) ?? "Unknown", icon: <Terminal size={18} /> },
+    { label: "Environments", value: numValue(s.sandboxEnvs, s.environments) ?? "Unknown", icon: <Server size={18} /> },
+    { label: "Tool versions", value: numValue(s.sandboxTools, s.toolVersions) ?? "Unknown", icon: <TestTubes size={18} /> },
   ];
 
   if (sandbox.loading || stats.loading) {

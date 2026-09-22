@@ -53,7 +53,7 @@ export default function AnalyticsUsageTab() {
     },
     {
       label: "Storage usage",
-      value: u.storage?.current != null ? `${u.storage.pct ?? 0}%` : "—",
+      value: u.storage?.current != null && u.storage.pct != null ? `${u.storage.pct}%` : "Unknown",
       icon: <Database size={18} />,
     },
     {
@@ -116,10 +116,10 @@ export default function AnalyticsUsageTab() {
                     <span style={{ fontWeight: 500 }}>{m.metric}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                       <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                        {m.current ?? 0} / {m.limit ?? 0}
+                        {m.current ?? "Unknown"} / {m.limit ?? "Unknown"}
                       </span>
                       <Badge variant={m.pct == null ? "default" : m.pct >= 80 ? "danger" : m.pct >= 50 ? "warning" : "success"}>
-                        {m.pct ?? 0}%
+                        {m.pct == null ? "Unknown" : `${m.pct}%`}
                       </Badge>
                     </span>
                   </li>
@@ -145,7 +145,7 @@ export default function AnalyticsUsageTab() {
                   >
                     <span style={{ fontWeight: 500 }}>{a.appSlug}</span>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                      {mb(a.estimatedMb)} · {a.rowCount ?? 0} rows
+                      {mb(a.estimatedMb)} · {a.rowCount ?? "Unknown"} rows
                     </span>
                   </li>
                 ))}

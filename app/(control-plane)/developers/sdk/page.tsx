@@ -31,9 +31,9 @@ export default function DevelopersSdk() {
   const a = analytics.data ?? {};
   const s = stats.data ?? {};
 
-  const downloads = numValue(a.downloads, a.totalDownloads, s.sdkDownloads) ?? 0;
-  const activeDevs = numValue(a.activeDevelopers, a.developers, s.activeDevelopers) ?? 0;
-  const languages = numValue(a.languages, a.sdkLanguages, s.sdkLanguages) ?? 0;
+  const downloads = numValue(a.downloads, a.totalDownloads, s.sdkDownloads);
+  const activeDevs = numValue(a.activeDevelopers, a.developers, s.activeDevelopers);
+  const languages = numValue(a.languages, a.sdkLanguages, s.sdkLanguages);
 
   const breakdown: SdkBreakdown[] = Array.isArray(a.sdks)
     ? (a.sdks as SdkBreakdown[])
@@ -44,10 +44,10 @@ export default function DevelopersSdk() {
     : [];
 
   const statsCards: StatCardItem[] = [
-    { label: "SDK downloads", value: downloads, icon: <Download size={18} /> },
-    { label: "Languages", value: languages || breakdown.length || "—", icon: <Package size={18} /> },
-    { label: "Active developers", value: activeDevs, icon: <GitBranch size={18} /> },
-    { label: "SDK packages", value: breakdown.length || "—", icon: <Package size={18} /> },
+    { label: "SDK downloads", value: downloads ?? "Unknown", icon: <Download size={18} /> },
+    { label: "Languages", value: languages ?? (breakdown.length ? breakdown.length : "Unknown"), icon: <Package size={18} /> },
+    { label: "Active developers", value: activeDevs ?? "Unknown", icon: <GitBranch size={18} /> },
+    { label: "SDK packages", value: breakdown.length || "Unknown", icon: <Package size={18} /> },
   ];
 
   if (analytics.loading || stats.loading) {

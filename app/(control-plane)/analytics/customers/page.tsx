@@ -172,7 +172,7 @@ export default function AnalyticsCustomersTab() {
                     <span style={{ fontWeight: 500 }}>{t.table}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                       <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                        {t.complete ?? t.completeness != null ? `${t.completeness ?? 0}% complete` : `${t.total ?? 0} rows`}
+                        {t.complete ?? t.completeness != null ? `${t.completeness == null ? "Unknown" : `${t.completeness}%`} complete` : `${t.total == null ? "Unknown" : t.total} rows`}
                       </span>
                       <Badge
                         variant={t.completeness == null ? "default" : t.completeness >= 80 ? "success" : "warning"}

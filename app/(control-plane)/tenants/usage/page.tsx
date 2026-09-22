@@ -92,7 +92,7 @@ export default function TenantsUsage() {
                   </span>
                   <span className={styles.listItemMeta}>
                     <span>
-                      {Number(m.usage ?? m.quantity ?? m.consumed ?? 0).toLocaleString()}
+                      {m.usage == null && m.quantity == null && m.consumed == null ? "Unknown" : Number(m.usage ?? m.quantity ?? m.consumed).toLocaleString()}
                       {m.unit ? ` ${m.unit}` : ""}
                     </span>
                     <span>{m.period ?? m.periodEnd ?? ""}</span>

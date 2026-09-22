@@ -191,7 +191,7 @@ export default function SecurityAuditPage() {
 
   const stats: StatCardItem[] = [
     { label: "Total Audit Records", value: statsData.totalRecords || auditList.data.length, icon: <History size={18} /> },
-    { label: "Unique Operators", value: statsData.uniqueActorsCount || 1, icon: <ShieldCheck size={18} /> },
+    { label: "Unique Operators", value: statsData.uniqueActorsCount ?? "Unknown", icon: <ShieldCheck size={18} /> },
     {
       label: "Tamper-Evidence",
       value: statsData.chainIntegrityStatus,

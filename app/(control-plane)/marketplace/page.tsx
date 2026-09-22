@@ -171,7 +171,7 @@ export default function MarketplaceOverview() {
   };
 
   const stats: StatCardItem[] = [
-    { label: "Active Extensions", value: extensions.data.length || 18, icon: <AppWindow size={18} /> },
+    { label: "Active Extensions", value: extensions.error ? "Unknown" : extensions.data.length, icon: <AppWindow size={18} /> },
     { label: "Pending Submissions", value: submissions.filter((s) => s.stage !== "APPROVED" && s.stage !== "REJECTED").length, icon: <Layers size={18} /> },
     { label: "Approved Listings", value: submissions.filter((s) => s.stage === "APPROVED").length + 12, icon: <BadgeCheck size={18} /> },
     { label: "Security Verified", value: submissions.filter((s) => s.checklist.securitySastPassed).length + 15, icon: <ShieldCheck size={18} /> },

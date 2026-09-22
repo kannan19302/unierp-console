@@ -48,7 +48,7 @@ export default function DevelopersApis() {
 
   const stats: StatCardItem[] = [
     { label: "Endpoints", value: total, icon: <Plug size={18} /> },
-    { label: "Published", value: published || numValue(a.publishedEndpoints) || 0, icon: <Braces size={18} /> },
+    { label: "Published", value: published || numValue(a.publishedEndpoints) || "Unknown", icon: <Braces size={18} /> },
     { label: "Methods", value: byMethod.size || "—", icon: <Braces size={18} /> },
     { label: "Admin registered", value: a.registered ? "Yes" : "—", icon: <ShieldCheck size={18} /> },
   ];

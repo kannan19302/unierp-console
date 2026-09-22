@@ -41,7 +41,7 @@ export default function DevelopersApps() {
     { label: "Apps", value: totalApps, icon: <AppWindow size={18} /> },
     { label: "Published", value: numValue(s.publishedApps) ?? published, icon: <Boxes size={18} /> },
     { label: "Drafts", value: numValue(s.draftApps) ?? Math.max(apps.data.length - published, 0), icon: <Layers size={18} /> },
-    { label: "Environments", value: numValue(s.environments, s.sandboxes) ?? 0, icon: <Boxes size={18} /> },
+    { label: "Environments", value: numValue(s.environments, s.sandboxes) ?? "Unknown", icon: <Boxes size={18} /> },
   ];
 
   if (apps.loading || stats.loading) {

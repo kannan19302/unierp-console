@@ -109,7 +109,7 @@ export default function IntegrationsHealth() {
                 {healthy ? "Healthy" : "Attention required"}
               </Badge>
               <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                {status.data?.active ?? 0} active / {status.data?.error ?? 0} errors
+                {status.data?.active ?? "Unknown"} active / {status.data?.error ?? "Unknown"} errors
               </span>
             </div>
             <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>

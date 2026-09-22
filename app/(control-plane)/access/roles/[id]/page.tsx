@@ -212,7 +212,7 @@ export default function RoleDetailPage() {
                   {role.isSystem ? "Built-in System Role" : "Custom Role"}
                 </Badge>
                 <Badge variant="info">{selectedPermissions.size} permission(s) granted</Badge>
-                <Badge variant="default">{role.principalCount ?? 0} operator(s) assigned</Badge>
+                <Badge variant="default">{role.principalCount ?? "Unknown"} operator(s) assigned</Badge>
               </div>
               <p className={styles.description}>
                 {role.description || "No description provided for this role."}

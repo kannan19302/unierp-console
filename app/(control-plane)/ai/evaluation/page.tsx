@@ -96,7 +96,7 @@ export default function AiEvaluationPage() {
                       </span>
                     </span>
                     <span style={{ flexShrink: 0 }}>
-                      <Badge variant="info">{s.cases ?? s._count?.cases ?? 0} cases</Badge>
+                      <Badge variant="info">{s.cases ?? s._count?.cases ?? "Unknown"} cases</Badge>
                     </span>
                   </li>
                 ))}

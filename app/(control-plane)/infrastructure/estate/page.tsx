@@ -95,8 +95,8 @@ export default function InfrastructureEstate() {
     disabled: !canRead,
   });
 
-  const total = estate.total ?? 0;
-  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const total = estate.total;
+  const pageCount = total == null ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const toast = useToast();
   const bulkArchive = useMutation(async (resourceIds: string[]) =>

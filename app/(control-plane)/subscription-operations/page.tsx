@@ -253,17 +253,17 @@ export default function SubscriptionOperationsPage() {
   const kpis: StatCardItem[] = [
     {
       label: "Total Subscriptions",
-      value: subscriptions.data.length || 3,
+      value: subscriptions.error ? "Unknown" : subscriptions.data.length,
       icon: <CreditCard size={18} />,
     },
     {
       label: "Active Commitments",
-      value: activeCount || 3,
+      value: subscriptions.error ? "Unknown" : activeCount,
       icon: <CheckCircle2 size={18} />,
     },
     {
       label: "Expiring Horizon (<30d)",
-      value: expiringCount || 2,
+      value: subscriptions.error ? "Unknown" : expiringCount,
       icon: <AlertTriangle size={18} />,
     },
     {
@@ -550,7 +550,7 @@ export default function SubscriptionOperationsPage() {
                     {amendmentPreview?.currentPlan.name || "Growth Standard"}
                   </strong>
                   <div style={{ fontSize: "var(--text-xl)", fontWeight: 700 }}>
-                    ${amendmentPreview?.currentPlan.price || 149} <span style={{ fontSize: "var(--text-xs)", fontWeight: 400 }}>/ mo</span>
+                    ${amendmentPreview?.currentPlan.price ?? "Unknown"} <span style={{ fontSize: "var(--text-xs)", fontWeight: 400 }}>/ mo</span>
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
                     Billing Cycle: {amendTarget.billingPeriod || "MONTHLY"}
@@ -581,7 +581,7 @@ export default function SubscriptionOperationsPage() {
                     <option value="plan-global">Global Carrier Tier ($999/mo)</option>
                   </select>
                   <div style={{ fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-primary)" }}>
-                    ${amendmentPreview?.newPlan.price || 499} <span style={{ fontSize: "var(--text-xs)", fontWeight: 400 }}>/ mo</span>
+                    ${amendmentPreview?.newPlan.price ?? "Unknown"} <span style={{ fontSize: "var(--text-xs)", fontWeight: 400 }}>/ mo</span>
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
                     Cycle: {selectedBillingPeriod}

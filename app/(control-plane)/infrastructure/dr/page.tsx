@@ -71,8 +71,8 @@ export default function InfrastructureDr() {
   const stats: StatCardItem[] = [
     { label: "Recovery policies", value: governance.data.length, icon: <Building2 size={18} /> },
     { label: "Active regions", value: governance.data.length ? regionCount : "—", icon: <MapPin size={18} /> },
-    { label: "Platform availability", value: h.availability != null ? String(h.availability) : "99.99%", icon: <ShieldCheck size={18} /> },
-    { label: "Degraded services", value: Number(h.degradedServices) || 0, icon: <Activity size={18} /> },
+    { label: "Platform availability", value: h.availability != null ? String(h.availability) : "Unknown", icon: <ShieldCheck size={18} /> },
+    { label: "Degraded services", value: h.degradedServices == null ? "Unknown" : Number(h.degradedServices), icon: <Activity size={18} /> },
   ];
 
   if (governance.loading || health.loading) {
