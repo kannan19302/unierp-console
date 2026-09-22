@@ -108,7 +108,7 @@ export default function FeaturesSettingsPage() {
     { label: "Active Flags", value: activeCount, icon: <Flag size={18} /> },
     { label: "Progressive Rollouts", value: rollingOut, icon: <TrendingUp size={18} /> },
     { label: "Segment Targeted", value: segmented, icon: <Users size={18} /> },
-    { label: "Environments Configured", value: environments.data.length || 3, icon: <ToggleLeft size={18} /> },
+    { label: "Environments Configured", value: environments.loading || environments.error ? "Unknown" : environments.data.length, icon: <ToggleLeft size={18} /> },
   ];
 
   // Filter and search logic

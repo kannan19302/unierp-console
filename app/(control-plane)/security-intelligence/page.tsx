@@ -21,10 +21,10 @@ export default function SecurityIntelligencePage() {
   });
 
   const kpis = [
-    { label: "SOC Detection Rules", value: "24 Active", icon: <Radar size={18} /> },
-    { label: "SIEM Ingestion Rate", value: "14.2k eps", icon: <Activity size={18} /> },
-    { label: "Containment Response", value: "<15s Automated", icon: <CheckCircle2 size={18} /> },
-    { label: "Active Threat Cases", value: threats.data.length || 0, icon: <ShieldAlert size={18} /> },
+    { label: "SOC Detection Rules", value: "Not reported", icon: <Radar size={18} /> },
+    { label: "SIEM Ingestion Rate", value: "Not reported", icon: <Activity size={18} /> },
+    { label: "Containment Response", value: "Not reported", icon: <CheckCircle2 size={18} /> },
+    { label: "Active Threat Cases", value: threats.loading || threats.error ? "Unknown" : threats.data.length, icon: <ShieldAlert size={18} /> },
   ];
 
   return (

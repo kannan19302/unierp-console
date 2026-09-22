@@ -49,15 +49,15 @@ export function SlaDashboard({ adminMetrics }: SlaDashboardProps) {
         <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "0.0625rem solid var(--color-border)", fontSize: "var(--text-sm)" }}>
             <span>Operators On-Duty</span>
-            <strong>{adminMetrics?.agentsOnline ?? 4} Agents</strong>
+            <strong>{adminMetrics?.agentsOnline == null ? "Unknown" : `${adminMetrics.agentsOnline} Agents`}</strong>
           </li>
           <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "0.0625rem solid var(--color-border)", fontSize: "var(--text-sm)" }}>
             <span>Unassigned Inbound</span>
-            <strong>{adminMetrics?.unassigned ?? 1} Tickets</strong>
+            <strong>{adminMetrics?.unassigned == null ? "Unknown" : `${adminMetrics.unassigned} Tickets`}</strong>
           </li>
           <li style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) 0", fontSize: "var(--text-sm)" }}>
             <span>Avg Initial Response Time</span>
-            <strong>{adminMetrics?.avgFirstResponse ?? "12m 40s"}</strong>
+            <strong>{adminMetrics?.avgFirstResponse ?? "Unknown"}</strong>
           </li>
         </ul>
       </Card>
