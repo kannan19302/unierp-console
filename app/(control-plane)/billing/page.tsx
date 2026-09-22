@@ -1,152 +1,56 @@
 "use client";
-/**
- * Billing → Overview.
- * Billing KPI dashboard: MRR/ARR, outstanding invoices and active
- * subscriptions, plus a recent-invoices list. Real control-plane data only.
- */
-import { CreditCard, FileText, ReceiptText, TrendingUp, Users } from "lucide-react";
-import {
-  Card,
-  EmptyState,
-  Spinner,
-  StatCardRow,
-  Badge,
-  type StatCardItem,
-} from "@kannan19302/ui";
-import { useItem, useList } from "@/lib/data";
+
+import { Badge, Button } from "@kannan19302/ui";
+import { DataWorkspace } from "@kannan19302/ui/shell";
+import { CreditCard, FileText, ReceiptText, RefreshCw, TrendingUp, Users } from "lucide-react";
 import DomainShell from "@/components/domain-shell";
+import { useItem, useList } from "@/lib/data";
+import styles from "../ops/record-workspace.module.css";
 
-const fmtMoney = (v: unknown): string =>
-  typeof v === "number"
-    ? `$${v.toLocaleString()}`
-    : typeof v === "string" && v.length > 0
-      ? v
-      : "—";
-
-const OUTSTANDING_STATUSES = ["OPEN", "SENT", "PENDING", "UNPAID", "PAST_DUE", "OVERDUE"];
-
-interface InvoiceRow {
-  id?: string;
-  number?: string;
-  invoiceNumber?: string;
-  amount?: number;
-  amountTotal?: number;
-  currency?: string;
-  status?: string;
-  issuedAt?: string;
-  dueDate?: string;
-  tenantId?: string;
-  tenantName?: string;
-}
+interface InvoiceRow { id?: string; number?: string; invoiceNumber?: string; amount?: number; amountTotal?: number; currency?: string; status?: string; issuedAt?: string; dueDate?: string; tenantName?: string; }
+const OUTSTANDING = ["OPEN", "SENT", "PENDING", "UNPAID", "PAST_DUE", "OVERDUE"];
+const money = (value: unknown, currency?: string) => typeof value === "number" ? `${currency ?? "USD"} ${value.toLocaleString()}` : typeof value === "string" && value ? value : "Unknown";
+const statusVariant = (status?: string): "success" | "default" | "warning" | "danger" | "info" => {
+  const value = (status ?? "").toUpperCase();
+  if (value === "PAID") return "success";
+  if (["PAST_DUE", "OVERDUE", "UNPAID"].includes(value)) return "danger";
+  if (["OPEN", "SENT", "PENDING"].includes(value)) return "info";
+  return "default";
+};
 
 export default function BillingOverview() {
   const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
   const invoices = useList<InvoiceRow>({ path: "/platform/v1/invoices" });
-
-  const s = summary.data ?? {};
-  const outstanding = invoices.data.filter((i) =>
-    OUTSTANDING_STATUSES.includes((i.status ?? "").toUpperCase()),
-  ).length;
-
-  const activeSubs =
-    s.activeSubscriptions ?? s.activeSubscriptionCount ?? s.subscriptionCount ?? s.totalSubscriptions ?? null;
-
-  const stats: StatCardItem[] = [
-    { label: "MRR", value: fmtMoney(s.mrr ?? s.monthlyRecurringRevenue), icon: <TrendingUp size={18} /> },
-    { label: "ARR", value: fmtMoney(s.arr ?? s.annualRecurringRevenue), icon: <ReceiptText size={18} /> },
-    { label: "Outstanding invoices", value: outstanding, icon: <FileText size={18} /> },
-    {
-      label: "Active subscriptions",
-      value: activeSubs != null ? String(activeSubs) : "—",
-      icon: <Users size={18} />,
-    },
-    { label: "Invoices issued", value: invoices.total ?? invoices.data.length, icon: <CreditCard size={18} /> },
-  ];
-
-  return (
-    <DomainShell
-      domainId="billing"
-      title="Billing"
-      description="Revenue, plans, subscriptions, invoices and metering across the platform."
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <StatCardRow stats={stats} columns={5} />
-
-        <Card padding="md">
-          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>Recent invoices</h3>
-          {summary.loading || invoices.loading ? (
-            <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-              <Spinner size="md" />
-            </div>
-          ) : invoices.error ? (
-            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>
-              {invoices.error.message}
-            </p>
-          ) : invoices.data.length === 0 ? (
-            <EmptyState title="No invoices" description="The invoices endpoint returned no rows." />
-          ) : (
-            <ul
-              style={{
-                listStyle: "none",
-                margin: "var(--space-3) 0 0",
-                padding: 0,
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {invoices.data.slice(0, 10).map((inv) => (
-                <li
-                  key={inv.id ?? inv.number ?? inv.invoiceNumber ?? "?"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "var(--space-2) 0",
-                    borderBottom: "1px solid var(--color-border)",
-                    gap: "var(--space-3)",
-                  }}
-                >
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-<span style={{ fontWeight: 500 }}>
-                      {inv.number ?? inv.invoiceNumber ?? inv.id ?? "—"}
-                    </span>
-                    {inv.tenantName ? (
-                      <span style={{ color: "var(--color-text-muted)", marginLeft: "var(--space-2)", fontSize: "var(--text-sm)" }}>
-                        · {inv.tenantName}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                      {fmtMoney(inv.amount ?? inv.amountTotal)}
-                    </span>
-                    <Badge variant={statusVariant(inv.status)}>{inv.status ?? "UNKNOWN"}</Badge>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-    </DomainShell>
-  );
-}
-
-function statusVariant(
-  status?: string,
-): "success" | "default" | "primary" | "warning" | "danger" | "info" {
-  switch ((status ?? "").toUpperCase()) {
-    case "PAID":
-      return "success";
-    case "OPEN":
-    case "SENT":
-    case "PENDING":
-      return "info";
-    case "PAST_DUE":
-    case "OVERDUE":
-    case "UNPAID":
-      return "danger";
-    default:
-      return "default";
-  }
+  const sourceUnknown = summary.loading || invoices.loading || Boolean(summary.error || invoices.error);
+  const activeSubs = summary.data?.activeSubscriptions ?? summary.data?.activeSubscriptionCount ?? summary.data?.subscriptionCount;
+  const outstanding = invoices.data.filter((invoice) => OUTSTANDING.includes((invoice.status ?? "").toUpperCase())).length;
+  const stats = [
+    ["MRR", summary.data?.mrr ?? summary.data?.monthlyRecurringRevenue, <TrendingUp key="mrr-icon" size={18} />],
+    ["ARR", summary.data?.arr ?? summary.data?.annualRecurringRevenue, <ReceiptText key="arr-icon" size={18} />],
+    ["Outstanding invoices", outstanding, <FileText key="outstanding-icon" size={18} />],
+    ["Active subscriptions", activeSubs, <Users key="subscriptions-icon" size={18} />],
+    ["Invoices issued", invoices.total ?? invoices.data.length, <CreditCard key="issued-icon" size={18} />],
+  ] as const;
+  return <DomainShell domainId="billing" title="Billing" description="Revenue, plans, subscriptions, invoices and metering across the platform."
+    actions={<Button variant="outline" size="sm" disabled={invoices.loading} onClick={() => { void summary.reload(); void invoices.reload(); }}><RefreshCw size={14} aria-hidden="true" />Refresh billing</Button>}>
+    <div className={styles.container}>
+      <section className={styles.summaryStrip} aria-label="Billing summary">
+        {stats.map(([label, value, icon]) => <div className={styles.summaryItem} key={label}><span>{icon}{label}</span><strong>{sourceUnknown ? "Unknown" : label === "MRR" || label === "ARR" ? money(value) : value == null ? "Unknown" : String(value)}</strong></div>)}
+      </section>
+      <section className={styles.workspacePanel} aria-labelledby="billing-invoices-heading">
+        <div className={styles.panelHeader}><div><h2 id="billing-invoices-heading">Invoice register</h2><p>Recent invoices reported by the billing service. Amounts and status are not inferred.</p></div></div>
+        <div className={styles.panelBody}><DataWorkspace<InvoiceRow> data={invoices.data} loading={invoices.loading} getRowId={(row, index) => row.id ?? row.number ?? row.invoiceNumber ?? `invoice-${index}`}
+          searchPlaceholder="Search invoices…" error={invoices.error ? <p role="alert" className={styles.sourceError}>{invoices.error.message}</p> : undefined}
+          emptyTitle={invoices.error ? "Invoice source unavailable" : "No invoices reported"} emptyDescription="No invoice rows were returned by the billing service."
+          columns={[
+            { key: "number", header: "Invoice", render: (_value, row) => <><span className={styles.recordTitle}>{row.number ?? row.invoiceNumber ?? row.id ?? "Unknown"}</span><span className={styles.recordDetail}>{row.tenantName ?? "Tenant not reported"}</span></> },
+            { key: "amount", header: "Amount", render: (_value, row) => money(row.amount ?? row.amountTotal, row.currency) },
+            { key: "status", header: "Status", render: (value) => <Badge variant={statusVariant(typeof value === "string" ? value : undefined)}>{String(value ?? "UNKNOWN")}</Badge> },
+            { key: "issuedAt", header: "Issued", render: (value) => typeof value === "string" && value ? new Date(value).toLocaleDateString() : "Not reported" },
+            { key: "dueDate", header: "Due", render: (value) => typeof value === "string" && value ? new Date(value).toLocaleDateString() : "Not reported" },
+          ]}
+        /></div>
+      </section>
+    </div>
+  </DomainShell>;
 }
