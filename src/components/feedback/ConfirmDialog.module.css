@@ -1,8 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background-color: var(--surface-4-bg, rgba(0, 0, 0, 0.5));
-  backdrop-filter: blur(2px);
+  background-color: var(--color-black-alpha-30, rgba(0, 0, 0, 0.3));
   z-index: var(--z-modal-backdrop, 900);
   display: flex;
   align-items: center;

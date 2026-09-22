@@ -52,7 +52,7 @@ export default function PlatformHealth() {
   const handleProbe = async () => {
     setProbing(true);
     try {
-      await api.get("/platform/v1/health");
+      await api.get("/platform/v1/operations/health");
       await health.reload();
       await services.reload();
       toast.success("Health Probed", "Live health status across all nodes refreshed.");
