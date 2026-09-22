@@ -65,25 +65,33 @@ export const runbookAuthorSchema = z.object({
   stepsJson: z.string().refine((val) => {
     try {
       const parsed = JSON.parse(val);
-      return Array.isArray(parsed) && parsed.length > 0;
+      return Array.isArray(parsed)
+        && parsed.length > 0
+        && parsed.every((step) => step
+          && typeof step === "object"
+          && typeof step.resourceId === "string"
+          && step.resourceId.trim().length > 0
+          && step.proposedState
+          && typeof step.proposedState === "object"
+          && !Array.isArray(step.proposedState));
     } catch {
       return false;
     }
-  }, "Steps must be a non-empty valid JSON array"),
+  }, "Each step must include a resourceId and proposedState object"),
 });
 export type RunbookAuthorFormData = z.infer<typeof runbookAuthorSchema>;
 
 export const runbookFields: FormFieldDef[] = [
   {
     name: "name",
-    label: "Runbook Title",
+    label: "Runbook title",
     type: "text",
     placeholder: "e.g., Drain Kubernetes Node Pool",
     required: true,
   },
   {
     name: "stepsJson",
-    label: "Steps Definition (JSON Array)",
+    label: "Steps definition (JSON array)",
     type: "textarea",
     placeholder: `[\\n  {\\n    "resourceId": "k8s-node-01",\\n    "proposedState": { "cordoned": true }\\n  }\\n]`,
     required: true,

@@ -1,389 +1,259 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  Boxes,
-  CheckCircle,
-  Eye,
-  FileCode,
-  Play,
-  Plus,
-  RefreshCw,
-  Send,
-  Trash2,
-  Zap,
-} from "lucide-react";
-import {
-  Badge,
-  Button,
-  ConfirmDialog,
-  FormField,
-  Input,
-  Modal,
-  StatCardRow,
-  useToast,
-  usePermission,
-  type StatCardItem,
-} from "@kannan19302/ui";
-import { useList } from "@/lib/data";
-import { api } from "@/lib/api";
-import { useDomainRealtime } from "@/lib/use-domain-realtime";
+import { useState } from "react";
+import { Eye, FilePlus2, Play, RefreshCw, Send, Trash2 } from "lucide-react";
+import { Badge, Button, FormField, Input, Modal, usePermission, useToast } from "@kannan19302/ui";
+import { DataWorkspace } from "@kannan19302/ui/shell";
 import DomainShell from "@/components/domain-shell";
-import { PaginatedTable, type ColumnDef } from "@/components/PaginatedTable";
-import { FilterBar } from "@/components/FilterBar";
 import { CrudDrawer } from "@/components/CrudDrawer";
+import { api } from "@/lib/api";
+import { useList } from "@/lib/data";
+import { useDomainRealtime } from "@/lib/use-domain-realtime";
 import {
   runbookAuthorSchema,
   runbookFields,
   runbookFilters,
   type RunbookRecord,
-  type RunbookAuthorFormData,
 } from "@/lib/ops-schema";
 import styles from "./automation.module.css";
+
+type DryRunEvidence = { state: "passed"; planCount: number | null } | { state: "failed" };
+
+const formatDate = (value: unknown): string => {
+  if (typeof value !== "string" || !value) return "Not reported";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Invalid timestamp" : date.toLocaleString();
+};
+
+const statusVariant = (status: string): "success" | "warning" | "default" => {
+  if (status === "PUBLISHED") return "success";
+  if (status === "DRAFT") return "warning";
+  return "default";
+};
 
 export default function OpsAutomation() {
   const toast = useToast();
   const canManage = usePermission("system.runbook.manage");
+  const runbooks = useList<RunbookRecord>({ path: "/platform/v1/runbooks" });
 
-  // Filters state
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [searchQuery, setSearchQuery] = useState("");
+  useDomainRealtime("runbook", () => void runbooks.reload());
 
-  const queryParams = useMemo(() => {
-    const params: Record<string, string> = {};
-    if (activeFilters.status) params.status = activeFilters.status;
-    if (searchQuery) params.search = searchQuery;
-    return params;
-  }, [activeFilters, searchQuery]);
-
-  const runbooks = useList<RunbookRecord>({
-    path: "/platform/v1/runbooks",
-    params: queryParams,
-  });
-
-  // Real-time WebSocket updates
-  useDomainRealtime("runbook", () => runbooks.reload());
-
-  // CrudDrawer & Modal states
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false);
   const [inspectModalOpen, setInspectModalOpen] = useState(false);
   const [publishModalOpen, setPublishModalOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedRunbook, setSelectedRunbook] = useState<RunbookRecord | null>(null);
-  const [policyName, setPolicyName] = useState("platform.standard_operational_safety");
+  const [policyName, setPolicyName] = useState("");
+  const [decommissionConfirmed, setDecommissionConfirmed] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [dryRunningId, setDryRunningId] = useState<string | null>(null);
+  const [dryRunEvidence, setDryRunEvidence] = useState<Record<string, DryRunEvidence>>({});
 
-  const allRunbooks = runbooks.data ?? [];
-  const publishedCount = allRunbooks.filter((r) => r.status === "PUBLISHED").length;
-  const draftCount = allRunbooks.filter((r) => r.status === "DRAFT").length;
+  const allRunbooks = runbooks.data;
+  const publishedCount = allRunbooks.filter((runbook) => runbook.status === "PUBLISHED").length;
+  const draftCount = allRunbooks.filter((runbook) => runbook.status === "DRAFT").length;
+  const validatedCount = Object.values(dryRunEvidence).filter((evidence) => evidence.state === "passed").length;
 
-  const statItems: StatCardItem[] = [
-    {
-      label: "Active Runbooks",
-      value: allRunbooks.length,
-    },
-    {
-      label: "Published Automations",
-      value: publishedCount,
-    },
-    {
-      label: "Draft Runbooks",
-      value: draftCount,
-    },
-    {
-      label: "Dry-Run Health Gate",
-      value: "100%",
-    },
-  ];
+  const openInspect = (runbook: RunbookRecord) => {
+    setSelectedRunbook(runbook);
+    setInspectModalOpen(true);
+  };
+
+  const openPublish = (runbook: RunbookRecord) => {
+    setSelectedRunbook(runbook);
+    setPolicyName("");
+    setPublishModalOpen(true);
+  };
+
+  const openDelete = (runbook: RunbookRecord) => {
+    setSelectedRunbook(runbook);
+    setDecommissionConfirmed(false);
+    setDeleteModalOpen(true);
+  };
 
   const handleAuthorRunbook = async (formData: Record<string, unknown>) => {
     try {
-      const parsedSteps = JSON.parse(formData.stepsJson as string);
-      await api.post("/platform/v1/runbooks", {
-        name: formData.name,
-        steps: parsedSteps,
-        actorId: "test.agent@unierp.com",
-      });
-      toast.success("Runbook Authored", `Runbook "${formData.name}" drafted successfully.`);
+      const steps = JSON.parse(String(formData.stepsJson));
+      await api.post("/platform/v1/runbooks", { name: formData.name, steps });
+      toast.success("Runbook drafted", `${String(formData.name)} is ready for dry-run validation.`);
       setCreateDrawerOpen(false);
       await runbooks.reload();
     } catch {
-      toast.error("Authoring Failed", "Could not author new runbook.");
+      toast.error("Runbook not drafted", "The authoring request was not accepted.");
     }
   };
 
-  const handleDryRun = async (rb: RunbookRecord) => {
-    setDryRunningId(rb.id);
+  const handleDryRun = async (runbook: RunbookRecord) => {
+    setDryRunningId(runbook.id);
     try {
-      const res = await api.get<unknown[]>(`/platform/v1/runbooks/${rb.id}/dry-run`);
-      const stepCount = (res?.data as unknown[])?.length || rb.steps.length;
-      toast.success("Dry-Run Succeeded", `Validated ${stepCount} step(s) with zero side-effects.`);
+      const response = await api.get<unknown[]>(`/platform/v1/runbooks/${runbook.id}/dry-run`);
+      const planCount = Array.isArray(response.data) ? response.data.length : null;
+      setDryRunEvidence((current) => ({ ...current, [runbook.id]: { state: "passed", planCount } }));
+      toast.success("Dry run passed", planCount === null ? "The validation service accepted every step." : `${planCount} plan${planCount === 1 ? "" : "s"} validated without execution.`);
     } catch {
-      toast.error("Dry-Run Failed", `Validation failed for runbook ${rb.name}.`);
+      setDryRunEvidence((current) => ({ ...current, [runbook.id]: { state: "failed" } }));
+      toast.error("Dry run failed", `Validation failed for ${runbook.name}.`);
     } finally {
       setDryRunningId(null);
     }
   };
 
   const handlePublish = async () => {
-    if (!selectedRunbook) return;
+    if (!selectedRunbook || !policyName.trim()) return;
     setPublishing(true);
     try {
-      await api.post(`/platform/v1/runbooks/${selectedRunbook.id}/publish`, {
-        policyName,
-        actorId: "test.agent@unierp.com",
-      });
-      toast.success("Runbook Published", `Runbook "${selectedRunbook.name}" verified against policy ${policyName}.`);
+      await api.post(`/platform/v1/runbooks/${selectedRunbook.id}/publish`, { policyName: policyName.trim() });
+      toast.success("Runbook published", `${selectedRunbook.name} passed policy ${policyName.trim()}.`);
       setPublishModalOpen(false);
       await runbooks.reload();
     } catch {
-      toast.error("Publish Refused", "Runbook contains steps that breach the specified policy.");
+      toast.error("Publication refused", "The policy evaluation did not permit publication.");
     } finally {
       setPublishing(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selectedRunbook) return;
+    if (!selectedRunbook || !decommissionConfirmed) return;
     setDeleting(true);
     try {
-      await api.del(`/platform/v1/runbooks/${selectedRunbook.id}`, {
-        actorId: "test.agent@unierp.com",
-      });
-      toast.success("Runbook Decommissioned", `Runbook ${selectedRunbook.name} deleted.`);
-      setDeleteConfirmOpen(false);
+      await api.del(`/platform/v1/runbooks/${selectedRunbook.id}`);
+      toast.success("Runbook decommissioned", `${selectedRunbook.name} was removed.`);
+      setDeleteModalOpen(false);
       await runbooks.reload();
     } catch {
-      toast.error("Deletion Failed", "Failed to delete runbook.");
+      toast.error("Runbook not decommissioned", "The decommission request did not complete.");
     } finally {
       setDeleting(false);
     }
   };
 
-  const columns: ColumnDef<RunbookRecord>[] = [
-    {
-      key: "id",
-      label: "ID",
-      render: (val: string) => (
-        <span style={{ fontFamily: "monospace", fontWeight: "var(--font-weight-semibold)" }}>{val}</span>
-      ),
-    },
-    {
-      key: "name",
-      label: "Runbook Title",
-      render: (val: string, row: RunbookRecord) => (
-        <div>
-          <div style={{ fontWeight: "var(--font-weight-medium)", color: "var(--color-text-primary)" }}>{val}</div>
-          <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
-            {row.steps.length} Step{row.steps.length === 1 ? "" : "s"} &bull; v{row.version}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      render: (val: string) => (
-        <Badge variant={val === "PUBLISHED" ? "success" : "warning"}>{val}</Badge>
-      ),
-    },
-    {
-      key: "createdAt",
-      label: "Created",
-      render: (val: string) => (
-        <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-          {new Date(val).toLocaleDateString()}
-        </span>
-      ),
-    },
-    {
-      key: "actions",
-      label: "Actions",
-      render: (_: unknown, row: RunbookRecord) => (
-        <div className={styles.actionRow}>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setSelectedRunbook(row);
-              setInspectModalOpen(true);
-            }}
-            title="Inspect Steps"
-          >
-            <Eye size={14} />
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDryRun(row)}
-            disabled={dryRunningId === row.id}
-          >
-            <Play size={14} style={{ marginRight: "var(--space-1)" }} />
-            {dryRunningId === row.id ? "Testing..." : "Dry Run"}
-          </Button>
-
-          {canManage && row.status === "DRAFT" && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => {
-                setSelectedRunbook(row);
-                setPublishModalOpen(true);
-              }}
-            >
-              <Send size={14} style={{ marginRight: "var(--space-1)" }} />
-              Publish
-            </Button>
-          )}
-
-          {canManage && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setSelectedRunbook(row);
-                setDeleteConfirmOpen(true);
-              }}
-              aria-label={`Decommission ${row.name}`}
-              title="Decommission"
-            >
-              <Trash2 size={14} color="var(--color-danger-500)" />
-            </Button>
-          )}
-        </div>
-      ),
-    },
-  ];
-
   return (
     <DomainShell
       domainId="ops"
-      title="Platform Operations — Runbook Automation"
-      description="Versioned, testable operational runbooks: authoring, zero-side-effect dry-runs, and policy-gated publication."
+      title="Automation"
+      description="Author, validate and publish versioned operational runbooks. Execution remains incident-bound and dual-controlled."
       actions={
-        <div style={{ display: "flex", gap: "var(--space-2)" }}>
+        <div className={styles.headerActions}>
+          <Button size="sm" variant="outline" disabled={runbooks.loading} onClick={() => void runbooks.reload()}>
+            <RefreshCw size={14} aria-hidden="true" />Refresh runbooks
+          </Button>
           {canManage && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => setCreateDrawerOpen(true)}
-            >
-              <Plus size={14} style={{ marginRight: "var(--space-1)" }} />
-              Author Runbook
+            <Button size="sm" variant="primary" onClick={() => setCreateDrawerOpen(true)}>
+              <FilePlus2 size={14} aria-hidden="true" />Draft runbook
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => runbooks.reload()}
-          >
-            Refresh
-          </Button>
         </div>
       }
     >
       <div className={styles.container}>
-        <StatCardRow stats={statItems} columns={4} />
+        <section className={styles.automationLedger} aria-label="Runbook register summary">
+          <div><span>Runbooks reported</span><strong>{runbooks.loading || runbooks.error ? "Unknown" : allRunbooks.length.toLocaleString()}</strong></div>
+          <div><span>Published</span><strong>{runbooks.loading || runbooks.error ? "Unknown" : publishedCount.toLocaleString()}</strong></div>
+          <div><span>Drafts</span><strong>{runbooks.loading || runbooks.error ? "Unknown" : draftCount.toLocaleString()}</strong></div>
+          <div><span>Validated this session</span><strong>{validatedCount.toLocaleString()}</strong></div>
+        </section>
 
-        <FilterBar
-          searchPlaceholder="Search runbooks by name, ID..."
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filters={runbookFilters}
-          activeFilters={activeFilters}
-          onFilterChange={(key, val) => setActiveFilters((prev) => ({ ...prev, [key]: val }))}
-          onClearAll={() => setActiveFilters({})}
-        />
+        <section className={styles.registerPanel} aria-labelledby="runbook-register-heading">
+          <div className={styles.panelHeader}>
+            <div><h2 id="runbook-register-heading">Runbook register</h2><p>Source-reported definitions and session validation evidence.</p></div>
+          </div>
+          <DataWorkspace<RunbookRecord>
+            data={allRunbooks}
+            loading={runbooks.loading}
+            getRowId={(runbook) => runbook.id}
+            searchPlaceholder="Search runbooks…"
+            searchableFields={["id", "name", "status"]}
+            filters={runbookFilters.map((filter) => ({ key: filter.key, label: filter.label, options: filter.options }))}
+            error={runbooks.error ? <p role="alert" className={styles.sourceError}>{runbooks.error.message}</p> : undefined}
+            emptyTitle={runbooks.error ? "Runbook source unavailable" : "No runbooks reported"}
+            emptyDescription="Draft a runbook when an operational procedure is ready to be defined and reviewed."
+            columns={[
+              {
+                key: "name",
+                header: "Runbook",
+                render: (value, row) => <><span className={styles.recordTitle}>{String(value ?? "Unnamed runbook")}</span><span className={styles.recordDetail}>{row.id} / Version {row.version ?? "unknown"}</span></>,
+              },
+              { key: "status", header: "Status", render: (value) => <Badge variant={statusVariant(String(value ?? ""))}>{String(value ?? "UNKNOWN")}</Badge> },
+              { key: "steps", header: "Steps", align: "right", render: (value) => Array.isArray(value) ? value.length.toLocaleString() : "Unknown" },
+              { key: "createdAt", header: "Created", render: formatDate },
+              {
+                key: "validation",
+                header: "Session validation",
+                render: (_value, row) => {
+                  const evidence = dryRunEvidence[row.id];
+                  if (!evidence) return <span className={styles.mutedValue}>Not run</span>;
+                  if (evidence.state === "failed") return <Badge variant="danger">FAILED</Badge>;
+                  return <Badge variant="success">{evidence.planCount === null ? "PASSED" : `${evidence.planCount} ${evidence.planCount === 1 ? "PLAN" : "PLANS"}`}</Badge>;
+                },
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                align: "right",
+                render: (_value, row) => (
+                  <div className={styles.actionRow}>
+                    <Button size="sm" variant="ghost" onClick={() => openInspect(row)}><Eye size={13} aria-hidden="true" />Inspect</Button>
+                    <Button size="sm" variant="outline" onClick={() => void handleDryRun(row)} disabled={dryRunningId === row.id}><Play size={13} aria-hidden="true" />{dryRunningId === row.id ? "Validating…" : "Dry run"}</Button>
+                    {canManage && row.status === "DRAFT" && <Button size="sm" variant="primary" onClick={() => openPublish(row)}><Send size={13} aria-hidden="true" />Publish</Button>}
+                    {canManage && <Button size="sm" variant="ghost" onClick={() => openDelete(row)} aria-label={`Decommission ${row.name}`}><Trash2 size={13} aria-hidden="true" />Decommission</Button>}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </section>
 
-        <PaginatedTable<RunbookRecord>
-          columns={columns}
-          data={allRunbooks}
-          total={allRunbooks.length}
-          pageSize={10}
-          page={1}
-          onPageChange={() => {}}
-          loading={runbooks.loading}
-          emptyMessage="No Runbooks Found — Author an automation runbook to standardize operational incident responses."
-        />
-
-        {/* Author Runbook Drawer */}
         <CrudDrawer
           isOpen={createDrawerOpen}
           onClose={() => setCreateDrawerOpen(false)}
-          title="Author New Runbook"
-          description="Draft an automation runbook with ordered resource state transitions."
+          title="Draft runbook"
+          description="Define ordered resource transitions. The draft must pass a dry run and policy review before publication."
           fields={runbookFields}
           schema={runbookAuthorSchema}
-          initialData={{
-            name: "",
-            stepsJson: `[\n  {\n    "resourceId": "k8s-node-01",\n    "proposedState": { "cordoned": true }\n  }\n]`,
-          }}
+          initialData={{ name: "", stepsJson: "" }}
           onSubmit={handleAuthorRunbook}
           mode="create"
         />
 
-        {/* Step Inspector Modal */}
-        <Modal
-          open={inspectModalOpen}
-          onClose={() => setInspectModalOpen(false)}
-          title={`Steps Inspection — ${selectedRunbook?.name ?? ""}`}
-        >
+        <Modal className={styles.commandModal} open={inspectModalOpen} onClose={() => setInspectModalOpen(false)} title={selectedRunbook ? `Runbook steps: ${selectedRunbook.name}` : "Runbook steps"}>
           <div className={styles.stepInspector}>
-            {selectedRunbook?.steps.map((step, idx) => (
-              <div key={idx} className={styles.stepCard}>
-                <div className={styles.stepHeader}>
-                  <span>Step #{idx + 1}</span>
-                  <span>Target Resource: <strong>{step.resourceId}</strong></span>
-                </div>
-                <div className={styles.stepCode}>
-                  {JSON.stringify(step.proposedState, null, 2)}
-                </div>
-              </div>
-            ))}
+            {selectedRunbook?.steps.length ? selectedRunbook.steps.map((step, index) => (
+              <section key={`${step.resourceId}-${index}`} className={styles.stepRecord} aria-label={`Step ${index + 1}`}>
+                <div className={styles.stepIndex}>{index + 1}</div>
+                <div className={styles.stepBody}><span>Target resource</span><strong>{step.resourceId || "Not reported"}</strong><pre>{JSON.stringify(step.proposedState, null, 2)}</pre></div>
+              </section>
+            )) : <p className={styles.emptySteps}>No steps were reported for this runbook.</p>}
           </div>
         </Modal>
 
-        {/* Policy-Gated Publish Modal */}
-        <Modal
-          open={publishModalOpen}
-          onClose={() => setPublishModalOpen(false)}
-          title="Publish Runbook — Policy Gate Verification"
-        >
-          <div className={styles.modalContent}>
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
-              Publishing enforces that all steps clear the specified policy engine rules. Breached steps will cause publication to be refused.
-            </p>
-            <FormField label="Policy Name to Evaluate Against" required>
-              <Input
-                value={policyName}
-                onChange={(e) => setPolicyName(e.target.value)}
-              />
-            </FormField>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-              <Button variant="ghost" onClick={() => setPublishModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handlePublish} disabled={publishing}>
-                {publishing ? "Evaluating Policy..." : "Verify & Publish"}
-              </Button>
-            </div>
+        <Modal className={styles.commandModal} open={publishModalOpen} onClose={() => !publishing && setPublishModalOpen(false)} title="Publish runbook">
+          <div className={styles.commandDialog}>
+            <p>Evaluate every proposed state against the selected platform policy before changing this draft to published.</p>
+            <dl>
+              <div><dt>Runbook</dt><dd>{selectedRunbook?.name ?? "Unavailable"}</dd></div>
+              <div><dt>Version</dt><dd>{selectedRunbook?.version ?? "Unknown"}</dd></div>
+              <div><dt>Steps</dt><dd>{selectedRunbook?.steps.length ?? "Unknown"}</dd></div>
+            </dl>
+            <FormField label="Policy name" required><Input value={policyName} onChange={(event) => setPolicyName(event.target.value)} placeholder="Enter a registered platform policy" /></FormField>
+            <p className={styles.fieldHint}>Publication is refused if any step breaches this policy.</p>
+            <div className={styles.dialogActions}><Button variant="ghost" disabled={publishing} onClick={() => setPublishModalOpen(false)}>Cancel</Button><Button variant="primary" disabled={publishing || !policyName.trim()} onClick={() => void handlePublish()}>{publishing ? "Evaluating…" : "Evaluate and publish"}</Button></div>
           </div>
         </Modal>
 
-        {/* Decommission Confirm Dialog */}
-        <ConfirmDialog
-          open={deleteConfirmOpen}
-          onClose={() => setDeleteConfirmOpen(false)}
-          onConfirm={handleDelete}
-          title="Decommission Runbook"
-          message={`Are you sure you want to delete runbook "${selectedRunbook?.name}"? This action cannot be undone.`}
-          confirmLabel={deleting ? "Deleting..." : "Delete Runbook"}
-          variant="danger"
-        />
+        <Modal className={styles.commandModal} open={deleteModalOpen} onClose={() => !deleting && setDeleteModalOpen(false)} title="Decommission runbook">
+          <div className={styles.commandDialog}>
+            <p>Remove this runbook from the provider register. This action cannot be undone from the console.</p>
+            <dl>
+              <div><dt>Runbook</dt><dd>{selectedRunbook?.name ?? "Unavailable"}</dd></div>
+              <div><dt>Status</dt><dd>{selectedRunbook?.status ?? "Unknown"}</dd></div>
+              <div><dt>Identifier</dt><dd>{selectedRunbook?.id ?? "Unknown"}</dd></div>
+            </dl>
+            <label className={styles.confirmCheck}><input type="checkbox" checked={decommissionConfirmed} onChange={(event) => setDecommissionConfirmed(event.target.checked)} /><span>I understand this removes the runbook definition and cannot be undone here.</span></label>
+            <div className={styles.dialogActions}><Button variant="ghost" disabled={deleting} onClick={() => setDeleteModalOpen(false)}>Cancel</Button><Button variant="danger" disabled={deleting || !decommissionConfirmed} onClick={() => void handleDelete()}>{deleting ? "Decommissioning…" : "Decommission runbook"}</Button></div>
+          </div>
+        </Modal>
       </div>
     </DomainShell>
   );

@@ -41,7 +41,6 @@ export function CrudDrawer({
   children,
 }: CrudDrawerProps) {
   const actualOpen = open ?? isOpen ?? false;
-  const effectiveInitial = initialValues ?? initialData ?? {};
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +52,7 @@ export function CrudDrawer({
   // Initialize form data only when drawer opens
   useEffect(() => {
     if (actualOpen && !prevOpenRef.current) {
+      const effectiveInitial = initialValues ?? initialData ?? {};
       const initial: Record<string, any> = {};
       (fields || []).forEach((field) => {
         initial[field.name] =
@@ -70,7 +70,7 @@ export function CrudDrawer({
       previouslyFocusedRef.current.focus();
     }
     prevOpenRef.current = actualOpen;
-  }, [actualOpen, fields, initialValues]);
+  }, [actualOpen, fields, initialData, initialValues]);
 
   // Escape key and focus trap handler
   useEffect(() => {
@@ -160,6 +160,8 @@ export function CrudDrawer({
   };
 
   const defaultSubmitLabel = mode === "create" ? "Create" : "Save Changes";
+
+  if (!actualOpen) return null;
 
   return (
     <>
