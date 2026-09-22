@@ -33,14 +33,16 @@ export default function OverviewBusiness() {
   const summary = useItem<Record<string, unknown>>("/platform/v1/operations/dashboard");
 
   const s = summary.data ?? {};
-  const totalTenants = Number(s.totalTenants) || 0;
-  const mrr = typeof s.mrr === "number" ? s.mrr : Number(s.mrr) || 0;
+  const totalTenants = typeof s.totalTenants === "number" ? s.totalTenants : Number.isFinite(Number(s.totalTenants)) ? Number(s.totalTenants) : null;
+  const mrr = typeof s.mrr === "number" ? s.mrr : typeof s.mrr === "string" && s.mrr ? Number(s.mrr) : null;
+  const arr = typeof s.arr === "number" ? s.arr : typeof s.annualRecurringRevenue === "number" ? s.annualRecurringRevenue : null;
+  const sourceUnknown = summary.loading || Boolean(summary.error);
 
   const stats: StatCardItem[] = [
-    { label: "MRR", value: `$${mrr.toLocaleString()}` },
-    { label: "ARR", value: `$${(mrr * 12).toLocaleString()}` },
-    { label: "Tenants", value: totalTenants },
-    { label: "Avg / tenant", value: totalTenants ? `$${Math.round(mrr / totalTenants).toLocaleString()}` : "—" },
+    { label: "MRR", value: sourceUnknown || mrr == null ? "Unknown" : `$${mrr.toLocaleString()}` },
+    { label: "ARR", value: sourceUnknown || arr == null ? "Unknown" : `$${arr.toLocaleString()}` },
+    { label: "Tenants", value: sourceUnknown || totalTenants == null ? "Unknown" : totalTenants },
+    { label: "Avg / tenant", value: sourceUnknown || mrr == null || !totalTenants ? "Unknown" : `$${Math.round(mrr / totalTenants).toLocaleString()}` },
   ];
 
   if (plans.loading || revenue.loading) {
