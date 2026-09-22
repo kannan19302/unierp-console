@@ -179,27 +179,29 @@ export default function EntitlementAuthorityPage() {
   // KPIs
   const totalPoolCapacity = pools.data.reduce((acc, p) => acc + (p.totalSeats || 0), 0);
   const totalPoolAllocated = pools.data.reduce((acc, p) => acc + (p.allocatedSeats || 0), 0);
-  const overallUtilization = totalPoolCapacity > 0 ? Math.round((totalPoolAllocated / totalPoolCapacity) * 100) : 72;
+  const overallUtilization = totalPoolCapacity > 0 ? Math.round((totalPoolAllocated / totalPoolCapacity) * 100) : null;
+  const poolsUnavailable = pools.loading || Boolean(pools.error);
+  const licensesUnavailable = offlineLicenses.loading || Boolean(offlineLicenses.error);
 
   const kpis: StatCardItem[] = [
     {
       label: "Active License Pools",
-      value: pools.data.length || 4,
+      value: poolsUnavailable ? "Unknown" : pools.data.length,
       icon: <KeySquare size={18} />,
     },
     {
       label: "Total Fleet Seats",
-      value: totalPoolCapacity.toLocaleString() || "20,000",
+      value: poolsUnavailable ? "Unknown" : totalPoolCapacity.toLocaleString(),
       icon: <Users size={18} />,
     },
     {
       label: "Aggregate Seat Utilization",
-      value: `${overallUtilization}%`,
+      value: poolsUnavailable || overallUtilization == null ? "Unknown" : `${overallUtilization}%`,
       icon: <CheckCircle2 size={18} />,
     },
     {
       label: "Cryptographic Air-Gap Licenses",
-      value: offlineLicenses.data.length || 1,
+      value: licensesUnavailable ? "Unknown" : offlineLicenses.data.length,
       icon: <ShieldCheck size={18} />,
     },
   ];

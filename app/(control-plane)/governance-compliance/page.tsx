@@ -20,11 +20,12 @@ export default function GovernanceCompliancePage() {
     path: "/platform/v1/compliance-controls",
   });
 
+  const unavailable = controls.loading || Boolean(controls.error);
   const kpis = [
-    { label: "Active Controls", value: controls.data.length || 42, icon: <Scale size={18} /> },
-    { label: "SOC2 Type II", value: "Compliant", icon: <CheckCircle2 size={18} /> },
-    { label: "ISO 27001 / HIPAA", value: "Certified", icon: <ShieldCheck size={18} /> },
-    { label: "Evidence Holds", value: "0 Gaps", icon: <AlertTriangle size={18} /> },
+    { label: "Active Controls", value: unavailable ? "Unknown" : controls.data.length, icon: <Scale size={18} /> },
+    { label: "SOC2 Type II", value: "Not reported", icon: <CheckCircle2 size={18} /> },
+    { label: "ISO 27001 / HIPAA", value: "Not reported", icon: <ShieldCheck size={18} /> },
+    { label: "Evidence Holds", value: "Not reported", icon: <AlertTriangle size={18} /> },
   ];
 
   return (
