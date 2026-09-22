@@ -1,20 +1,11 @@
 "use client";
-/**
- * Ops → Deployments.
- * Deployment targets of the current release manifest: auto-deploy gates,
- * human-approval requirements and rollback pointers per environment.
- */
-import { CloudUpload, GitBranch } from "lucide-react";
-import {
-  Badge,
-  Card,
-  EmptyState,
-  Spinner,
-  StatCardRow,
-  type StatCardItem,
-} from "@kannan19302/ui";
-import { useItem } from "@/lib/data";
+
+import { Badge, Button } from "@kannan19302/ui";
+import { DataWorkspace } from "@kannan19302/ui/shell";
+import { RefreshCw } from "lucide-react";
 import DomainShell from "@/components/domain-shell";
+import { useItem } from "@/lib/data";
+import styles from "../record-workspace.module.css";
 
 interface DeploymentTarget {
   auto_deploy?: boolean;
@@ -23,96 +14,64 @@ interface DeploymentTarget {
   rollback_sha?: string | null;
 }
 
+interface DeploymentRow extends DeploymentTarget {
+  name: string;
+}
+
+interface ReleaseManifest {
+  version?: string;
+  releaseTrain?: string;
+  train?: string;
+  deployment?: Record<string, DeploymentTarget>;
+  previousManifestVersion?: string;
+}
+
+const count = (value: unknown): string => typeof value === "number" ? value.toLocaleString() : "Unknown";
+
 export default function OpsDeployments() {
-  const manifest = useItem<{
-    version?: string;
-    releaseTrain?: string;
-    train?: string;
-    deployment?: Record<string, DeploymentTarget>;
-    previousManifestVersion?: string;
-  }>("/platform/v1/releases/manifest");
-
-  const m = manifest.data ?? {};
-  const deployment = (m.deployment ?? {}) as Record<string, DeploymentTarget>;
-  const targets =
-    Object.keys(deployment).length > 0 ? Object.entries(deployment) : [];
-
-  const autoCount = targets.filter(
-    ([, t]) => t.auto_deploy === true,
-  ).length;
-
-  const stats: StatCardItem[] = [
-    { label: "Deployment targets", value: targets.length, icon: <CloudUpload size={18} /> },
-    { label: "Auto-deploy", value: autoCount, icon: <GitBranch size={18} /> },
-    {
-      label: "Release version",
-      value: m.version ?? m.releaseTrain ?? m.train ?? "—",
-      icon: <GitBranch size={18} />,
-    },
-  ];
-
-  if (manifest.loading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-        <Spinner size="md" />
-      </div>
-    );
-  }
+  const manifest = useItem<ReleaseManifest>("/platform/v1/releases/manifest");
+  const targets: DeploymentRow[] = Object.entries(manifest.data?.deployment ?? {}).map(([name, target]) => ({ name, ...target }));
+  const autoCount = targets.filter((target) => target.auto_deploy === true).length;
+  const approvalCount = targets.filter((target) => target.requires_human_approval === true).length;
+  const version = manifest.data?.version ?? manifest.data?.releaseTrain ?? manifest.data?.train;
 
   return (
     <DomainShell
       domainId="ops"
       title="Deployments"
-      description="Where the release train is deployed: deploy gates, approvals and rollback pointers."
+      description="Release targets, approval gates and rollback references declared by the release manifest."
+      actions={<Button variant="outline" size="sm" disabled={manifest.loading} onClick={() => void manifest.reload()}><RefreshCw size={14} aria-hidden="true" />Refresh manifest</Button>}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <StatCardRow stats={stats} columns={3} />
-        <Card padding="md">
-          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-            Deployment targets
-          </h3>
-          {manifest.error ? (
-            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-              {manifest.error.message}
-            </p>
-          ) : manifest.data === null || targets.length === 0 ? (
-            <EmptyState
-              title="No deployment targets"
-              description="The release manifest did not declare any deployment targets."
+      <div className={styles.container}>
+        <section className={styles.summaryStrip} aria-label="Deployment summary">
+          <div className={styles.summaryItem}><span>Targets declared</span><strong>{manifest.error || manifest.loading ? "Unknown" : count(targets.length)}</strong></div>
+          <div className={styles.summaryItem}><span>Automatic</span><strong>{manifest.error || manifest.loading ? "Unknown" : count(autoCount)}</strong></div>
+          <div className={styles.summaryItem}><span>Approval-gated</span><strong>{manifest.error || manifest.loading ? "Unknown" : count(approvalCount)}</strong></div>
+          <div className={styles.summaryItem}><span>Release version</span><strong>{manifest.error || manifest.loading ? "Unknown" : String(version ?? "Not reported")}</strong></div>
+        </section>
+
+        <section className={styles.workspacePanel} aria-labelledby="deployment-targets-heading">
+          <div className={styles.panelHeader}>
+            <div><h2 id="deployment-targets-heading">Deployment targets</h2><p>Policy and recovery reference for each environment.</p></div>
+            {manifest.data?.previousManifestVersion && <span className={styles.panelMeta}>Previous {manifest.data.previousManifestVersion}</span>}
+          </div>
+          <div className={styles.panelBody}>
+            <DataWorkspace<DeploymentRow>
+              data={targets} loading={manifest.loading} getRowId={(row) => row.name}
+              searchPlaceholder="Search targets or gates…"
+              error={manifest.error ? <p role="alert" className={styles.sourceError}>{manifest.error.message}</p> : undefined}
+              emptyTitle={manifest.error ? "Release manifest unavailable" : "No deployment targets declared"}
+              emptyDescription="The current release manifest did not declare deployment targets."
+              columns={[
+                { key: "name", header: "Environment", render: (value) => <span className={styles.recordTitle}>{String(value)}</span> },
+                { key: "gate", header: "Gate", render: (value) => String(value ?? "Not reported") },
+                { key: "auto_deploy", header: "Deployment", render: (value) => <Badge variant={value === true ? "info" : "default"}>{value === true ? "AUTOMATIC" : value === false ? "MANUAL" : "UNKNOWN"}</Badge> },
+                { key: "requires_human_approval", header: "Approval", render: (value) => <Badge variant={value === true ? "warning" : "default"}>{value === true ? "REQUIRED" : value === false ? "NOT REQUIRED" : "UNKNOWN"}</Badge> },
+                { key: "rollback_sha", header: "Rollback revision", render: (value) => typeof value === "string" && value ? value.slice(0, 12) : "Not reported" },
+              ]}
             />
-          ) : (
-            <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-              {targets.map(([name, t]) => (
-                <li
-                  key={name}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "var(--space-2) 0",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  <span style={{ fontWeight: 500 }}>{name}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                      gate: {t.gate ?? "—"}
-                    </span>
-                    <Badge variant={t.auto_deploy === true ? "info" : "warning"}>
-                      {t.auto_deploy === true ? "auto-deploy" : "manual"}
-                    </Badge>
-                    {t.requires_human_approval === true && (
-                      <Badge variant="danger">human approval required</Badge>
-                    )}
-                    {t.rollback_sha && (
-                      <Badge variant="default">rb: {String(t.rollback_sha).slice(0, 8)}</Badge>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+          </div>
+        </section>
       </div>
     </DomainShell>
   );

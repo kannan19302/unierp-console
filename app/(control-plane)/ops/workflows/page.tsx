@@ -1,21 +1,11 @@
 "use client";
-/**
- * Ops — Workflows.
- *
- * Platform workflows from the workflows API: definition, current status and
- * the ability to trace runs. Real reads with honest states.
- */
-import { GitBranch, Play, Square, Terminal } from "lucide-react";
-import {
-  Badge,
-  Card,
-  EmptyState,
-  Spinner,
-  StatCardRow,
-  type StatCardItem,
-} from "@kannan19302/ui";
-import { useList } from "@/lib/data";
+
+import { Badge, Button } from "@kannan19302/ui";
+import { DataWorkspace } from "@kannan19302/ui/shell";
+import { RefreshCw } from "lucide-react";
 import DomainShell from "@/components/domain-shell";
+import { useList } from "@/lib/data";
+import styles from "../record-workspace.module.css";
 
 interface WorkflowRow {
   id?: string;
@@ -28,84 +18,63 @@ interface WorkflowRow {
   runs?: { total?: number; active?: number; completed?: number; failed?: number };
 }
 
-function statusVariant(status: string | null | undefined) {
-  const s = (status ?? "").toUpperCase();
-  if (s === "SUCCESS" || s === "COMPLETED" || s === "PASSED") return "success";
-  if (s === "RUNNING" || s === "IN_PROGRESS" || s === "PENDING") return "warning";
-  if (s === "FAILED" || s === "ERROR" || s === "CANCELLED") return "danger";
+function statusVariant(status: string | null | undefined): "success" | "warning" | "danger" | "default" {
+  const normalized = status?.toUpperCase() ?? "";
+  if (normalized === "SUCCESS" || normalized === "COMPLETED" || normalized === "PASSED") return "success";
+  if (normalized === "RUNNING" || normalized === "IN_PROGRESS" || normalized === "PENDING") return "warning";
+  if (normalized === "FAILED" || normalized === "ERROR" || normalized === "CANCELLED") return "danger";
   return "default";
 }
 
+const formatTime = (value: unknown): string => {
+  if (typeof value !== "string" || !value) return "Never reported";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Invalid timestamp" : date.toLocaleString();
+};
+
+const count = (value: unknown): string => typeof value === "number" ? value.toLocaleString() : "Unknown";
+
 export default function OpsWorkflows() {
   const workflows = useList<WorkflowRow>({ path: "/platform/v1/workflows" });
-
-  const enabledCount = workflows.data.filter((w) => w.enabled).length;
-  const runningCount = workflows.data.filter((w) => {
-    const s = (w.lastRun ?? "").toUpperCase();
-    return s === "RUNNING" || s === "IN_PROGRESS";
-  }).length;
-
-  const stats: StatCardItem[] = [
-    { label: "Workflows", value: workflows.data.length, icon: <GitBranch size={18} /> },
-    { label: "Enabled", value: enabledCount, icon: <Play size={18} /> },
-    { label: "Running", value: runningCount, icon: <Terminal size={18} /> },
-  ];
-
-  if (workflows.loading) {
-    return (
-      <DomainShell domainId="ops" title="Workflows">
-        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-          <Spinner size="lg" />
-        </div>
-      </DomainShell>
-    );
-  }
+  const enabledCount = workflows.data.filter((workflow) => workflow.enabled === true).length;
+  const runningCount = workflows.data.filter((workflow) => ["RUNNING", "IN_PROGRESS"].includes(workflow.lastStatus?.toUpperCase() ?? "")).length;
+  const failedCount = workflows.data.filter((workflow) => ["FAILED", "ERROR"].includes(workflow.lastStatus?.toUpperCase() ?? "")).length;
 
   return (
     <DomainShell
       domainId="ops"
       title="Workflows"
-      description="Platform workflows and their execution state."
+      description="Registered platform workflows and the latest execution state reported for each definition."
+      actions={<Button variant="outline" size="sm" disabled={workflows.loading} onClick={() => void workflows.reload()}><RefreshCw size={14} aria-hidden="true" />Refresh workflows</Button>}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <StatCardRow stats={stats} columns={4} />
+      <div className={styles.container}>
+        <section className={styles.summaryStrip} aria-label="Workflow summary">
+          <div className={styles.summaryItem}><span>Definitions reported</span><strong>{workflows.error || workflows.loading ? "Unknown" : count(workflows.data.length)}</strong></div>
+          <div className={styles.summaryItem}><span>Enabled</span><strong>{workflows.error || workflows.loading ? "Unknown" : count(enabledCount)}</strong></div>
+          <div className={styles.summaryItem}><span>Running</span><strong>{workflows.error || workflows.loading ? "Unknown" : count(runningCount)}</strong></div>
+          <div className={styles.summaryItem}><span>Failed</span><strong>{workflows.error || workflows.loading ? "Unknown" : count(failedCount)}</strong></div>
+        </section>
 
-        {workflows.error ? (
-          <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)", margin: 0 }}>
-            {workflows.error.message}
-          </p>
-        ) : workflows.data.length === 0 ? (
-          <EmptyState title="No workflows" description="The workflows endpoint returned no workflows." />
-        ) : (
-          <Card padding="md">
-            <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-              <GitBranch size={16} /> Workflows
-            </h3>
-            <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-              {workflows.data.map((w) => (
-                <li key={w.id ?? w.name ?? "?"} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
-                  <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                    <span style={{ fontWeight: 500 }}>{w.name ?? w.id ?? "—"}</span>
-                    {w.description && (
-                      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                        {w.description}
-                      </span>
-                    )}
-                  </div>
-                  <span style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                      trigger {w.trigger ?? "—"}
-                    </span>
-                    <Badge variant={w.enabled ? "success" : "default"}>
-                      {w.enabled ? "ENABLED" : "DISABLED"}
-                    </Badge>
-                    <Badge variant={statusVariant(w.lastRun)}>{w.lastRun ?? "NEVER RUN"}</Badge>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+        <section className={styles.workspacePanel} aria-labelledby="workflow-records-heading">
+          <div className={styles.panelHeader}><div><h2 id="workflow-records-heading">Workflow definitions</h2><p>Trigger configuration and latest observed execution.</p></div></div>
+          <div className={styles.panelBody}>
+            <DataWorkspace<WorkflowRow>
+              data={workflows.data} loading={workflows.loading} getRowId={(row, index) => row.id ?? row.name ?? `workflow-${index}`}
+              searchPlaceholder="Search workflows, triggers or status…"
+              error={workflows.error ? <p role="alert" className={styles.sourceError}>{workflows.error.message}</p> : undefined}
+              emptyTitle={workflows.error ? "Workflow source unavailable" : "No workflows reported"}
+              emptyDescription="Refresh after the workflow service reports registered definitions."
+              columns={[
+                { key: "name", header: "Workflow", render: (_value, row) => <><span className={styles.recordTitle}>{row.name ?? row.id ?? "Unnamed workflow"}</span>{row.description && <span className={styles.recordDetail}>{row.description}</span>}</> },
+                { key: "trigger", header: "Trigger", render: (value) => String(value ?? "Not reported") },
+                { key: "enabled", header: "Definition", render: (value) => <Badge variant={value === true ? "success" : value === false ? "default" : "default"}>{value === true ? "ENABLED" : value === false ? "DISABLED" : "UNKNOWN"}</Badge> },
+                { key: "lastStatus", header: "Latest status", render: (value) => <Badge variant={statusVariant(typeof value === "string" ? value : undefined)}>{String(value ?? "UNKNOWN")}</Badge> },
+                { key: "lastRun", header: "Last run", render: formatTime },
+                { key: "runs", header: "Runs", align: "right", render: (_value, row) => count(row.runs?.total) },
+              ]}
+            />
+          </div>
+        </section>
       </div>
     </DomainShell>
   );

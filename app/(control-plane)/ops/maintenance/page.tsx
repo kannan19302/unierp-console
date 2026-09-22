@@ -1,20 +1,11 @@
 "use client";
-/**
- * Ops → Maintenance.
- * Scheduled and broadcast maintenance windows from the real
- * /platform/v1/broadcasts/windows endpoint.
- */
-import { CalendarClock, Wrench } from "lucide-react";
-import {
-  Badge,
-  Card,
-  EmptyState,
-  Spinner,
-  StatCardRow,
-  type StatCardItem,
-} from "@kannan19302/ui";
-import { useList } from "@/lib/data";
+
+import { Badge, Button } from "@kannan19302/ui";
+import { DataWorkspace } from "@kannan19302/ui/shell";
+import { RefreshCw } from "lucide-react";
 import DomainShell from "@/components/domain-shell";
+import { useList } from "@/lib/data";
+import styles from "../record-workspace.module.css";
 
 interface MaintenanceWindowRow {
   id?: string;
@@ -30,98 +21,61 @@ interface MaintenanceWindowRow {
 }
 
 function statusVariant(status?: string): "success" | "warning" | "danger" | "info" | "default" {
-  const s = status?.toUpperCase() ?? "";
-  if (s === "COMPLETED" || s === "CLOSED") return "success";
-  if (s === "SCHEDULED") return "info";
-  if (s === "ACTIVE" || s === "IN_PROGRESS") return "warning";
-  if (s === "CANCELLED") return "danger";
+  const normalized = status?.toUpperCase() ?? "";
+  if (normalized === "COMPLETED" || normalized === "CLOSED") return "success";
+  if (normalized === "SCHEDULED") return "info";
+  if (normalized === "ACTIVE" || normalized === "IN_PROGRESS") return "warning";
+  if (normalized === "CANCELLED") return "danger";
   return "default";
 }
 
+const formatTime = (value: unknown): string => {
+  if (typeof value !== "string" || !value) return "Not reported";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Invalid timestamp" : date.toLocaleString();
+};
+
+const count = (value: unknown): string => typeof value === "number" ? value.toLocaleString() : "Unknown";
+
 export default function OpsMaintenance() {
   const windows = useList<MaintenanceWindowRow>({ path: "/platform/v1/broadcasts/windows" });
-
-  const scheduled = windows.data.filter(
-    (w) => (w.status ?? "").toUpperCase() === "SCHEDULED" || (w.status ?? "").toUpperCase() === "ACTIVE",
-  ).length;
-
-  const stats: StatCardItem[] = [
-    { label: "Windows", value: windows.total ?? windows.data.length },
-    { label: "Scheduled/active", value: scheduled },
-  ];
-
-  if (windows.loading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-        <Spinner size="md" />
-      </div>
-    );
-  }
+  const statusCount = (statuses: string[]) => windows.data.filter((window) => statuses.includes(window.status?.toUpperCase() ?? "")).length;
 
   return (
     <DomainShell
       domainId="ops"
       title="Maintenance"
-      description="Maintenance windows broadcast to clusters and tenants."
+      description="Scheduled provider maintenance and the audience receiving each service notice."
+      actions={<Button variant="outline" size="sm" disabled={windows.loading} onClick={() => void windows.reload()}><RefreshCw size={14} aria-hidden="true" />Refresh windows</Button>}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        <StatCardRow stats={stats} columns={2} />
-        <Card padding="md">
-          <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600 }}>
-            Maintenance windows
-          </h3>
-          {windows.error ? (
-            <p style={{ color: "var(--color-danger)", fontSize: "var(--text-sm)" }}>
-              {windows.error.message}
-            </p>
-          ) : windows.data.length === 0 ? (
-            <EmptyState title="No maintenance windows" description="The broadcasts/windows endpoint returned no windows." />
-          ) : (
-            <ul style={{ listStyle: "none", margin: "var(--space-3) 0 0", padding: 0, display: "flex", flexDirection: "column" }}>
-              {windows.data.slice(0, 50).map((w) => (
-                <li
-                  key={w.id ?? w.title}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--space-1)",
-                    padding: "var(--space-2) 0",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontWeight: 500 }}>
-                      <Wrench size={14} /> {w.title ?? w.id}
-                    </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                      <Badge variant={statusVariant(w.status)}>{w.status ?? "UNKNOWN"}</Badge>
-                    </span>
-                  </div>
-                  {w.description && (
-                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)" }}>
-                      {w.description}
-                    </span>
-                  )}
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-xs)", color: "var(--color-text-muted)" }}>
-                    <CalendarClock size={12} />
-                    {w.scheduledStart && <span>{formatTime(w.scheduledStart)}</span>}
-                    {w.scheduledEnd && <span>→ {formatTime(w.scheduledEnd)}</span>}
-                    {w.tenantId && <span>· {w.tenantId}</span>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+      <div className={styles.container}>
+        <section className={styles.summaryStrip} aria-label="Maintenance summary">
+          <div className={styles.summaryItem}><span>Windows reported</span><strong>{windows.error || windows.loading ? "Unknown" : count(windows.total ?? windows.data.length)}</strong></div>
+          <div className={styles.summaryItem}><span>Scheduled</span><strong>{windows.error || windows.loading ? "Unknown" : count(statusCount(["SCHEDULED"]))}</strong></div>
+          <div className={styles.summaryItem}><span>Active</span><strong>{windows.error || windows.loading ? "Unknown" : count(statusCount(["ACTIVE", "IN_PROGRESS"]))}</strong></div>
+          <div className={styles.summaryItem}><span>Completed</span><strong>{windows.error || windows.loading ? "Unknown" : count(statusCount(["COMPLETED", "CLOSED"]))}</strong></div>
+        </section>
+
+        <section className={styles.workspacePanel} aria-labelledby="maintenance-records-heading">
+          <div className={styles.panelHeader}><div><h2 id="maintenance-records-heading">Maintenance windows</h2><p>Timing, status and tenant scope reported by the broadcasts service.</p></div></div>
+          <div className={styles.panelBody}>
+            <DataWorkspace<MaintenanceWindowRow>
+              data={windows.data} loading={windows.loading} getRowId={(row, index) => row.id ?? row.title ?? `window-${index}`}
+              searchPlaceholder="Search maintenance windows…"
+              error={windows.error ? <p role="alert" className={styles.sourceError}>{windows.error.message}</p> : undefined}
+              emptyTitle={windows.error ? "Maintenance source unavailable" : "No maintenance windows reported"}
+              emptyDescription="No maintenance windows were returned by the broadcasts service."
+              columns={[
+                { key: "title", header: "Window", render: (_value, row) => <><span className={styles.recordTitle}>{row.title ?? row.id ?? "Untitled window"}</span>{(row.description ?? row.message) && <span className={styles.recordDetail}>{row.description ?? row.message}</span>}</> },
+                { key: "status", header: "Status", render: (value) => <Badge variant={statusVariant(typeof value === "string" ? value : undefined)}>{String(value ?? "UNKNOWN")}</Badge> },
+                { key: "scheduledStart", header: "Starts", render: formatTime },
+                { key: "scheduledEnd", header: "Ends", render: formatTime },
+                { key: "tenantId", header: "Audience", render: (value) => typeof value === "string" && value ? value : "Provider estate" },
+              ]}
+            />
+          </div>
+        </section>
       </div>
     </DomainShell>
   );
-}
-
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
 }
