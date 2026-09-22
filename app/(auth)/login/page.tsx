@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@kannan19302/shared/auth-client/react";
 import { Shield, Lock, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
@@ -19,7 +19,7 @@ function setCookie(name: string, value: string, days = 7): void {
   document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Expires=${expires}; SameSite=Lax`;
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") || searchParams.get("return_to") || "/home";
@@ -203,5 +203,13 @@ export default function LoginPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className={styles.container} aria-busy="true" aria-label="Loading sign in" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

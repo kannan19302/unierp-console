@@ -32,6 +32,7 @@ export default function ProvisionTenantPage() {
     ownerEmail: "",
     justification: ""
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const provision = useMutation(async (data: typeof formData) => {
     const slug = data.name.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
@@ -54,8 +55,6 @@ export default function ProvisionTenantPage() {
       </DomainShell>
     );
   }
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};

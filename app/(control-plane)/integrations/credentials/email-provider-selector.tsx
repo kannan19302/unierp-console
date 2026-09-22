@@ -240,7 +240,7 @@ export function EmailProviderSelector({
         <div style={{ display: "flex", alignItems: "flex-end", gap: "var(--space-4)", flexWrap: "wrap", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border, #f1f5f9)" }}>
           <div style={{ flex: "1 1 18rem" }}>
             <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-text-primary)", display: "block", marginBottom: "var(--space-1, 4px)" }}>
-              Default "From" Address
+              Default &quot;From&quot; Address
             </label>
             <input
               type="email"
