@@ -64,17 +64,19 @@ export default function SecurityOverview() {
 
   const openAlerts = alerts.data.filter((a) => !a.isDismissed).length;
   const unreadAlerts = alerts.data.filter((a) => !a.isRead).length;
-  const rotationsTotal =
-    Number(keyRotations.total) || keyRotations.data.length;
-  const isolationTotal =
-    Number(isolationPolicies.total) || isolationPolicies.data.length;
-  const auditTotal = Number(auditEvents.total) || auditEvents.data.length;
+  const rotationsTotal = typeof keyRotations.total === "number" ? keyRotations.total : keyRotations.data.length;
+  const isolationTotal = typeof isolationPolicies.total === "number" ? isolationPolicies.total : isolationPolicies.data.length;
+  const auditTotal = typeof auditEvents.total === "number" ? auditEvents.total : auditEvents.data.length;
+  const alertsUnknown = alerts.loading || Boolean(alerts.error);
+  const rotationsUnknown = keyRotations.loading || Boolean(keyRotations.error);
+  const isolationUnknown = isolationPolicies.loading || Boolean(isolationPolicies.error);
+  const auditUnknown = auditEvents.loading || Boolean(auditEvents.error);
 
   const stats: StatCardItem[] = [
-    { label: "Open alerts", value: openAlerts },
-    { label: "Key rotations", value: rotationsTotal },
-    { label: "Isolation policies", value: isolationTotal },
-    { label: "Audit events", value: auditTotal },
+    { label: "Open alerts", value: alertsUnknown ? "Unknown" : openAlerts },
+    { label: "Key rotations", value: rotationsUnknown ? "Unknown" : rotationsTotal },
+    { label: "Isolation policies", value: isolationUnknown ? "Unknown" : isolationTotal },
+    { label: "Audit events", value: auditUnknown ? "Unknown" : auditTotal },
   ];
 
   const loading =
@@ -130,7 +132,7 @@ export default function SecurityOverview() {
                       </div>
                     </div>
                     <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                      <Badge variant={severityVariant(a.severity)}>{a.severity ?? "WARNING"}</Badge>
+                      <Badge variant={severityVariant(a.severity)}>{a.severity ?? "UNKNOWN"}</Badge>
                       <Badge variant={a.isRead ? "default" : "info"}>{a.isRead ? "Read" : "New"}</Badge>
                     </span>
                   </li>
